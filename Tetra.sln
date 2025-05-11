@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{0E5D6716-5F0E-4568-BEEF-5A5F2DC884AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TetraCore", "TetraCore\TetraCore.csproj", "{990F2B56-1EE0-485B-A632-D6FB487365AE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0E5D6716-5F0E-4568-BEEF-5A5F2DC884AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E5D6716-5F0E-4568-BEEF-5A5F2DC884AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E5D6716-5F0E-4568-BEEF-5A5F2DC884AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E5D6716-5F0E-4568-BEEF-5A5F2DC884AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
