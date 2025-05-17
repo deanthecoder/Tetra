@@ -13,6 +13,10 @@ using System.Diagnostics;
 
 namespace TetraCore;
 
+/// <summary>
+/// Represents a typed operand in a Tetra instruction. Operands may be variable names, 
+/// constants (float or int), or label identifiers, and carry both raw and parsed forms.
+/// </summary>
 [DebuggerDisplay("{Type}: {Raw}")]
 public struct Operand
 {

@@ -9,7 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-namespace TetraCore;
+namespace TetraCore.Exceptions;
 
 public class SyntaxErrorException : Exception
 {

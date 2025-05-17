@@ -9,14 +9,20 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-using System.Diagnostics;
+using DTC.Core.Extensions;
 
 namespace TetraCore;
 
-[DebuggerDisplay("{OpCode}")]
-public struct Instruction
+/// <summary>
+/// Represents a single instruction in the Tetra virtual machine. 
+/// Each instruction includes its op code, operands, and the source line number it originated from.
+/// </summary>
+public readonly struct Instruction
 {
     public int LineNumber { get; init; }
     public OpCode OpCode { get; init; }
     public Operand[] Operands { get; init; }
+    
+    public override string ToString() =>
+        $"{LineNumber}: {OpCode} {Operands.Select(o => o.Raw).ToCsv()}";
 }

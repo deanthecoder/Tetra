@@ -10,6 +10,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using TetraCore;
+using TetraCore.Exceptions;
 using OpCode = TetraCore.OpCode;
 
 namespace UnitTests;
@@ -45,10 +46,11 @@ public class AssemblerTests
     [Test]
     public void ParseCodeWithComments()
     {
-        const string code = """
-                            # This is a comment
-                            ld $a, 1.0  # Another comment.
-                            """;
+        const string code =
+            """
+            # This is a comment
+            ld $a, 1.0  # Another comment.
+            """;
         var instructions = Assembler.Assemble(code);
 
         Assert.That(instructions, Has.Length.EqualTo(1));

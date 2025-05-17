@@ -9,8 +9,14 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using TetraCore.Exceptions;
+
 namespace TetraCore;
 
+/// <summary>
+/// Converts Tetra source code into a list of validated <see cref="Instruction"/> objects.
+/// Handles comment stripping, instruction parsing, operand typing, and basic syntax validation.
+/// </summary>
 public static class Assembler
 {
     public static Instruction[] Assemble(string code)

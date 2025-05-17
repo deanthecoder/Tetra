@@ -9,10 +9,11 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-namespace TetraCore;
+namespace TetraCore.Exceptions;
 
-public enum OpCode
+public class RuntimeException : Exception
 {
-    Ld,
-    Halt
+    public RuntimeException(string message) : base(message)
+    {
+    }
 }

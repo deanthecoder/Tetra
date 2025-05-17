@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\Unit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TetraCore", "TetraCore\TetraCore.csproj", "{990F2B56-1EE0-485B-A632-D6FB487365AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTC.Core", "DTC.Core\DTC.Core\DTC.Core.csproj", "{C8BD8786-35D1-4579-A8D2-67F78C5931F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{990F2B56-1EE0-485B-A632-D6FB487365AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
