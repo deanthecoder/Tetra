@@ -1,3 +1,4 @@
 [submodule "DTC.Core"]
 	path = DTC.Core
 	url = https://github.com/deanthecoder/DTC.Core.git
+	branch = develop
