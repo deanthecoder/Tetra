@@ -85,6 +85,20 @@ public class LdTests
     }
 
     [Test]
+    public void CheckOverwritingVariableWithDifferentType()
+    {
+        const string code =
+            """
+                ld $a, 1
+                ld $a, 2.3
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(2.3).Within(0.001));
+    }
+
+    [Test]
     public void CheckLoadingFromUndefinedVariableThrows()
     {
         const string code = "ld $a, $b";

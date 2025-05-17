@@ -20,9 +20,28 @@ namespace TetraCore;
 [DebuggerDisplay("{Type}: {Raw}")]
 public struct Operand
 {
+    /// <summary>
+    /// Gets the type of operand (e.g., variable, constant, label).
+    /// </summary>
     public OperandType Type { get; init; }
+
+    /// <summary>
+    /// Gets the raw text representation of the operand, as it appeared in the source.
+    /// </summary>
     public string Raw { get; init; }
+
+    /// <summary>
+    /// Gets the variable or label name (only applicable for operands of type Variable or Label).
+    /// </summary>
     public string Name { get; init; }
+
+    /// <summary>
+    /// Gets the float value if the operand is a float constant.
+    /// </summary>
     public float FloatValue { get; init; }
-    public int IntValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the integer value if the operand is an integer constant.
+    /// </summary>
+    public int IntValue { get; init; }
 }
