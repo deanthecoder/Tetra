@@ -30,4 +30,8 @@
         <Using Include="NUnit.Framework"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\TetraCore\TetraCore.csproj" />
+    </ItemGroup>
+
 </Project>
