@@ -227,6 +227,8 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+        else
+            m_ip++;
     }
     
     /// <summary>
@@ -254,6 +256,8 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+        else
+            m_ip++;
     }
     
     /// <summary>
@@ -282,6 +286,8 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+        else
+            m_ip++;
     }
     
     /// <summary>
@@ -310,6 +316,8 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+        else
+            m_ip++;
     }
     
     /// <summary>
@@ -338,6 +346,8 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+        else
+            m_ip++;
     }
     
     /// <summary>
@@ -366,6 +376,8 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+        else
+            m_ip++;
     }
 
     /// <summary>
