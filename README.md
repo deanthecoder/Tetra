@@ -25,40 +25,67 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 
 ---
 
+
 ## Instruction Set
+
+### 🔢 Arithmetic
+
+| Instruction     | Description |
+|-----------------|-------------|
+| `add $a, $b`    | `$a = $a + $b` |
+| `sub $a, $b`    | `$a = $a - $b` |
+| `mul $a, $b`    | `$a = $a * $b` |
+| `div $a, $b`    | `$a = $a / $b` |
+| `inc $a`        | `$a = $a + 1` |
+| `dec $a`        | `$a = $a - 1` |
+| `neg $a`        | `$a = -$a` (negate the value in `$a`) |
+
+### 🔄 Control Flow
 
 | Instruction              | Description |
 |--------------------------|-------------|
-| `add $a, $b`             | `$a = $a + $b` |
-| `dec $a`                 | `$a = $a - 1` |
-| `div $a, $b`             | `$a = $a / $b` |
-| `halt`                   | Stop execution |
-| `inc $a`                 | `$a = $a + 1` |
 | `jmp label`              | Unconditional jump |
 | `jmp_eq $a, $b, label`   | Jump if `$a == $b` |
-| `jmp_ge $a, $b, label`   | Jump if `$a >= $b` |
-| `jmp_gt $a, $b, label`   | Jump if `$a > $b` |
-| `jmp_le $a, $b, label`   | Jump if `$a <= $b` |
-| `jmp_lt $a, $b, label`   | Jump if `$a < $b` |
 | `jmp_ne $a, $b, label`   | Jump if `$a != $b` |
-| `ld $a, 1.0`             | Load constant into `$a` |
-| `ld $b, $a`              | Copy variable `$a` into `$b` |
-| `mul $a, $b`             | `$a = $a * $b` |
-| `neg $a`                 | `$a = -$a` (negate the value in `$a`) |
-| `print $a`               | Print the value of `$a` with line number |
-| `sub $a, $b`             | `$a = $a - $b` |
+| `jmp_lt $a, $b, label`   | Jump if `$a < $b` |
+| `jmp_le $a, $b, label`   | Jump if `$a <= $b` |
+| `jmp_gt $a, $b, label`   | Jump if `$a > $b` |
+| `jmp_ge $a, $b, label`   | Jump if `$a >= $b` |
+
+### 📦 Variables and Frames
+
+| Instruction         | Description |
+|----------------------|-------------|
+| `ld $a, 1.0`         | Load constant into `$a` |
+| `ld $b, $a`          | Copy variable `$a` into `$b` |
+| `push_frame`         | Push a new scope frame manually (used for block scoping) |
+| `pop_frame`          | Pop the current scope frame |
+
+### 🔁 Function Calls
+
+| Instruction      | Description |
+|------------------|-------------|
+| `call label`     | Call function at `label` (creates a new scope frame and pushes return address) |
+| `ret`            | Return from function (restores return address and previous scope) |
+| `ret $a`         | Return a value; sets `$retval` in the caller's scope |
+
+### 🐞 Debugging & Program Control
+
+| Instruction  | Description |
+|--------------|-------------|
+| `print $a`   | Print the value of `$a` with line number |
+| `halt`       | Stop execution |
 
 ---
 
 ## Example Tetra Program
 
-```tetra
+```
 ld $globalX, 1.0
 ld $globalY, 2.0
 jmp main
 
 main:
-    push_frame
     ld $i, 0
 
 loop:
@@ -68,7 +95,6 @@ loop:
     jmp loop
 
 end:
-    pop_frame
     halt
 ```
 
