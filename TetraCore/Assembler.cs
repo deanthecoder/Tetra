@@ -164,7 +164,12 @@ public static class Assembler
             new (OpCode.Print, [OperandType.Float]),
             new (OpCode.Print, [OperandType.Variable]),
             new (OpCode.PushFrame, []),
-            new (OpCode.PopFrame, [])
+            new (OpCode.PopFrame, []),
+            new (OpCode.Call, [OperandType.Label]),
+            new (OpCode.Ret, []),
+            new (OpCode.Ret, [OperandType.Int]),
+            new (OpCode.Ret, [OperandType.Float]),
+            new (OpCode.Ret, [OperandType.Variable]),
         };
 
         var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();
@@ -172,7 +177,7 @@ public static class Assembler
             throw new InvalidOperationException($"'{instr}': Unrecognized instruction."); // We need to add entry to the table.
         
         // Validate the number of operands.
-        if (instr.Operands.Length != matches[0].types.Length)
+        if (matches.All(o => o.types.Length != instr.Operands.Length))
             throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instr.OpCode}' expected {matches[0].types.Length} operands, but got {instr.Operands.Length}.");
         
         // Validate the operand types.

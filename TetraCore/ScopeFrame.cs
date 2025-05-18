@@ -30,6 +30,9 @@ public class ScopeFrame
     public bool IsDefined(string name) =>
         m_variables.ContainsKey(name) || (m_parent?.IsDefined(name) ?? false);
     
+    /// <summary>
+    /// Creates a new variable in this scope.
+    /// </summary>
     public void DefineVariable(string name, Operand value)
     {
         // The value being set must be constant.
@@ -39,6 +42,9 @@ public class ScopeFrame
         m_variables[name] = value;
     }
 
+    /// <summary>
+    /// Sets the value of an existing variable in this scope.
+    /// </summary>
     public void SetVariable(string name, Operand value)
     {
         if (!IsDefined(name))

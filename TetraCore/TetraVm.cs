@@ -23,14 +23,19 @@ namespace TetraCore;
 public class TetraVm
 {
     private readonly Instruction[] m_instructions;
-    private readonly Stack<ScopeFrame> m_frames = new();
+    private readonly Stack<ScopeFrame> m_frames = [];
+    private readonly Stack<int> m_callStack = [];
     private int m_ip;
 
-    public ScopeFrame CurrentFrame => m_frames.Peek();
+    private ScopeFrame CurrentFrame => m_frames.Peek();
+
+    public event EventHandler<string> OutputWritten; 
 
     public TetraVm(Instruction[] instructions)
     {
         m_instructions = instructions ?? throw new ArgumentNullException(nameof(instructions));
+        
+        OutputWritten += (_, message) => Console.WriteLine(message);
     }
     
     public Operand this[string variableName] => CurrentFrame.GetVariable(variableName);
@@ -55,10 +60,11 @@ public class TetraVm
         // Reset the VM.
         m_frames.Clear();
         m_frames.Push(new ScopeFrame()); // Global scope
+        m_callStack.Clear();
+        m_ip = 0;
 
         // Execute the instructions.
         var instructionExecutions = 0;
-        m_ip = 0;
         while (m_ip < m_instructions.Length)
         {
             var instr = m_instructions[m_ip];
@@ -95,6 +101,8 @@ public class TetraVm
             case OpCode.Print: ExecutePrint(instr); break;
             case OpCode.PushFrame: ExecutePushFrame(); break;
             case OpCode.PopFrame: ExecutePopFrame(instr); break;
+            case OpCode.Call: ExecuteCall(instr); break;
+            case OpCode.Ret: ExecuteRet(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction not supported: '{instr}'");
         }
@@ -124,7 +132,7 @@ public class TetraVm
         var variableName = variable.Name;
         var value = instr.Operands[1];
 
-        // If the value is a variable, get its value.
+        // If the operand is a variable, get its value.
         if (value.Type == OperandType.Variable)
             value = CurrentFrame.GetVariable(value.Name);
 
@@ -151,7 +159,7 @@ public class TetraVm
         var variableName = variable.Name;
         var value = instr.Operands[1];
         
-        // If the value is a variable, get its value.
+        // If the operand is a variable, get its value.
         if (value.Type == OperandType.Variable)
             value = CurrentFrame.GetVariable(value.Name);
 
@@ -427,7 +435,7 @@ public class TetraVm
         var a = instr.Operands[0];
         var b = instr.Operands[1];
 
-        // If the value is a variable, get its value.
+        // If the operand is a variable, get its value.
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
 
@@ -453,7 +461,7 @@ public class TetraVm
         var a = instr.Operands[0];
         var b = instr.Operands[1];
 
-        // If the value is a variable, get its value.
+        // If the operand is a variable, get its value.
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
         
@@ -485,7 +493,7 @@ public class TetraVm
     {
         var a = instr.Operands[0];
 
-        // If the value is a variable, get its value.
+        // If the operand is a variable, get its value.
         var toPrint = a;
         if (toPrint.Type == OperandType.Variable)
             toPrint = CurrentFrame.GetVariable(a.Name);
@@ -499,7 +507,7 @@ public class TetraVm
         else
             throw new RuntimeException($"'{instr}': Cannot print type '{toPrint.Type}'.");
 
-        Console.WriteLine(a.Type == OperandType.Variable ? $"{a.Name} = {s}" : s);
+        OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.Name} = {s}" : s);
         m_ip++;
     }
     
@@ -523,5 +531,49 @@ public class TetraVm
     {
         m_frames.Push(new ScopeFrame(CurrentFrame));
         m_ip++;       
+    }
+    
+    /// <summary>
+    /// Call a procedure (implicitly pushing a new scoped variable frame).
+    /// E.g. call label
+    /// </summary>
+    private void ExecuteCall(Instruction instr)
+    {
+        var label = instr.Operands[0];
+        if (label.Type != OperandType.Int)
+            throw new RuntimeException($"'{instr}': Integer operand expected.");
+        m_frames.Push(new ScopeFrame(CurrentFrame));
+        m_callStack.Push(m_ip + 1);
+        m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// Return from a procedure (implicitly popping the top-scoped variable frame).
+    /// E.g. ret
+    /// E.g. ret $a
+    /// E.g. ret 123
+    /// </summary>
+    private void ExecuteRet(Instruction instr)
+    {
+        if (m_callStack.Count == 0)
+            throw new RuntimeException($"'{instr}': No procedure to return to.");
+
+        Operand? a = instr.Operands.Length > 0 ? instr.Operands[0] : null;
+        if (a.HasValue)
+        {
+            // If the operand is a variable, get its value.       
+            if (a.Value.Type == OperandType.Variable)
+                a = CurrentFrame.GetVariable(a.Value.Name);
+        }
+        
+        // Pop the scoped variable frame.
+        m_frames.Pop();
+        
+        // Make the return value available to the caller.
+        if (a.HasValue)
+            CurrentFrame.DefineVariable("retval", a.Value);
+        
+        // Restore the IP.
+        m_ip = m_callStack.Pop();
     }
 }
