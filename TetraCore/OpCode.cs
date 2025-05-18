@@ -18,5 +18,12 @@ public enum OpCode
     Add,
     Sub,
     Inc,
-    Dec
+    Dec,
+    Jmp,
+    JmpEq,
+    JmpNe,
+    JmpLt,
+    JmpLe,
+    JmpGt,
+    JmpGe
 }

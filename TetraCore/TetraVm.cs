@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
 namespace TetraCore;
@@ -48,7 +49,6 @@ public class TetraVm
             var keepRunning = Execute(instr);
             if (!keepRunning)
                 break;
-            m_ip++;
             instructionExecutions++;
             
             if (instructionExecutions >= maxInstructionExecutions)
@@ -66,7 +66,13 @@ public class TetraVm
             case OpCode.Inc: ExecuteInc(instr); break;
             case OpCode.Dec: ExecuteDec(instr); break;
             case OpCode.Halt: return false;
-            
+            case OpCode.Jmp: ExecuteJmp(instr); break;
+            case OpCode.JmpEq: ExecuteJmpEq(instr); break;
+            case OpCode.JmpNe: ExecuteJmpNe(instr); break;
+            case OpCode.JmpLt: ExecuteJmpLt(instr); break;
+            case OpCode.JmpGt: ExecuteJmpGt(instr); break;
+            case OpCode.JmpLe: ExecuteJmpLe(instr); break;
+            case OpCode.JmpGe: ExecuteJmpGe(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction not supported: '{instr}'");
         }
@@ -83,6 +89,7 @@ public class TetraVm
         var value = instr.Operands[1];
         
         CurrentFrame.SetVariable(variable.Name, value);
+        m_ip++;
     }
 
     /// <summary>
@@ -109,6 +116,7 @@ public class TetraVm
             throw new RuntimeException($"'{instr}': Cannot add with {variable.Type} and {value.Type}.");
 
         CurrentFrame.SetVariable(variableName, result.Value);
+        m_ip++;
     }
 
     /// <summary>
@@ -135,6 +143,7 @@ public class TetraVm
             throw new RuntimeException($"'{instr}': Cannot subtract with {variable.Type} and {value.Type}.");
 
         CurrentFrame.SetVariable(variableName, result.Value);
+        m_ip++;
     }
     
     /// <summary>
@@ -154,6 +163,7 @@ public class TetraVm
         };
 
         CurrentFrame.SetVariable(variableName, result.Value);
+        m_ip++;
     }
     
     /// <summary>
@@ -173,5 +183,184 @@ public class TetraVm
         };
 
         CurrentFrame.SetVariable(variableName, result.Value);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// Unconditional jump.
+    /// E.g. jmp NN
+    /// </summary>
+    private void ExecuteJmp(Instruction instr)
+    {
+        var label = instr.Operands[0];
+        if (label.Type != OperandType.Int)
+            throw new RuntimeException($"'{instr}': Integer operand expected.");
+        m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// E.g. jmp_eq $a, $b, label
+    /// E.g. jmp_eq $a, 2, label
+    /// E.g. jmp_eq $a, 2.3, label
+    /// </summary>
+    private void ExecuteJmpEq(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        var label = instr.Operands[2];
+
+        var aValue = CurrentFrame.GetVariable(a.Name);
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        bool jump;
+        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
+            jump = aValue.AsFloat().IsApproximately(b.AsFloat());
+        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
+            jump = aValue.IntValue == b.IntValue;
+        else
+            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+        
+        if (jump)
+            m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// E.g. jmp_ne $a, $b, label
+    /// E.g. jmp_ne $a, 2, label
+    /// E.g. jmp_ne $a, 2.3, label
+    /// </summary>
+    private void ExecuteJmpNe(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        var label = instr.Operands[2];
+
+        var aValue = CurrentFrame.GetVariable(a.Name);
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        bool jump;
+        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
+            jump = !aValue.AsFloat().IsApproximately(b.AsFloat());
+        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
+            jump = aValue.IntValue != b.IntValue;
+        else
+            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+        
+        if (jump)
+            m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// Jump if a is less than b.
+    /// E.g. jmp_lt $a, $b, label
+    /// E.g. jmp_lt $a, 2, label
+    /// E.g. jmp_lt $a, 2.3, label
+    /// </summary>
+    private void ExecuteJmpLt(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        var label = instr.Operands[2];
+
+        var aValue = CurrentFrame.GetVariable(a.Name);
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        bool jump;
+        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
+            jump = aValue.AsFloat() < b.AsFloat();
+        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
+            jump = aValue.IntValue < b.IntValue;
+        else
+            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+        
+        if (jump)
+            m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// Jump if a is less than or equal to b.
+    /// E.g. jmp_le $a, $b, label
+    /// E.g. jmp_le $a, 2, label
+    /// E.g. jmp_le $a, 2.3, label
+    /// </summary>
+    private void ExecuteJmpLe(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        var label = instr.Operands[2];
+
+        var aValue = CurrentFrame.GetVariable(a.Name);
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        bool jump;
+        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
+            jump = aValue.AsFloat() <= b.AsFloat();
+        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
+            jump = aValue.IntValue <= b.IntValue;
+        else
+            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+        
+        if (jump)
+            m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// Jump if a is greater than b.
+    /// E.g. jmp_gt $a, $b, label
+    /// E.g. jmp_gt $a, 2, label
+    /// E.g. jmp_gt $a, 2.3, label
+    /// </summary>
+    private void ExecuteJmpGt(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        var label = instr.Operands[2];
+
+        var aValue = CurrentFrame.GetVariable(a.Name);
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        bool jump;
+        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
+            jump = aValue.AsFloat() > b.AsFloat();
+        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
+            jump = aValue.IntValue > b.IntValue;
+        else
+            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+        
+        if (jump)
+            m_ip = label.IntValue;
+    }
+    
+    /// <summary>
+    /// Jump if a is greater than or equal to b.
+    /// E.g. jmp_ge $a, $b, label
+    /// E.g. jmp_ge $a, 2, label
+    /// E.g. jmp_ge $a, 2.3, label
+    /// </summary>
+    private void ExecuteJmpGe(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        var label = instr.Operands[2];
+
+        var aValue = CurrentFrame.GetVariable(a.Name);
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        bool jump;
+        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
+            jump = aValue.AsFloat() >= b.AsFloat();
+        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
+            jump = aValue.IntValue >= b.IntValue;
+        else
+            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+        
+        if (jump)
+            m_ip = label.IntValue;
     }
 }

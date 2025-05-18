@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
 namespace TetraCore;
@@ -21,11 +22,22 @@ public static class Assembler
 {
     public static Instruction[] Assemble(string code)
     {
+        var labels = new Dictionary<string, int>();
+        
         if (code == null)
             throw new ArgumentNullException(nameof(code));
 
         var instructions = new List<Instruction>();
         var lines = code.Split('\n').Select(RemoveComments).ToArray();
+        
+        // First pass: Quickly find all labels.
+        var labelNames = lines.Where(o => o.EndsWith(':')).Select(o => o[..^1]).ToArray();
+        var duplicateLabels = labelNames.Where(o => labelNames.Count(n => n == o) > 1).ToArray();
+        if (duplicateLabels.Length > 0)
+            throw new SyntaxErrorException($"Error: Duplicate labels found: {duplicateLabels.ToCsv()}.");
+        labelNames.ForEach(o => labels[o] = -1);
+        
+        // Second pass: Compile the instructions.
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
             if (string.IsNullOrWhiteSpace(lines[lineIndex]))
@@ -38,11 +50,23 @@ public static class Assembler
                     .Select(o => o.Trim(','))
                     .ToArray();
             
+            // Have we found a label?
+            if (words[0].EndsWith(':'))
+            {
+                if (words.Length > 1)
+                    throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Label '{words[0]}' cannot have operands.");
+                var labelName = words[0][..^1];
+
+                var ip = instructions.Count;
+                labels[labelName] = ip;
+                continue;
+            }
+            
             // Find the OpCode.
             var opCode = GetOpCode(words[0], lineIndex);
                 
             // Find the operands.
-            var operands = words.Skip(1).Select(o => GetOperand(o, lineIndex)).ToArray();
+            var operands = words.Skip(1).Select(o => GetOperand(o, lineIndex, labels.Keys)).ToArray();
             
             // Build the instruction.
             var instruction = new Instruction
@@ -54,6 +78,22 @@ public static class Assembler
             ValidateInstruction(instruction, lineIndex);
             
             instructions.Add(instruction);
+        }
+        
+        // Third pass: Resolve labels.
+        foreach (var instr in instructions)
+        {
+            for (var j = 0; j < instr.Operands.Length; j++)
+            {
+                if (instr.Operands[j].Type != OperandType.Label)
+                    continue; // Instruction doesn't reference a label.
+                
+                // Replace the label with the actual value.
+                var labelName = instr.Operands[j].Name;
+                if (!labels.TryGetValue(labelName, out var labelIp))
+                    throw new SyntaxErrorException($"[Line {instr.LineNumber}] Error: Label '{labelName}' not found.");
+                instr.Operands[j] = new Operand(labelIp);
+            }
         }
         
         return instructions.ToArray();
@@ -72,6 +112,7 @@ public static class Assembler
             new (OpCode.Ld, [OperandType.Variable, OperandType.Variable]),
             new (OpCode.Ld, [OperandType.Variable, OperandType.Float]),
             new (OpCode.Ld, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Halt, []),
             new (OpCode.Add, [OperandType.Variable, OperandType.Int]),
             new (OpCode.Add, [OperandType.Variable, OperandType.Float]),
             new (OpCode.Add, [OperandType.Variable, OperandType.Variable]),
@@ -79,7 +120,26 @@ public static class Assembler
             new (OpCode.Sub, [OperandType.Variable, OperandType.Float]),
             new (OpCode.Sub, [OperandType.Variable, OperandType.Variable]),
             new (OpCode.Inc, [OperandType.Variable]),
-            new (OpCode.Dec, [OperandType.Variable])
+            new (OpCode.Dec, [OperandType.Variable]),
+            new (OpCode.Jmp, [OperandType.Label]),
+            new (OpCode.JmpEq, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
+            new (OpCode.JmpNe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
+            new (OpCode.JmpLt, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
+            new (OpCode.JmpLe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
+            new (OpCode.JmpGt, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
+            new (OpCode.JmpGe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
+            new (OpCode.JmpEq, [OperandType.Variable, OperandType.Int, OperandType.Label]),
+            new (OpCode.JmpNe, [OperandType.Variable, OperandType.Int, OperandType.Label]),
+            new (OpCode.JmpLt, [OperandType.Variable, OperandType.Int, OperandType.Label]),
+            new (OpCode.JmpLe, [OperandType.Variable, OperandType.Int, OperandType.Label]),
+            new (OpCode.JmpGt, [OperandType.Variable, OperandType.Int, OperandType.Label]),
+            new (OpCode.JmpGe, [OperandType.Variable, OperandType.Int, OperandType.Label]),
+            new (OpCode.JmpEq, [OperandType.Variable, OperandType.Float, OperandType.Label]),
+            new (OpCode.JmpNe, [OperandType.Variable, OperandType.Float, OperandType.Label]),
+            new (OpCode.JmpLt, [OperandType.Variable, OperandType.Float, OperandType.Label]),
+            new (OpCode.JmpLe, [OperandType.Variable, OperandType.Float, OperandType.Label]),
+            new (OpCode.JmpGt, [OperandType.Variable, OperandType.Float, OperandType.Label]),
+            new (OpCode.JmpGe, [OperandType.Variable, OperandType.Float, OperandType.Label])
         };
 
         var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();
@@ -99,18 +159,13 @@ public static class Assembler
 
     private static OpCode GetOpCode(string word, int lineIndex)
     {
-        return word switch
-        {
-            "ld" => OpCode.Ld,
-            "add" => OpCode.Add,
-            "sub" => OpCode.Sub,
-            "inc" => OpCode.Inc,
-            "dec" => OpCode.Dec,
-            _ => throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Unrecognized instruction '{word}'")
-        };
+        var opCode = OpCodeToStringMap.GetOpCode(word);
+        if (!opCode.HasValue)
+            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Unrecognized instruction '{word}'");
+        return opCode.Value;
     }
     
-    private static Operand GetOperand(string word, int lineIndex)
+    private static Operand GetOperand(string word, int lineIndex, IEnumerable<string> labels)
     {
         if (word.StartsWith('$'))
         {
@@ -123,14 +178,14 @@ public static class Assembler
             };
         }
 
-        if (word.EndsWith(':'))
+        if (labels.Contains(word))
         {
             // Label.
             return new Operand
             {
                 Type = OperandType.Label,
                 Raw = word,
-                Name = word[..^1]
+                Name = word
             };
         }
 
