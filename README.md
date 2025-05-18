@@ -25,27 +25,28 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 
 ---
 
-## Instruction Set (Initial Subset)
+## Instruction Set
 
-| Instruction     | Description |
-|-----------------|-------------|
-| `ld $a, 1.0`     | Load constant into `$a` |
-| `ld $b, $a`      | Copy variable `$a` into `$b` |
-| `add $a, $b`     | `$a = $a + $b` |
-| `sub $a, $b`     | `$a = $a - $b` |
-| `inc $a`         | `$a = $a + 1` |
-| `dec $a`         | `$a = $a - 1` |
-| `jmp label`      | Unconditional jump |
-| `jmp_ne $a, $b, label` | Jump if `$a != $b` |
-| `jmp_ge $a, $b, label` | Jump if `$a >= $b` |
-| `call func`      | Call subroutine at `func:` |
-| `ret`            | Return from function |
-| `push_frame`     | Start new variable scope |
-| `pop_frame`      | Exit current variable scope |
-| `print $a`       | Print the value of `$a` with line number |
-| `halt`           | Stop execution |
-| `convi $a`        | Convert `$a` from float to int (truncates) |
-| `convf $a`        | Convert `$a` from int to float             |
+| Instruction              | Description |
+|--------------------------|-------------|
+| `add $a, $b`             | `$a = $a + $b` |
+| `dec $a`                 | `$a = $a - 1` |
+| `div $a, $b`             | `$a = $a / $b` |
+| `halt`                   | Stop execution |
+| `inc $a`                 | `$a = $a + 1` |
+| `jmp label`              | Unconditional jump |
+| `jmp_eq $a, $b, label`   | Jump if `$a == $b` |
+| `jmp_ge $a, $b, label`   | Jump if `$a >= $b` |
+| `jmp_gt $a, $b, label`   | Jump if `$a > $b` |
+| `jmp_le $a, $b, label`   | Jump if `$a <= $b` |
+| `jmp_lt $a, $b, label`   | Jump if `$a < $b` |
+| `jmp_ne $a, $b, label`   | Jump if `$a != $b` |
+| `ld $a, 1.0`             | Load constant into `$a` |
+| `ld $b, $a`              | Copy variable `$a` into `$b` |
+| `mul $a, $b`             | `$a = $a * $b` |
+| `neg $a`                 | `$a = -$a` (negate the value in `$a`) |
+| `print $a`               | Print the value of `$a` with line number |
+| `sub $a, $b`             | `$a = $a - $b` |
 
 ---
 
@@ -79,7 +80,6 @@ end:
 - GLSL-to-Tetra compiler frontend
 - Function parameters and `out` values
 - Optimizer pass (e.g. removing unnecessary frame pushes)
-- Debug trace mode with full source context
 
 ---
 
