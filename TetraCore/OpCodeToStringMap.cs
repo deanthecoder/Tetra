@@ -31,7 +31,9 @@ public static class OpCodeToStringMap
         ("jmp_le", OpCode.JmpLe),
         ("jmp_gt", OpCode.JmpGt),
         ("jmp_ge", OpCode.JmpGe),
-        ("print", OpCode.Print)
+        ("print", OpCode.Print),
+        ("push_frame", OpCode.PushFrame),
+        ("pop_frame", OpCode.PopFrame)
     };
 
     static OpCodeToStringMap()

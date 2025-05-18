@@ -19,24 +19,54 @@ namespace TetraCore;
 /// </summary>
 public class ScopeFrame
 {
+    private readonly ScopeFrame m_parent;
     private readonly Dictionary<string, Operand> m_variables = [];
+
+    public ScopeFrame(ScopeFrame parent = null)
+    {
+        m_parent = parent;
+    }
     
     public bool IsDefined(string name) =>
-        m_variables.ContainsKey(name);
+        m_variables.ContainsKey(name) || (m_parent?.IsDefined(name) ?? false);
     
-    public void SetVariable(string name, Operand value)
+    public void DefineVariable(string name, Operand value)
     {
-        if (name == value.Name)
-            throw new RuntimeException($"Cannot assign variable '{name}' to itself.");
+        // The value being set must be constant.
         if (value.Type == OperandType.Variable)
             value = GetVariable(value.Name);
+
+        m_variables[name] = value;
+    }
+
+    public void SetVariable(string name, Operand value)
+    {
+        if (!IsDefined(name))
+            throw new RuntimeException($"Variable '{name}' is undefined.");
+        if (name == value.Name)
+            throw new RuntimeException($"Cannot assign variable '{name}' to itself.");
+
+        // The value being set must be constant.
+        if (value.Type == OperandType.Variable)
+            value = GetVariable(value.Name);
+
+        // If variable is set in a parent scope, we need to set it there.
+        if (!m_variables.ContainsKey(name))
+        {
+            m_parent.SetVariable(name, value);
+            return;
+        }
+        
+        // Otherwise, we set the variable in this scope.
         m_variables[name] = value;
     }
 
     public Operand GetVariable(string name)
     {
-        if (!m_variables.TryGetValue(name, out var variable))
+        if (!IsDefined(name))
             throw new RuntimeException($"Variable '{name}' not found in scope.");
+        if (!m_variables.TryGetValue(name, out var variable))
+            variable = m_parent.GetVariable(name);
         return variable;
     }
 }

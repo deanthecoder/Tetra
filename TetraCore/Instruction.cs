@@ -24,5 +24,5 @@ public readonly struct Instruction
     public Operand[] Operands { get; init; }
     
     public override string ToString() =>
-        $"{LineNumber}: {OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.Raw).ToCsv()}";
+        $"{LineNumber}: {OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.Raw).ToCsv()}".TrimEnd();
 }

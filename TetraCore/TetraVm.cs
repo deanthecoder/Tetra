@@ -37,6 +37,19 @@ public class TetraVm
 
     public void Run()
     {
+        try
+        {
+            RunImpl();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            throw;
+        }
+    }
+    
+    private void RunImpl()
+    {
         const int maxInstructionExecutions = 10_000;
 
         // Reset the VM.
@@ -80,6 +93,8 @@ public class TetraVm
             case OpCode.JmpLe: ExecuteJmpLe(instr); break;
             case OpCode.JmpGe: ExecuteJmpGe(instr); break;
             case OpCode.Print: ExecutePrint(instr); break;
+            case OpCode.PushFrame: ExecutePushFrame(); break;
+            case OpCode.PopFrame: ExecutePopFrame(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction not supported: '{instr}'");
         }
@@ -95,7 +110,7 @@ public class TetraVm
         var variable = instr.Operands[0];
         var value = instr.Operands[1];
         
-        CurrentFrame.SetVariable(variable.Name, value);
+        CurrentFrame.DefineVariable(variable.Name, value);
         m_ip++;
     }
 
@@ -486,5 +501,27 @@ public class TetraVm
 
         Console.WriteLine(a.Type == OperandType.Variable ? $"{a.Name} = {s}" : s);
         m_ip++;
+    }
+    
+    /// <summary>
+    /// Pops the top-scoped variable frame from the stack.
+    /// E.g. pop_frame
+    /// </summary>
+    private void ExecutePopFrame(Instruction instr)
+    {
+        if (m_frames.Count == 1)
+            throw new RuntimeException($"'{instr}': Cannot pop the last remaining frame.");
+        m_frames.Pop();
+        m_ip++;       
+    }
+
+    /// <summary>
+    /// Pushes a new scoped variable frame onto the stack.
+    /// E.g. push_frame
+    /// </summary>
+    private void ExecutePushFrame()
+    {
+        m_frames.Push(new ScopeFrame(CurrentFrame));
+        m_ip++;       
     }
 }

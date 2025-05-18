@@ -30,10 +30,17 @@ public class ScopeFrameTests
     }
 
     [Test]
+    public void CheckSettingUndefinedVariableThrows()
+    {
+        var operand = new Operand { Type = OperandType.Int, IntValue = 23 };
+        Assert.That(() => m_scopeFrame.SetVariable("test", operand), Throws.TypeOf<RuntimeException>());   
+    }
+
+    [Test]
     public void CheckSettingVariable()
     {
         var operand = new Operand { Type = OperandType.Int, IntValue = 23 };
-        m_scopeFrame.SetVariable("test", operand);
+        m_scopeFrame.DefineVariable("test", operand);
         
         Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Int));
         Assert.That(m_scopeFrame.GetVariable("test").IntValue, Is.EqualTo(23));
@@ -43,7 +50,7 @@ public class ScopeFrameTests
     public void CheckOverwritingVariable()
     {
         var operand1 = new Operand { Type = OperandType.Int, IntValue = 23 };
-        m_scopeFrame.SetVariable("test", operand1);
+        m_scopeFrame.DefineVariable("test", operand1);
         
         var operand2 = new Operand { Type = OperandType.Int, IntValue = 42 };
         m_scopeFrame.SetVariable("test", operand2);
@@ -62,8 +69,19 @@ public class ScopeFrameTests
     public void CheckQueryingExistingVariable()
     {
         var operand = new Operand { Type = OperandType.Int, IntValue = 23 };
-        m_scopeFrame.SetVariable("test", operand);
+        m_scopeFrame.DefineVariable("test", operand);
         
         Assert.That(m_scopeFrame.IsDefined("test"), Is.True);
+    }
+
+    [Test]
+    public void CheckQueryingExistingVariableInParentScope()
+    {
+        var operand = new Operand { Type = OperandType.Int, IntValue = 23 };
+        m_scopeFrame.DefineVariable("test", operand);
+        var localScopeFrame = new ScopeFrame(m_scopeFrame);
+        
+        Assert.That(localScopeFrame.IsDefined("test"), Is.True);
+        Assert.That(localScopeFrame.GetVariable("test").IntValue, Is.EqualTo(23));
     }
 }

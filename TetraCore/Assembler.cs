@@ -22,6 +22,19 @@ public static class Assembler
 {
     public static Instruction[] Assemble(string code)
     {
+        try
+        {
+            return AssembleImpl(code);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            throw;
+        }
+    }
+    
+    private static Instruction[] AssembleImpl(string code)
+    {
         var labels = new Dictionary<string, int>();
         
         if (code == null)
@@ -149,7 +162,9 @@ public static class Assembler
             new (OpCode.JmpGe, [OperandType.Variable, OperandType.Float, OperandType.Label]),
             new (OpCode.Print, [OperandType.Int]),
             new (OpCode.Print, [OperandType.Float]),
-            new (OpCode.Print, [OperandType.Variable])
+            new (OpCode.Print, [OperandType.Variable]),
+            new (OpCode.PushFrame, []),
+            new (OpCode.PopFrame, [])
         };
 
         var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();

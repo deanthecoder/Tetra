@@ -29,5 +29,7 @@ public enum OpCode
     JmpLe,
     JmpGt,
     JmpGe,
-    Print
+    Print,
+    PushFrame,
+    PopFrame
 }
