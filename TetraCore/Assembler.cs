@@ -109,9 +109,9 @@ public static class Assembler
     {
         var expectedValues = new (OpCode opCode, OperandType[] types)[] 
         {
-            new (OpCode.Ld, [OperandType.Variable, OperandType.Variable]),
-            new (OpCode.Ld, [OperandType.Variable, OperandType.Float]),
             new (OpCode.Ld, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Ld, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Ld, [OperandType.Variable, OperandType.Variable]),
             new (OpCode.Halt, []),
             new (OpCode.Add, [OperandType.Variable, OperandType.Int]),
             new (OpCode.Add, [OperandType.Variable, OperandType.Float]),
@@ -119,6 +119,12 @@ public static class Assembler
             new (OpCode.Sub, [OperandType.Variable, OperandType.Int]),
             new (OpCode.Sub, [OperandType.Variable, OperandType.Float]),
             new (OpCode.Sub, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Mul, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Mul, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Mul, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Div, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Div, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Div, [OperandType.Variable, OperandType.Variable]),
             new (OpCode.Inc, [OperandType.Variable]),
             new (OpCode.Dec, [OperandType.Variable]),
             new (OpCode.Jmp, [OperandType.Label]),
@@ -139,7 +145,10 @@ public static class Assembler
             new (OpCode.JmpLt, [OperandType.Variable, OperandType.Float, OperandType.Label]),
             new (OpCode.JmpLe, [OperandType.Variable, OperandType.Float, OperandType.Label]),
             new (OpCode.JmpGt, [OperandType.Variable, OperandType.Float, OperandType.Label]),
-            new (OpCode.JmpGe, [OperandType.Variable, OperandType.Float, OperandType.Label])
+            new (OpCode.JmpGe, [OperandType.Variable, OperandType.Float, OperandType.Label]),
+            new (OpCode.Print, [OperandType.Int]),
+            new (OpCode.Print, [OperandType.Float]),
+            new (OpCode.Print, [OperandType.Variable])
         };
 
         var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();

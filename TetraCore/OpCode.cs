@@ -19,11 +19,14 @@ public enum OpCode
     Sub,
     Inc,
     Dec,
+    Mul,
+    Div,
     Jmp,
     JmpEq,
     JmpNe,
     JmpLt,
     JmpLe,
     JmpGt,
-    JmpGe
+    JmpGe,
+    Print
 }

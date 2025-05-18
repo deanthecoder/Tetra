@@ -19,6 +19,8 @@ public static class OpCodeToStringMap
         ("halt", OpCode.Halt),
         ("add", OpCode.Add),
         ("sub", OpCode.Sub),
+        ("mul", OpCode.Mul),
+        ("div", OpCode.Div),
         ("inc", OpCode.Inc),
         ("dec", OpCode.Dec),
         ("jmp", OpCode.Jmp),
@@ -27,7 +29,8 @@ public static class OpCodeToStringMap
         ("jmp_lt", OpCode.JmpLt),
         ("jmp_le", OpCode.JmpLe),
         ("jmp_gt", OpCode.JmpGt),
-        ("jmp_ge", OpCode.JmpGe)
+        ("jmp_ge", OpCode.JmpGe),
+        ("print", OpCode.Print)
     };
 
     static OpCodeToStringMap()

@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System.Globalization;
 using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
@@ -65,6 +66,8 @@ public class TetraVm
             case OpCode.Sub: ExecuteSub(instr); break;
             case OpCode.Inc: ExecuteInc(instr); break;
             case OpCode.Dec: ExecuteDec(instr); break;
+            case OpCode.Mul: ExecuteMul(instr); break;
+            case OpCode.Div: ExecuteDiv(instr); break;
             case OpCode.Halt: return false;
             case OpCode.Jmp: ExecuteJmp(instr); break;
             case OpCode.JmpEq: ExecuteJmpEq(instr); break;
@@ -73,6 +76,7 @@ public class TetraVm
             case OpCode.JmpGt: ExecuteJmpGt(instr); break;
             case OpCode.JmpLe: ExecuteJmpLe(instr); break;
             case OpCode.JmpGe: ExecuteJmpGe(instr); break;
+            case OpCode.Print: ExecutePrint(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction not supported: '{instr}'");
         }
@@ -107,7 +111,7 @@ public class TetraVm
             value = CurrentFrame.GetVariable(value.Name);
 
         var current = CurrentFrame.GetVariable(variableName);
-        Operand? result;
+        Operand result;
         if (current.Type == OperandType.Float || value.Type == OperandType.Float)
             result = new Operand(current.AsFloat() + value.AsFloat());
         else if (current.Type == OperandType.Int && value.Type == OperandType.Int)
@@ -115,7 +119,7 @@ public class TetraVm
         else
             throw new RuntimeException($"'{instr}': Cannot add with {variable.Type} and {value.Type}.");
 
-        CurrentFrame.SetVariable(variableName, result.Value);
+        CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
 
@@ -134,7 +138,7 @@ public class TetraVm
             value = CurrentFrame.GetVariable(value.Name);
 
         var current = CurrentFrame.GetVariable(variableName);
-        Operand? result;
+        Operand result;
         if (current.Type == OperandType.Float || value.Type == OperandType.Float)
             result = new Operand(current.AsFloat() - value.AsFloat());
         else if (current.Type == OperandType.Int && value.Type == OperandType.Int)
@@ -142,7 +146,7 @@ public class TetraVm
         else
             throw new RuntimeException($"'{instr}': Cannot subtract with {variable.Type} and {value.Type}.");
 
-        CurrentFrame.SetVariable(variableName, result.Value);
+        CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
     
@@ -155,14 +159,14 @@ public class TetraVm
         var variableName = variable.Name;
         
         var current = CurrentFrame.GetVariable(variableName);
-        Operand? result = current.Type switch
+        var result = current.Type switch
         {
             OperandType.Float => new Operand(current.FloatValue + 1.0f),
             OperandType.Int => new Operand(current.IntValue + 1),
             _ => throw new RuntimeException($"'{instr}': Cannot increment {variable.Type}.")
         };
 
-        CurrentFrame.SetVariable(variableName, result.Value);
+        CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
     
@@ -175,14 +179,14 @@ public class TetraVm
         var variableName = variable.Name;
         
         var current = CurrentFrame.GetVariable(variableName);
-        Operand? result = current.Type switch
+        var result = current.Type switch
         {
             OperandType.Float => new Operand(current.AsFloat() - 1.0f),
             OperandType.Int => new Operand(current.IntValue - 1),
             _ => throw new RuntimeException($"'{instr}': Cannot decrement {variable.Type}.")
         };
 
-        CurrentFrame.SetVariable(variableName, result.Value);
+        CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
     
@@ -362,5 +366,90 @@ public class TetraVm
         
         if (jump)
             m_ip = label.IntValue;
+    }
+
+    /// <summary>
+    /// E.g. mul $a, 3.141
+    /// E.g. mul $a, $b     (a *= b)
+    /// </summary>
+    private void ExecuteMul(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+
+        // If the value is a variable, get its value.
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var current = CurrentFrame.GetVariable(a.Name);
+        Operand result;
+        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+            result = new Operand(current.AsFloat() * b.AsFloat());
+        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+            result = new Operand(current.IntValue * b.IntValue);
+        else
+            throw new RuntimeException($"'{instr}': Cannot multiply with {a.Type} and {b.Type}.");
+
+        CurrentFrame.SetVariable(a.Name, result);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. div $a, 3.141
+    /// E.g. div $a, $b     (a /= b)
+    /// </summary>
+    private void ExecuteDiv(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+
+        // If the value is a variable, get its value.
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        
+        var current = CurrentFrame.GetVariable(a.Name);
+        Operand result;
+        try
+        {
+            if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+                result = new Operand(current.AsFloat() / b.AsFloat());
+            else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+                result = new Operand(current.IntValue / b.IntValue);
+            else
+                throw new RuntimeException($"'{instr}': Cannot divide with {a.Type} and {b.Type}.");
+        }
+        catch (DivideByZeroException)
+        {
+            throw new RuntimeException($"'{instr}': Cannot divide by zero.");
+        }
+
+        CurrentFrame.SetVariable(a.Name, result);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. print 3.141
+    /// E.g. print $a
+    /// </summary>
+    private void ExecutePrint(Instruction instr)
+    {
+        var a = instr.Operands[0];
+
+        // If the value is a variable, get its value.
+        var toPrint = a;
+        if (toPrint.Type == OperandType.Variable)
+            toPrint = CurrentFrame.GetVariable(a.Name);
+
+        // Print the value.
+        string s;
+        if (toPrint.Type == OperandType.Float)
+            s = toPrint.FloatValue.ToString(CultureInfo.InvariantCulture);
+        else if (toPrint.Type == OperandType.Int)
+            s = toPrint.IntValue.ToString();
+        else
+            throw new RuntimeException($"'{instr}': Cannot print type '{toPrint.Type}'.");
+
+        Console.WriteLine(a.Type == OperandType.Variable ? $"{a.Name} = {s}" : s);
+        m_ip++;
     }
 }
