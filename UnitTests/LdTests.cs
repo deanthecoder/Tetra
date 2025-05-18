@@ -39,7 +39,7 @@ public class LdTests
 
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").Type, Is.EqualTo(OperandType.Integer));
+        Assert.That(vm.CurrentFrame.GetVariable("a").Type, Is.EqualTo(OperandType.Int));
         Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(1));
     }
 
@@ -56,7 +56,7 @@ public class LdTests
 
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("b").Type, Is.EqualTo(OperandType.Integer));
+        Assert.That(vm.CurrentFrame.GetVariable("b").Type, Is.EqualTo(OperandType.Int));
         Assert.That(vm.CurrentFrame.GetVariable("b").IntValue, Is.EqualTo(69));
     }
 

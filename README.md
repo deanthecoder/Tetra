@@ -31,8 +31,8 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 |-----------------|-------------|
 | `ld $a, 1.0`     | Load constant into `$a` |
 | `ld $b, $a`      | Copy variable `$a` into `$b` |
-| `add $c, $a, $b` | `$c = $a + $b` |
-| `sub $c, $a, $b` | `$c = $a - $b` |
+| `add $a, $b`     | `$a = $a + $b` |
+| `sub $a, $b`     | `$a = $a - $b` |
 | `inc $a`         | `$a = $a + 1` |
 | `dec $a`         | `$a = $a - 1` |
 | `jmp label`      | Unconditional jump |
@@ -44,6 +44,8 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 | `pop_frame`      | Exit current variable scope |
 | `print $a`       | Print the value of `$a` with line number |
 | `halt`           | Stop execution |
+| `convi $a`        | Convert `$a` from float to int (truncates) |
+| `convf $a`        | Convert `$a` from int to float             |
 
 ---
 

@@ -16,5 +16,5 @@ public enum OperandType
     Label,
     Variable,
     Float,
-    Integer
+    Int
 }

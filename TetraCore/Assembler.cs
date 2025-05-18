@@ -65,28 +65,36 @@ public static class Assembler
         return commentIndex >= 0 ? line[..commentIndex].Trim() : line;
     }
 
-    private static void ValidateInstruction(Instruction instruction, int lineIndex)
+    private static void ValidateInstruction(Instruction instr, int lineIndex)
     {
         var expectedValues = new (OpCode opCode, OperandType[] types)[] 
         {
             new (OpCode.Ld, [OperandType.Variable, OperandType.Variable]),
             new (OpCode.Ld, [OperandType.Variable, OperandType.Float]),
-            new (OpCode.Ld, [OperandType.Variable, OperandType.Integer])
+            new (OpCode.Ld, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Add, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Add, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Add, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Sub, [OperandType.Variable, OperandType.Int]),
+            new (OpCode.Sub, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Sub, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Inc, [OperandType.Variable]),
+            new (OpCode.Dec, [OperandType.Variable])
         };
 
-        var matches = expectedValues.Where(o => o.opCode == instruction.OpCode).ToArray();
+        var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();
         if (matches.Length == 0)
-            throw new InvalidOperationException("Unrecognized instruction."); // We need to add entry to the table.
+            throw new InvalidOperationException($"'{instr}': Unrecognized instruction."); // We need to add entry to the table.
         
         // Validate the number of operands.
-        if (instruction.Operands.Length != matches[0].types.Length)
-            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instruction.OpCode}' expected {matches[0].types.Length} operands, but got {instruction.Operands.Length}.");
+        if (instr.Operands.Length != matches[0].types.Length)
+            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instr.OpCode}' expected {matches[0].types.Length} operands, but got {instr.Operands.Length}.");
         
         // Validate the operand types.
-        var actualTypes = instruction.Operands.Select(o => o.Type).ToArray();
+        var actualTypes = instr.Operands.Select(o => o.Type).ToArray();
         var expectedTypes = matches.Select(o => o.types).ToArray();
         if (!expectedTypes.Any(o => o.SequenceEqual(actualTypes)))
-            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instruction.OpCode}' operand types do not match expected patterns.");
+            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instr.OpCode}' operand types do not match expected patterns.");
     }
 
     private static OpCode GetOpCode(string word, int lineIndex)
@@ -94,6 +102,10 @@ public static class Assembler
         return word switch
         {
             "ld" => OpCode.Ld,
+            "add" => OpCode.Add,
+            "sub" => OpCode.Sub,
+            "inc" => OpCode.Inc,
+            "dec" => OpCode.Dec,
             _ => throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Unrecognized instruction '{word}'")
         };
     }
@@ -138,7 +150,7 @@ public static class Assembler
             // Integer.
             return new Operand
             {
-                Type = OperandType.Integer,
+                Type = OperandType.Int,
                 Raw = word,
                 IntValue = intValue
             };

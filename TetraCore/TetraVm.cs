@@ -61,6 +61,10 @@ public class TetraVm
         switch (instr.OpCode)
         {
             case OpCode.Ld: ExecuteLd(instr); break;
+            case OpCode.Add: ExecuteAdd(instr); break;
+            case OpCode.Sub: ExecuteSub(instr); break;
+            case OpCode.Inc: ExecuteInc(instr); break;
+            case OpCode.Dec: ExecuteDec(instr); break;
             case OpCode.Halt: return false;
             
             default:
@@ -69,11 +73,105 @@ public class TetraVm
         return true;
     }
 
+    /// <summary>
+    /// E.g. ld $a, 3.141
+    /// E.g. ld $a, $b      (a = b)
+    /// </summary>
     private void ExecuteLd(Instruction instr)
     {
         var variable = instr.Operands[0];
         var value = instr.Operands[1];
         
         CurrentFrame.SetVariable(variable.Name, value);
+    }
+
+    /// <summary>
+    /// E.g. add $a, 3.141
+    /// E.g. add $a, $b     (a += b)
+    /// </summary>
+    private void ExecuteAdd(Instruction instr)
+    {
+        var variable = instr.Operands[0];
+        var variableName = variable.Name;
+        var value = instr.Operands[1];
+
+        // If the value is a variable, get its value.
+        if (value.Type == OperandType.Variable)
+            value = CurrentFrame.GetVariable(value.Name);
+
+        var current = CurrentFrame.GetVariable(variableName);
+        Operand? result;
+        if (current.Type == OperandType.Float || value.Type == OperandType.Float)
+            result = new Operand(current.AsFloat() + value.AsFloat());
+        else if (current.Type == OperandType.Int && value.Type == OperandType.Int)
+            result = new Operand(current.IntValue + value.IntValue);
+        else
+            throw new RuntimeException($"'{instr}': Cannot add with {variable.Type} and {value.Type}.");
+
+        CurrentFrame.SetVariable(variableName, result.Value);
+    }
+
+    /// <summary>
+    /// E.g. sub $a, 3.141
+    /// E.g. sub $a, $b     (a -= b)
+    /// </summary>
+    private void ExecuteSub(Instruction instr)
+    {
+        var variable = instr.Operands[0];
+        var variableName = variable.Name;
+        var value = instr.Operands[1];
+        
+        // If the value is a variable, get its value.
+        if (value.Type == OperandType.Variable)
+            value = CurrentFrame.GetVariable(value.Name);
+
+        var current = CurrentFrame.GetVariable(variableName);
+        Operand? result;
+        if (current.Type == OperandType.Float || value.Type == OperandType.Float)
+            result = new Operand(current.AsFloat() - value.AsFloat());
+        else if (current.Type == OperandType.Int && value.Type == OperandType.Int)
+            result = new Operand(current.IntValue - value.IntValue);
+        else
+            throw new RuntimeException($"'{instr}': Cannot subtract with {variable.Type} and {value.Type}.");
+
+        CurrentFrame.SetVariable(variableName, result.Value);
+    }
+    
+    /// <summary>
+    /// E.g. inc $a
+    /// </summary>
+    private void ExecuteInc(Instruction instr)
+    {
+        var variable = instr.Operands[0];
+        var variableName = variable.Name;
+        
+        var current = CurrentFrame.GetVariable(variableName);
+        Operand? result = current.Type switch
+        {
+            OperandType.Float => new Operand(current.FloatValue + 1.0f),
+            OperandType.Int => new Operand(current.IntValue + 1),
+            _ => throw new RuntimeException($"'{instr}': Cannot increment {variable.Type}.")
+        };
+
+        CurrentFrame.SetVariable(variableName, result.Value);
+    }
+    
+    /// <summary>
+    /// E.g. dec $a
+    /// </summary>
+    private void ExecuteDec(Instruction instr)
+    {
+        var variable = instr.Operands[0];
+        var variableName = variable.Name;
+        
+        var current = CurrentFrame.GetVariable(variableName);
+        Operand? result = current.Type switch
+        {
+            OperandType.Float => new Operand(current.AsFloat() - 1.0f),
+            OperandType.Int => new Operand(current.IntValue - 1),
+            _ => throw new RuntimeException($"'{instr}': Cannot decrement {variable.Type}.")
+        };
+
+        CurrentFrame.SetVariable(variableName, result.Value);
     }
 }

@@ -32,23 +32,23 @@ public class ScopeFrameTests
     [Test]
     public void CheckSettingVariable()
     {
-        var operand = new Operand { Type = OperandType.Integer, IntValue = 23 };
+        var operand = new Operand { Type = OperandType.Int, IntValue = 23 };
         m_scopeFrame.SetVariable("test", operand);
         
-        Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Integer));
+        Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Int));
         Assert.That(m_scopeFrame.GetVariable("test").IntValue, Is.EqualTo(23));
     }
 
     [Test]
     public void CheckOverwritingVariable()
     {
-        var operand1 = new Operand { Type = OperandType.Integer, IntValue = 23 };
+        var operand1 = new Operand { Type = OperandType.Int, IntValue = 23 };
         m_scopeFrame.SetVariable("test", operand1);
         
-        var operand2 = new Operand { Type = OperandType.Integer, IntValue = 42 };
+        var operand2 = new Operand { Type = OperandType.Int, IntValue = 42 };
         m_scopeFrame.SetVariable("test", operand2);
         
-        Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Integer));
+        Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Int));
         Assert.That(m_scopeFrame.GetVariable("test").IntValue, Is.EqualTo(42));
     }
 
@@ -61,7 +61,7 @@ public class ScopeFrameTests
     [Test]
     public void CheckQueryingExistingVariable()
     {
-        var operand = new Operand { Type = OperandType.Integer, IntValue = 23 };
+        var operand = new Operand { Type = OperandType.Int, IntValue = 23 };
         m_scopeFrame.SetVariable("test", operand);
         
         Assert.That(m_scopeFrame.IsDefined("test"), Is.True);

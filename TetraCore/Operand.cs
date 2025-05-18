@@ -10,6 +10,8 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using System.Diagnostics;
+using System.Globalization;
+using TetraCore.Exceptions;
 
 namespace TetraCore;
 
@@ -18,8 +20,22 @@ namespace TetraCore;
 /// constants (float or int), or label identifiers, and carry both raw and parsed forms.
 /// </summary>
 [DebuggerDisplay("{Type}: {Raw}")]
-public struct Operand
+public readonly struct Operand
 {
+    public Operand(int f)
+    {
+        Type = OperandType.Int;
+        IntValue = f;
+        Raw = f.ToString(CultureInfo.InvariantCulture);
+    }
+
+    public Operand(float f)
+    {
+        Type = OperandType.Float;
+        FloatValue = f;
+        Raw = f.ToString(CultureInfo.InvariantCulture);
+    }
+
     /// <summary>
     /// Gets the type of operand (e.g., variable, constant, label).
     /// </summary>
@@ -44,4 +60,12 @@ public struct Operand
     /// Gets or sets the integer value if the operand is an integer constant.
     /// </summary>
     public int IntValue { get; init; }
+
+    public float AsFloat() =>
+        Type switch
+        {
+            OperandType.Float => FloatValue,
+            OperandType.Int => IntValue,
+            _ => throw new RuntimeException($"Cannot convert operand '{Raw}' ({Type}) to a float.")
+        };
 }
