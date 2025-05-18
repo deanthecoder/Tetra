@@ -9,7 +9,6 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-using System.Diagnostics;
 using System.Globalization;
 using TetraCore.Exceptions;
 
@@ -19,7 +18,6 @@ namespace TetraCore;
 /// Represents a typed operand in a Tetra instruction. Operands may be variable names, 
 /// constants (float or int), or label identifiers, and carry both raw and parsed forms.
 /// </summary>
-[DebuggerDisplay("{Type}: {Raw}")]
 public readonly struct Operand
 {
     public Operand(int f)
@@ -67,5 +65,15 @@ public readonly struct Operand
             OperandType.Float => FloatValue,
             OperandType.Int => IntValue,
             _ => throw new RuntimeException($"Cannot convert operand '{Raw}' ({Type}) to a float.")
+        };
+
+    public override string ToString() =>
+        Type switch
+        {
+            OperandType.Float => $"{FloatValue.ToString(CultureInfo.InvariantCulture)}f",
+            OperandType.Int => IntValue.ToString(CultureInfo.InvariantCulture),
+            OperandType.Label => Name,
+            OperandType.Variable => $"${Name}",
+            _ => throw new ArgumentOutOfRangeException()
         };
 }
