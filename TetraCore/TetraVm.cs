@@ -66,6 +66,7 @@ public class TetraVm
             case OpCode.Sub: ExecuteSub(instr); break;
             case OpCode.Inc: ExecuteInc(instr); break;
             case OpCode.Dec: ExecuteDec(instr); break;
+            case OpCode.Neg: ExecuteNeg(instr); break;
             case OpCode.Mul: ExecuteMul(instr); break;
             case OpCode.Div: ExecuteDiv(instr); break;
             case OpCode.Halt: return false;
@@ -184,6 +185,26 @@ public class TetraVm
             OperandType.Float => new Operand(current.AsFloat() - 1.0f),
             OperandType.Int => new Operand(current.IntValue - 1),
             _ => throw new RuntimeException($"'{instr}': Cannot decrement {variable.Type}.")
+        };
+
+        CurrentFrame.SetVariable(variableName, result);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. neg $a  (a = -a)
+    /// </summary>
+    private void ExecuteNeg(Instruction instr)
+    {
+        var variable = instr.Operands[0];
+        var variableName = variable.Name;
+        
+        var current = CurrentFrame.GetVariable(variableName);
+        var result = current.Type switch
+        {
+            OperandType.Float => new Operand(-current.AsFloat()),
+            OperandType.Int => new Operand(-current.IntValue),
+            _ => throw new RuntimeException($"'{instr}': Cannot negate {variable.Type}.")
         };
 
         CurrentFrame.SetVariable(variableName, result);

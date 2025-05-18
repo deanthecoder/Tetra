@@ -39,7 +39,7 @@ public class PiApproximation
                 div $term, $denominator  # term = 1 / (2*i + 1)
                 mul $term, $sign         # apply sign
                 add $sum, $term          # accumulate into sum
-                mul $sign, -1            # flip sign for next term
+                neg $sign                # flip sign for next term
                 inc $i                   # i++
                 jmp loop
 

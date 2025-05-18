@@ -23,6 +23,7 @@ public static class OpCodeToStringMap
         ("div", OpCode.Div),
         ("inc", OpCode.Inc),
         ("dec", OpCode.Dec),
+        ("neg", OpCode.Neg),
         ("jmp", OpCode.Jmp),
         ("jmp_eq", OpCode.JmpEq),
         ("jmp_ne", OpCode.JmpNe),

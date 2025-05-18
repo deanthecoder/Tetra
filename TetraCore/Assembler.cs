@@ -127,6 +127,7 @@ public static class Assembler
             new (OpCode.Div, [OperandType.Variable, OperandType.Variable]),
             new (OpCode.Inc, [OperandType.Variable]),
             new (OpCode.Dec, [OperandType.Variable]),
+            new (OpCode.Neg, [OperandType.Variable]),
             new (OpCode.Jmp, [OperandType.Label]),
             new (OpCode.JmpEq, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
             new (OpCode.JmpNe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),

@@ -19,6 +19,7 @@ public enum OpCode
     Sub,
     Inc,
     Dec,
+    Neg,
     Mul,
     Div,
     Jmp,
