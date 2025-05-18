@@ -28,8 +28,8 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(3));
-        Assert.That(vm.CurrentFrame.GetVariable("b").IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(3));
+        Assert.That(vm["b"].IntValue, Is.EqualTo(2));
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(-2));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(-2));
     }
 
     [Test]
@@ -59,7 +59,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(3.75f).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.75f).Within(0.001));
     }
 
     [Test]
@@ -74,7 +74,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(-1.5f).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(-1.5f).Within(0.001));
     }
 
     [Test]
@@ -88,7 +88,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(3.5f).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.5f).Within(0.001));
     }
 
     [Test]
@@ -102,7 +102,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(3.5f).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.5f).Within(0.001));
     }
 
     [Test]
@@ -116,7 +116,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm.CurrentFrame.GetVariable("a").Type, Is.EqualTo(OperandType.Float));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
     }
 
     [Test]
@@ -130,6 +130,6 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").Type, Is.EqualTo(OperandType.Float));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
     }
 }

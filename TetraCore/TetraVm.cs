@@ -32,6 +32,8 @@ public class TetraVm
     {
         m_instructions = instructions ?? throw new ArgumentNullException(nameof(instructions));
     }
+    
+    public Operand this[string variableName] => CurrentFrame.GetVariable(variableName);
 
     public void Run()
     {

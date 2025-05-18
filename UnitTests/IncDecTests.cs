@@ -27,7 +27,7 @@ public class IncDecTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(2));
     }
 
     [Test]
@@ -41,7 +41,7 @@ public class IncDecTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(-1));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(-1));
     }
 
     [Test]
@@ -55,7 +55,7 @@ public class IncDecTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(2.5f).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.5f).Within(0.001));
     }
 
     [Test]
@@ -69,6 +69,6 @@ public class IncDecTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(1.1f).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.1f).Within(0.001));
     }
 }

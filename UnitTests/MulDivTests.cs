@@ -36,7 +36,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(8487));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(8487));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(-13.8).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(-13.8).Within(0.001));
     }
 
     [Test]
@@ -65,7 +65,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(6.9).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(6.9).Within(0.001));
     }
 
     [Test]
@@ -87,7 +87,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(3));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(3));
     }
     
     [Test]
@@ -101,7 +101,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(3.5));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.5));
     }
     
     [Test]
@@ -116,7 +116,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(2));
 
     }
     

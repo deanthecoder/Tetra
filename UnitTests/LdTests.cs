@@ -26,8 +26,8 @@ public class LdTests
 
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").Type, Is.EqualTo(OperandType.Float));
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(1.0f));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.0f));
     }
 
     [Test]
@@ -39,8 +39,8 @@ public class LdTests
 
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").Type, Is.EqualTo(OperandType.Int));
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(1));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(1));
     }
 
     [Test]
@@ -56,8 +56,8 @@ public class LdTests
 
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("b").Type, Is.EqualTo(OperandType.Int));
-        Assert.That(vm.CurrentFrame.GetVariable("b").IntValue, Is.EqualTo(69));
+        Assert.That(vm["b"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["b"].IntValue, Is.EqualTo(69));
     }
 
     [Test]
@@ -81,7 +81,7 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(2));
     }
 
     [Test]
@@ -95,7 +95,7 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(2.3).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.3).Within(0.001));
     }
 
     [Test]
@@ -114,7 +114,7 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        var variable = vm.CurrentFrame.GetVariable("a");
+        var variable = vm["a"];
         Assert.That(variable.FloatValue, Is.EqualTo(-42.69).Within(0.001));
     }
 
@@ -129,7 +129,7 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(1));
-        Assert.That(vm.CurrentFrame.GetVariable("A").IntValue, Is.EqualTo(-2));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(1));
+        Assert.That(vm["A"].IntValue, Is.EqualTo(-2));
     }
 }

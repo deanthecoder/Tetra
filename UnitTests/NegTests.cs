@@ -26,7 +26,7 @@ public class NegTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").IntValue, Is.EqualTo(-1));
+        Assert.That(vm["a"].IntValue, Is.EqualTo(-1));
     }
 
     [Test]
@@ -40,6 +40,6 @@ public class NegTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm.CurrentFrame.GetVariable("a").FloatValue, Is.EqualTo(1.2).Within(0.001));
+        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.2).Within(0.001));
     }
 }
