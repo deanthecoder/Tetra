@@ -100,6 +100,78 @@ end:
 
 ---
 
+## 🔁 Function Calls
+
+Tetra supports calling functions using the `call` instruction, with optional return values via `ret $value`.
+
+### Argument Passing Convention
+
+To pass arguments to a function, use `ld` to define named variables like `$arg0`, `$arg1`, etc., **before** calling the function:
+
+```
+ld $arg0, 10
+ld $arg1, 20
+call my_function
+```
+
+When `call` is executed:
+- A new scope frame is pushed onto the call stack.
+- The function code begins execution at the specified label.
+- All variables, including `$arg0`, `$arg1`, etc., remain **shared with the caller** because they were defined outside the frame. As such, these arguments behave like **`out` parameters**.
+
+If the function modifies `$arg0`, the change is visible to the caller:
+```
+add $arg0, 5  # caller sees modified value
+```
+
+### Creating Isolated Parameters (Read-Only Style)
+
+If you want function parameters to behave like 'pass by value' (copied and isolated), you must explicitly copy them into local variables at the start of the function:
+
+```
+ld $a, $arg0
+ld $b, $arg1
+```
+
+This way, modifications to `$a` and `$b` do not affect the caller's `$arg0`/`$arg1`.
+
+### Returning Values
+
+To return a value, use `ret $value`. This sets `$retval` in the caller’s frame:
+
+```
+ret $result
+```
+
+In the caller:
+
+```
+call my_function
+ld $x, $retval
+```
+
+If no value is returned, simply use `ret`.
+
+### Example
+
+```
+    ld $arg0, 5
+    call double
+    ld $x, $retval
+    print $x
+    halt
+
+double:
+    ld $a, $arg0
+    add $a, $a
+    ret $a
+```
+```
+Output: x = 10
+```
+
+---
+
 ## Future Plans
 
 - Add support for `vec4` types and operations
