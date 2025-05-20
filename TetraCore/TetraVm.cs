@@ -112,8 +112,16 @@ public class TetraVm
             case OpCode.Tan: ExecuteTan(instr); break;
             case OpCode.Tanh: ExecuteTanh(instr); break;
             case OpCode.Atan: ExecuteAtan(instr); break;
+            case OpCode.Pow: ExecutePow(instr); break;
+            case OpCode.Exp: ExecuteExp(instr); break;
+            case OpCode.Log: ExecuteLog(instr); break;
+            case OpCode.Abs: ExecuteAbs(instr); break;
+            case OpCode.Sign: ExecuteSign(instr); break;
+            case OpCode.Mod: ExecuteMod(instr); break;
+            case OpCode.Min: ExecuteMin(instr); break;
+            case OpCode.Max: ExecuteMax(instr); break;
             default:
-                throw new InvalidOperationException($"Instruction not supported: '{instr}'");
+                throw new InvalidOperationException($"Instruction defined, but not implemented: '{instr}'");
         }
         return true;
     }
@@ -592,21 +600,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteSin(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        // If the operand is a variable, get its value.
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Sin(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform sin() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Sin, "sin");
     }
 
     /// <summary>
@@ -615,20 +609,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteSinh(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Sinh(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform sinh() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Sinh, "sinh");
     }
 
     /// <summary>
@@ -637,20 +618,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteAsin(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Asin(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform asin() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Asin, "asin");
     }
 
     /// <summary>
@@ -659,20 +627,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteCos(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Cos(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform cos() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Cos, "cos");
     }
 
     /// <summary>
@@ -681,20 +636,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteCosh(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Cosh(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform cosh() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Cosh, "cosh");
     }
 
     /// <summary>
@@ -703,20 +645,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteAcos(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Acos(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform acos() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Acos, "acos");
     }
 
     /// <summary>
@@ -725,20 +654,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteTan(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Tan(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform tan() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Tan, "tan");
     }
 
     /// <summary>
@@ -747,20 +663,7 @@ public class TetraVm
     /// </summary>
     private void ExecuteTanh(Instruction instr)
     {
-        var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Tanh(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform tanh() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(a.Name, result, true);
-        m_ip++;
+        ExecuteMath(instr, MathF.Tanh, "tanh");
     }
 
     /// <summary>
@@ -769,16 +672,161 @@ public class TetraVm
     /// </summary>
     private void ExecuteAtan(Instruction instr)
     {
+        ExecuteMath(instr, MathF.Atan, "atan");
+    }
+    
+    /// <summary>
+    /// E.g. pow $a, b
+    /// E.g. pow $a, 1.2
+    /// </summary>
+    private void ExecutePow(Instruction instr)
+    {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
+        var aName = a.Name;
+        if (a.Type != OperandType.Variable)
+            throw new RuntimeException($"'{instr}': Cannot perform pow() on target of type {a.Type}.");
+        a = CurrentFrame.GetVariable(a.Name);
         
+        var b = instr.Operands[1];
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
 
         var result = b.Type switch
         {
-            OperandType.Float => new Operand(MathF.Atan(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform atan() on {b.Type}.")
+            OperandType.Float => new Operand(MathF.Pow(a.FloatValue, b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform pow() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(aName, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. exp $a, $b
+    /// E.g. exp $a, 1.2
+    /// </summary>
+    private void ExecuteExp(Instruction instr)
+    {
+        ExecuteMath(instr, MathF.Exp, "exp");
+    }
+
+    /// <summary>
+    /// E.g. log $a, $b
+    /// E.g. log $a, 1.2 
+    /// </summary>
+    private void ExecuteLog(Instruction instr)
+    {
+        ExecuteMath(instr, MathF.Log, "log");
+    }
+    
+    /// <summary>
+    /// E.g. abs $a, $b
+    /// E.g. abs $a, 1.2
+    /// </summary>
+    private void ExecuteAbs(Instruction instr) 
+    {
+        ExecuteMath(instr, MathF.Abs, "abs");
+    }
+
+    /// <summary>
+    /// E.g. sign $a, $b 
+    /// E.g. sign $a, 1.2
+    /// </summary>
+    private void ExecuteSign(Instruction instr)
+    {
+        ExecuteMath(instr, f => MathF.Sign(f), "sign");
+    }
+
+    /// <summary>
+    /// E.g. mod $a, $b
+    /// E.g. mod $a, 1.2
+    /// </summary>
+    private void ExecuteMod(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+    
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+    
+        var current = CurrentFrame.GetVariable(a.Name);
+        Operand result;
+        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+            result = new Operand(current.AsFloat() % b.AsFloat());
+        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+            result = new Operand(current.IntValue % b.IntValue);
+        else
+            throw new RuntimeException($"'{instr}': Cannot perform modulo with {a.Type} and {b.Type}.");
+    
+        CurrentFrame.SetVariable(a.Name, result);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. min $a, $b
+    /// E.g. min $a, 1.2
+    /// </summary>
+    private void ExecuteMin(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+    
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+    
+        var current = CurrentFrame.GetVariable(a.Name);
+        Operand result;
+        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+            result = new Operand(MathF.Min(current.AsFloat(), b.AsFloat()));
+        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+            result = new Operand(Math.Min(current.IntValue, b.IntValue));
+        else
+            throw new RuntimeException($"'{instr}': Cannot find minimum between {a.Type} and {b.Type}.");
+    
+        CurrentFrame.SetVariable(a.Name, result);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. max $a, $b
+    /// E.g. max $a, 1.2
+    /// </summary>
+    private void ExecuteMax(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+    
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+    
+        var current = CurrentFrame.GetVariable(a.Name);
+        Operand result;
+        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+            result = new Operand(MathF.Max(current.AsFloat(), b.AsFloat()));
+        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+            result = new Operand(Math.Max(current.IntValue, b.IntValue));
+        else
+            throw new RuntimeException($"'{instr}': Cannot find maximum between {a.Type} and {b.Type}.");
+    
+        CurrentFrame.SetVariable(a.Name, result);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. foo $a, $b
+    /// E.g. foo $a, 1.2
+    /// </summary>
+    private void ExecuteMath(Instruction instr, Func<float, float> mathFunc, string name)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(mathFunc(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform '{name}' on {b.Type}.")
         };
 
         CurrentFrame.SetVariable(a.Name, result, true);

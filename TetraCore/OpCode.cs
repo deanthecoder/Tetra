@@ -43,4 +43,12 @@ public enum OpCode
     Tan,
     Tanh,
     Atan,
+    Pow,
+    Exp,
+    Log,
+    Abs,
+    Sign,
+    Mod,
+    Min,
+    Max
 }

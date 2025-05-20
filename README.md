@@ -30,6 +30,8 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 
 ### 🔢 Arithmetic
 
+#### ➕ Basic Arithmetic
+
 | Instruction     | Description |
 |-----------------|-------------|
 | `add $a, $b`    | `$a = $a + $b` |
@@ -38,7 +40,39 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 | `div $a, $b`    | `$a = $a / $b` |
 | `inc $a`        | `$a = $a + 1` |
 | `dec $a`        | `$a = $a - 1` |
-| `neg $a`        | `$a = -$a` (negate the value in `$a`) |
+| `neg $a`        | `$a = -$a` |
+| `mod $a, $b`    | `$a = $a % $b` (modulo operation) |
+
+#### 🧮 Exponential & Logarithmic
+
+| Instruction     | Description |
+|-----------------|-------------|
+| `exp $a, $b`    | `$a = exp($b)` (e to the power of `$b`) |
+| `log $a, $b`    | `$a = log($b)` (natural logarithm of `$b`) |
+| `pow $a, $b`    | `$a = pow($a, $b)` |
+
+#### 📐 Common Math
+
+| Instruction     | Description |
+|-----------------|-------------|
+| `abs $a, $b`    | `$a = abs($b)` |
+| `sign $a, $b`   | `$a = sign($b)` (-1, 0, or 1 depending on sign of `$b`) |
+| `min $a, $b`    | `$a = min($a, $b)` |
+| `max $a, $b`    | `$a = max($a, $b)` |
+
+#### 📏 Trigonometric
+
+| Instruction     | Description |
+|-----------------|-------------|
+| `sin $a, $b`    | `$a = sin($b)` |
+| `cos $a, $b`    | `$a = cos($b)` |
+| `tan $a, $b`    | `$a = tan($b)` |
+| `asin $a, $b`   | `$a = asin($b)` |
+| `acos $a, $b`   | `$a = acos($b)` |
+| `atan $a, $b`   | `$a = atan($b)` |
+| `sinh $a, $b`   | `$a = sinh($b)` |
+| `cosh $a, $b`   | `$a = cosh($b)` |
+| `tanh $a, $b`   | `$a = tanh($b)` |
 
 ### 🔄 Control Flow
 

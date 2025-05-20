@@ -47,6 +47,8 @@ public class ScopeFrame
     /// </summary>
     public void SetVariable(string name, Operand value, bool defineIfMissing = false)
     {
+        if (string.IsNullOrEmpty(name))
+            throw new RuntimeException("Variable name cannot be null or empty.");
         if (!defineIfMissing && !IsDefined(name))
             throw new RuntimeException($"Variable '{name}' is undefined.");
         if (name == value.Name)

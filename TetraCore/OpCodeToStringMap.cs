@@ -13,46 +13,35 @@ namespace TetraCore;
 
 public static class OpCodeToStringMap
 {
-    private static readonly (string asString, OpCode opCode)[] Lut =
-    {
-        ("ld", OpCode.Ld),
-        ("halt", OpCode.Halt),
-        ("add", OpCode.Add),
-        ("sub", OpCode.Sub),
-        ("mul", OpCode.Mul),
-        ("div", OpCode.Div),
-        ("inc", OpCode.Inc),
-        ("dec", OpCode.Dec),
-        ("neg", OpCode.Neg),
-        ("jmp", OpCode.Jmp),
-        ("jmp_eq", OpCode.JmpEq),
-        ("jmp_ne", OpCode.JmpNe),
-        ("jmp_lt", OpCode.JmpLt),
-        ("jmp_le", OpCode.JmpLe),
-        ("jmp_gt", OpCode.JmpGt),
-        ("jmp_ge", OpCode.JmpGe),
-        ("print", OpCode.Print),
-        ("push_frame", OpCode.PushFrame),
-        ("pop_frame", OpCode.PopFrame),
-        ("call", OpCode.Call),
-        ("ret", OpCode.Ret),
-        ("sin", OpCode.Sin),
-        ("sinh", OpCode.Sinh),
-        ("asin", OpCode.Asin),
-        ("cos", OpCode.Cos),
-        ("cosh", OpCode.Cosh),
-        ("acos", OpCode.Acos),
-        ("tan", OpCode.Tan),
-        ("tanh", OpCode.Tanh),
-        ("atan", OpCode.Atan)
-    };
+    private static readonly (string asString, OpCode opCode)[] Lut;
 
     static OpCodeToStringMap()
     {
+        // Special case names (Cannot be based on enum name).
+        var manualEntries = new[]
+        {
+            ("jmp_eq", OpCode.JmpEq),
+            ("jmp_ne", OpCode.JmpNe),
+            ("jmp_lt", OpCode.JmpLt),
+            ("jmp_le", OpCode.JmpLe),
+            ("jmp_gt", OpCode.JmpGt),
+            ("jmp_ge", OpCode.JmpGe),
+            ("push_frame", OpCode.PushFrame),
+            ("pop_frame", OpCode.PopFrame)
+        };
+
+        // Auto-populate the LUT based on the lower-case enum name.
+        var autoEntries =
+            Enum.GetValues<OpCode>()
+                .Where(op => manualEntries.All(e => e.Item2 != op))
+                .Where(op => op.ToString().Count(char.IsUpper) == 1)
+                .Select(op => (op.ToString().ToLower(), op));
+        Lut = manualEntries.Concat(autoEntries).ToArray();
+
         // Check all OpCodes are represented in the map.
-        var opCodes = Enum.GetValues<OpCode>().Where(o => Lut.All(l => l.opCode != o)).ToArray();
-        if (opCodes.Any())
-            throw new Exception($"OpCodeToStringMap is missing entries for {string.Join(", ", opCodes)}");
+        var missing = Enum.GetValues<OpCode>().Where(o => Lut.All(l => l.opCode != o)).ToArray();
+        if (missing.Length > 0)
+            throw new Exception($"OpCodeToStringMap is missing entries for {string.Join(", ", missing)}");
     }
     
     public static string GetString(OpCode opCode) =>
