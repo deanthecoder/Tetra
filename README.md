@@ -1,9 +1,13 @@
+<p align="center">
+  <img src="img/logo.png" width="200" alt="Tetra VM Logo" />
+</p>
+
 # Tetra VM
 
-Tetra is a lightweight, stack-based virtual machine written in C#, designed to execute a custom low-level language
-called **Tetra**. It's inspired by GLSL and designed with vector math, scoped variables, and clean, debuggable control
-flow in mind. The name comes from the Greek word for "four," highlighting its support for 4-element float vectors (
-`vec4`).
+Tetra is a compact virtual machine written in C#, designed to run a simple, low-level language that's great for
+math-heavy tasks. Inspired by GLSL, it emphasizes clean control flow and supports 4-element float vectors (`vec4`) for
+things like shader-style logic. Instead of a traditional stack or general-purpose registers, Tetra uses named variables
+in scoped frames — making code easier to read, debug, and understand.
 
 ---
 
@@ -112,24 +116,71 @@ flow in mind. The name comes from the Greek word for "four," highlighting its su
 
 ---
 
-## Example Tetra Program
+## 📌 Example Tetra Programs
 
-```
-ld $globalX, 1.0
-ld $globalY, 2.0
-jmp main
-
-main:
-    ld $i, 0
+### 🥧 Pi Approximation
+Demonstrates use of arithmetic, loops, and alternating signs to compute an approximation of π using the Leibniz formula:
+```tetra
+ld $sum, 0
+ld $sign, 1
+ld $i, 0
+ld $limit, 800
 
 loop:
-    jmp_ge $i, 5, end
-    print $i
+    jmp_ge $i, $limit, done
+    ld $denominator, $i
+    mul $denominator, 2
+    add $denominator, 1
+    ld $term, 1.0
+    div $term, $denominator
+    mul $term, $sign
+    add $sum, $term
+    neg $sign
     inc $i
     jmp loop
 
-end:
+done:
+    mul $sum, 4
+    print $sum
     halt
+```
+
+### 🧮 Fibonacci Sequence
+
+Recursively computes and prints the first 10 [Fibonacci numbers](https://en.wikipedia.org/wiki/Fibonacci_sequence) using
+function calls and control flow:
+```tetra
+ld $i, 0
+ld $count, 10
+
+loop:
+    jmp_ge $i, $count, done
+    ld $arg0, $i
+    call fib
+    print $retval
+    inc $i
+    jmp loop
+
+done:
+    halt
+
+fib:
+    ld $n, $arg0
+    jmp_le $n, 1, base_case
+    ld $arg0, $n
+    dec $arg0
+    call fib
+    ld $a, $retval
+    ld $arg0, $n
+    dec $arg0
+    dec $arg0
+    call fib
+    ld $b, $retval
+    add $a, $b
+    ret $a
+
+base_case:
+    ret $n
 ```
 
 ---
