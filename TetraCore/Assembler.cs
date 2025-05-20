@@ -170,6 +170,24 @@ public static class Assembler
             new (OpCode.Ret, [OperandType.Int]),
             new (OpCode.Ret, [OperandType.Float]),
             new (OpCode.Ret, [OperandType.Variable]),
+            new (OpCode.Sin, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Sin, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Sinh, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Sinh, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Asin, [OperandType.Variable, OperandType.Float]), 
+            new (OpCode.Asin, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Cos, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Cos, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Cosh, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Cosh, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Acos, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Acos, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Tan, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Tan, [OperandType.Variable, OperandType.Variable]), 
+            new (OpCode.Tanh, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Tanh, [OperandType.Variable, OperandType.Variable]),
+            new (OpCode.Atan, [OperandType.Variable, OperandType.Float]),
+            new (OpCode.Atan, [OperandType.Variable, OperandType.Variable])
         };
 
         var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();

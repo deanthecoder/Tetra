@@ -33,5 +33,14 @@ public enum OpCode
     PushFrame,
     PopFrame,
     Call,
-    Ret
+    Ret,
+    Sin,
+    Sinh,
+    Asin,
+    Cos,
+    Cosh,
+    Acos,
+    Tan,
+    Tanh,
+    Atan,
 }

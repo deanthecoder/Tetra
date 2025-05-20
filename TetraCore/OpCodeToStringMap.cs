@@ -35,7 +35,16 @@ public static class OpCodeToStringMap
         ("push_frame", OpCode.PushFrame),
         ("pop_frame", OpCode.PopFrame),
         ("call", OpCode.Call),
-        ("ret", OpCode.Ret)
+        ("ret", OpCode.Ret),
+        ("sin", OpCode.Sin),
+        ("sinh", OpCode.Sinh),
+        ("asin", OpCode.Asin),
+        ("cos", OpCode.Cos),
+        ("cosh", OpCode.Cosh),
+        ("acos", OpCode.Acos),
+        ("tan", OpCode.Tan),
+        ("tanh", OpCode.Tanh),
+        ("atan", OpCode.Atan)
     };
 
     static OpCodeToStringMap()

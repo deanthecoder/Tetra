@@ -45,9 +45,9 @@ public class ScopeFrame
     /// <summary>
     /// Sets the value of an existing variable in this scope.
     /// </summary>
-    public void SetVariable(string name, Operand value)
+    public void SetVariable(string name, Operand value, bool defineIfMissing = false)
     {
-        if (!IsDefined(name))
+        if (!defineIfMissing && !IsDefined(name))
             throw new RuntimeException($"Variable '{name}' is undefined.");
         if (name == value.Name)
             throw new RuntimeException($"Cannot assign variable '{name}' to itself.");
@@ -57,7 +57,7 @@ public class ScopeFrame
             value = GetVariable(value.Name);
 
         // If variable is set in a parent scope, we need to set it there.
-        if (!m_variables.ContainsKey(name))
+        if (m_parent != null && !m_variables.ContainsKey(name))
         {
             m_parent.SetVariable(name, value);
             return;

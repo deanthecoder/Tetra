@@ -29,15 +29,15 @@ public class TetraVm
 
     private ScopeFrame CurrentFrame => m_frames.Peek();
 
-    public event EventHandler<string> OutputWritten; 
+    public event EventHandler<string> OutputWritten;
 
     public TetraVm(Instruction[] instructions)
     {
         m_instructions = instructions ?? throw new ArgumentNullException(nameof(instructions));
-        
+
         OutputWritten += (_, message) => Console.WriteLine(message);
     }
-    
+
     public Operand this[string variableName] => CurrentFrame.GetVariable(variableName);
 
     public void Run()
@@ -52,7 +52,7 @@ public class TetraVm
             throw;
         }
     }
-    
+
     private void RunImpl()
     {
         const int maxInstructionExecutions = 10_000;
@@ -72,7 +72,7 @@ public class TetraVm
             if (!keepRunning)
                 break;
             instructionExecutions++;
-            
+
             if (instructionExecutions >= maxInstructionExecutions)
                 throw new RuntimeException("Too many instruction executions.");
         }
@@ -103,6 +103,15 @@ public class TetraVm
             case OpCode.PopFrame: ExecutePopFrame(instr); break;
             case OpCode.Call: ExecuteCall(instr); break;
             case OpCode.Ret: ExecuteRet(instr); break;
+            case OpCode.Sin: ExecuteSin(instr); break;
+            case OpCode.Sinh: ExecuteSinh(instr); break;
+            case OpCode.Asin: ExecuteAsin(instr); break;
+            case OpCode.Cos: ExecuteCos(instr); break;
+            case OpCode.Cosh: ExecuteCosh(instr); break;
+            case OpCode.Acos: ExecuteAcos(instr); break;
+            case OpCode.Tan: ExecuteTan(instr); break;
+            case OpCode.Tanh: ExecuteTanh(instr); break;
+            case OpCode.Atan: ExecuteAtan(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction not supported: '{instr}'");
         }
@@ -117,7 +126,7 @@ public class TetraVm
     {
         var variable = instr.Operands[0];
         var value = instr.Operands[1];
-        
+
         CurrentFrame.DefineVariable(variable.Name, value);
         m_ip++;
     }
@@ -158,7 +167,7 @@ public class TetraVm
         var variable = instr.Operands[0];
         var variableName = variable.Name;
         var value = instr.Operands[1];
-        
+
         // If the operand is a variable, get its value.
         if (value.Type == OperandType.Variable)
             value = CurrentFrame.GetVariable(value.Name);
@@ -175,7 +184,7 @@ public class TetraVm
         CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. inc $a
     /// </summary>
@@ -183,7 +192,7 @@ public class TetraVm
     {
         var variable = instr.Operands[0];
         var variableName = variable.Name;
-        
+
         var current = CurrentFrame.GetVariable(variableName);
         var result = current.Type switch
         {
@@ -195,7 +204,7 @@ public class TetraVm
         CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. dec $a
     /// </summary>
@@ -203,7 +212,7 @@ public class TetraVm
     {
         var variable = instr.Operands[0];
         var variableName = variable.Name;
-        
+
         var current = CurrentFrame.GetVariable(variableName);
         var result = current.Type switch
         {
@@ -215,7 +224,7 @@ public class TetraVm
         CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. neg $a  (a = -a)
     /// </summary>
@@ -223,7 +232,7 @@ public class TetraVm
     {
         var variable = instr.Operands[0];
         var variableName = variable.Name;
-        
+
         var current = CurrentFrame.GetVariable(variableName);
         var result = current.Type switch
         {
@@ -235,7 +244,7 @@ public class TetraVm
         CurrentFrame.SetVariable(variableName, result);
         m_ip++;
     }
-    
+
     /// <summary>
     /// Unconditional jump.
     /// E.g. jmp NN
@@ -247,7 +256,7 @@ public class TetraVm
             throw new RuntimeException($"'{instr}': Integer operand expected.");
         m_ip = label.IntValue;
     }
-    
+
     /// <summary>
     /// E.g. jmp_eq $a, $b, label
     /// E.g. jmp_eq $a, 2, label
@@ -262,7 +271,7 @@ public class TetraVm
         var aValue = CurrentFrame.GetVariable(a.Name);
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat().IsApproximately(b.AsFloat());
@@ -270,13 +279,13 @@ public class TetraVm
             jump = aValue.IntValue == b.IntValue;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
-        
+
         if (jump)
             m_ip = label.IntValue;
         else
             m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. jmp_ne $a, $b, label
     /// E.g. jmp_ne $a, 2, label
@@ -291,7 +300,7 @@ public class TetraVm
         var aValue = CurrentFrame.GetVariable(a.Name);
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = !aValue.AsFloat().IsApproximately(b.AsFloat());
@@ -299,13 +308,13 @@ public class TetraVm
             jump = aValue.IntValue != b.IntValue;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
-        
+
         if (jump)
             m_ip = label.IntValue;
         else
             m_ip++;
     }
-    
+
     /// <summary>
     /// Jump if a is less than b.
     /// E.g. jmp_lt $a, $b, label
@@ -321,7 +330,7 @@ public class TetraVm
         var aValue = CurrentFrame.GetVariable(a.Name);
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() < b.AsFloat();
@@ -329,13 +338,13 @@ public class TetraVm
             jump = aValue.IntValue < b.IntValue;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
-        
+
         if (jump)
             m_ip = label.IntValue;
         else
             m_ip++;
     }
-    
+
     /// <summary>
     /// Jump if a is less than or equal to b.
     /// E.g. jmp_le $a, $b, label
@@ -351,7 +360,7 @@ public class TetraVm
         var aValue = CurrentFrame.GetVariable(a.Name);
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() <= b.AsFloat();
@@ -359,13 +368,13 @@ public class TetraVm
             jump = aValue.IntValue <= b.IntValue;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
-        
+
         if (jump)
             m_ip = label.IntValue;
         else
             m_ip++;
     }
-    
+
     /// <summary>
     /// Jump if a is greater than b.
     /// E.g. jmp_gt $a, $b, label
@@ -381,7 +390,7 @@ public class TetraVm
         var aValue = CurrentFrame.GetVariable(a.Name);
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() > b.AsFloat();
@@ -389,13 +398,13 @@ public class TetraVm
             jump = aValue.IntValue > b.IntValue;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
-        
+
         if (jump)
             m_ip = label.IntValue;
         else
             m_ip++;
     }
-    
+
     /// <summary>
     /// Jump if a is greater than or equal to b.
     /// E.g. jmp_ge $a, $b, label
@@ -411,7 +420,7 @@ public class TetraVm
         var aValue = CurrentFrame.GetVariable(a.Name);
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() >= b.AsFloat();
@@ -419,7 +428,7 @@ public class TetraVm
             jump = aValue.IntValue >= b.IntValue;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
-        
+
         if (jump)
             m_ip = label.IntValue;
         else
@@ -451,7 +460,7 @@ public class TetraVm
         CurrentFrame.SetVariable(a.Name, result);
         m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. div $a, 3.141
     /// E.g. div $a, $b     (a /= b)
@@ -464,7 +473,7 @@ public class TetraVm
         // If the operand is a variable, get its value.
         if (b.Type == OperandType.Variable)
             b = CurrentFrame.GetVariable(b.Name);
-        
+
         var current = CurrentFrame.GetVariable(a.Name);
         Operand result;
         try
@@ -484,7 +493,7 @@ public class TetraVm
         CurrentFrame.SetVariable(a.Name, result);
         m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. print 3.141
     /// E.g. print $a
@@ -510,7 +519,7 @@ public class TetraVm
         OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.Name} = {s}" : s);
         m_ip++;
     }
-    
+
     /// <summary>
     /// Pops the top-scoped variable frame from the stack.
     /// E.g. pop_frame
@@ -520,7 +529,7 @@ public class TetraVm
         if (m_frames.Count == 1)
             throw new RuntimeException($"'{instr}': Cannot pop the last remaining frame.");
         m_frames.Pop();
-        m_ip++;       
+        m_ip++;
     }
 
     /// <summary>
@@ -530,9 +539,9 @@ public class TetraVm
     private void ExecutePushFrame()
     {
         m_frames.Push(new ScopeFrame(CurrentFrame));
-        m_ip++;       
+        m_ip++;
     }
-    
+
     /// <summary>
     /// Call a procedure (implicitly pushing a new scoped variable frame).
     /// E.g. call label
@@ -546,7 +555,7 @@ public class TetraVm
         m_callStack.Push(m_ip + 1);
         m_ip = label.IntValue;
     }
-    
+
     /// <summary>
     /// Return from a procedure (implicitly popping the top-scoped variable frame).
     /// E.g. ret
@@ -565,15 +574,214 @@ public class TetraVm
             if (a.Value.Type == OperandType.Variable)
                 a = CurrentFrame.GetVariable(a.Value.Name);
         }
-        
+
         // Pop the scoped variable frame.
         m_frames.Pop();
-        
+
         // Make the return value available to the caller.
         if (a.HasValue)
             CurrentFrame.DefineVariable("retval", a.Value);
-        
+
         // Restore the IP.
         m_ip = m_callStack.Pop();
+    }
+
+    /// <summary>
+    /// E.g. sin $a, $theta
+    /// E.g. sin $a, 1.2
+    /// </summary>
+    private void ExecuteSin(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        // If the operand is a variable, get its value.
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Sin(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform sin() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. sinh $a, $theta
+    /// E.g. sinh $a, 1.2
+    /// </summary>
+    private void ExecuteSinh(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Sinh(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform sinh() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. asin $a, $theta
+    /// E.g. asin $a, 1.2
+    /// </summary>
+    private void ExecuteAsin(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Asin(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform asin() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. cos $a, $theta
+    /// E.g. cos $a, 1.2
+    /// </summary>
+    private void ExecuteCos(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Cos(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform cos() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. cosh $a, $theta
+    /// E.g. cosh $a, 1.2
+    /// </summary>
+    private void ExecuteCosh(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Cosh(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform cosh() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. acos $a, $theta
+    /// E.g. acos $a, 1.2
+    /// </summary>
+    private void ExecuteAcos(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Acos(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform acos() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. tan $a, $theta
+    /// E.g. tan $a, 1.2
+    /// </summary>
+    private void ExecuteTan(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Tan(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform tan() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. tanh $a, $theta
+    /// E.g. tanh $a, 1.2
+    /// </summary>
+    private void ExecuteTanh(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Tanh(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform tanh() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. atan $a, $theta
+    /// E.g. atan $a, 1.2
+    /// </summary>
+    private void ExecuteAtan(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = instr.Operands[1];
+        
+        if (b.Type == OperandType.Variable)
+            b = CurrentFrame.GetVariable(b.Name);
+
+        var result = b.Type switch
+        {
+            OperandType.Float => new Operand(MathF.Atan(b.FloatValue)),
+            _ => throw new RuntimeException($"'{instr}': Cannot perform atan() on {b.Type}.")
+        };
+
+        CurrentFrame.SetVariable(a.Name, result, true);
+        m_ip++;
     }
 }
