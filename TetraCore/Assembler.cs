@@ -41,7 +41,7 @@ public static class Assembler
             throw new ArgumentNullException(nameof(code));
 
         var instructions = new List<Instruction>();
-        var lines = code.Split('\n').Select(RemoveComments).ToArray();
+        var lines = code.Split(["\r\n", "\n"], StringSplitOptions.None).Select(RemoveComments).ToArray();
         
         // First pass: Quickly find all labels.
         var labelNames = lines.Where(o => o.EndsWith(':')).Select(o => o[..^1]).ToArray();
