@@ -127,6 +127,19 @@ public class TetraVm
     }
 
     /// <summary>
+    /// Gets the actual value of an operand, resolving variables to their stored values.
+    /// </summary>
+    /// <remarks>
+    /// If the operand is a variable reference, retrieves its value from the current scope frame.
+    /// If the operand is a constant (int/float), returns the operand unchanged.
+    /// </remarks>
+    private Operand GetOperandValue(Operand operand)
+    {
+        // If the operand is a variable, get its value.
+        return operand.Type == OperandType.Variable ? CurrentFrame.GetVariable(operand.Name) : operand;
+    }
+
+    /// <summary>
     /// E.g. ld $a, 3.141
     /// E.g. ld $a, $b      (a = b)
     /// </summary>
@@ -145,24 +158,20 @@ public class TetraVm
     /// </summary>
     private void ExecuteAdd(Instruction instr)
     {
-        var variable = instr.Operands[0];
-        var variableName = variable.Name;
-        var value = instr.Operands[1];
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        var b = GetOperandValue(instr.Operands[1]);
 
-        // If the operand is a variable, get its value.
-        if (value.Type == OperandType.Variable)
-            value = CurrentFrame.GetVariable(value.Name);
-
-        var current = CurrentFrame.GetVariable(variableName);
+        var current = CurrentFrame.GetVariable(aName);
         Operand result;
-        if (current.Type == OperandType.Float || value.Type == OperandType.Float)
-            result = new Operand(current.AsFloat() + value.AsFloat());
-        else if (current.Type == OperandType.Int && value.Type == OperandType.Int)
-            result = new Operand(current.IntValue + value.IntValue);
+        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+            result = new Operand(current.AsFloat() + b.AsFloat());
+        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+            result = new Operand(current.IntValue + b.IntValue);
         else
-            throw new RuntimeException($"'{instr}': Cannot add with {variable.Type} and {value.Type}.");
+            throw new RuntimeException($"'{instr}': Cannot add with {a.Type} and {b.Type}.");
 
-        CurrentFrame.SetVariable(variableName, result);
+        CurrentFrame.SetVariable(aName, result);
         m_ip++;
     }
 
@@ -172,24 +181,20 @@ public class TetraVm
     /// </summary>
     private void ExecuteSub(Instruction instr)
     {
-        var variable = instr.Operands[0];
-        var variableName = variable.Name;
-        var value = instr.Operands[1];
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        var b = GetOperandValue(instr.Operands[1]);
 
-        // If the operand is a variable, get its value.
-        if (value.Type == OperandType.Variable)
-            value = CurrentFrame.GetVariable(value.Name);
-
-        var current = CurrentFrame.GetVariable(variableName);
+        var current = CurrentFrame.GetVariable(aName);
         Operand result;
-        if (current.Type == OperandType.Float || value.Type == OperandType.Float)
-            result = new Operand(current.AsFloat() - value.AsFloat());
-        else if (current.Type == OperandType.Int && value.Type == OperandType.Int)
-            result = new Operand(current.IntValue - value.IntValue);
+        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
+            result = new Operand(current.AsFloat() - b.AsFloat());
+        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
+            result = new Operand(current.IntValue - b.IntValue);
         else
-            throw new RuntimeException($"'{instr}': Cannot subtract with {variable.Type} and {value.Type}.");
+            throw new RuntimeException($"'{instr}': Cannot subtract with {a.Type} and {b.Type}.");
 
-        CurrentFrame.SetVariable(variableName, result);
+        CurrentFrame.SetVariable(aName, result);
         m_ip++;
     }
 
@@ -273,12 +278,9 @@ public class TetraVm
     private void ExecuteJmpEq(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        var label = instr.Operands[2];
-
         var aValue = CurrentFrame.GetVariable(a.Name);
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+        var label = instr.Operands[2];
 
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
@@ -302,12 +304,9 @@ public class TetraVm
     private void ExecuteJmpNe(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        var label = instr.Operands[2];
-
         var aValue = CurrentFrame.GetVariable(a.Name);
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+        var label = instr.Operands[2];
 
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
@@ -332,12 +331,9 @@ public class TetraVm
     private void ExecuteJmpLt(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        var label = instr.Operands[2];
-
         var aValue = CurrentFrame.GetVariable(a.Name);
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+        var label = instr.Operands[2];
 
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
@@ -362,12 +358,9 @@ public class TetraVm
     private void ExecuteJmpLe(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        var label = instr.Operands[2];
-
         var aValue = CurrentFrame.GetVariable(a.Name);
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+        var label = instr.Operands[2];
 
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
@@ -392,12 +385,9 @@ public class TetraVm
     private void ExecuteJmpGt(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        var label = instr.Operands[2];
-
         var aValue = CurrentFrame.GetVariable(a.Name);
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+        var label = instr.Operands[2];
 
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
@@ -422,12 +412,9 @@ public class TetraVm
     private void ExecuteJmpGe(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        var label = instr.Operands[2];
-
         var aValue = CurrentFrame.GetVariable(a.Name);
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+        var label = instr.Operands[2];
 
         bool jump;
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
@@ -450,11 +437,7 @@ public class TetraVm
     private void ExecuteMul(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-
-        // If the operand is a variable, get its value.
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
 
         var current = CurrentFrame.GetVariable(a.Name);
         Operand result;
@@ -476,11 +459,7 @@ public class TetraVm
     private void ExecuteDiv(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-
-        // If the operand is a variable, get its value.
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
 
         var current = CurrentFrame.GetVariable(a.Name);
         Operand result;
@@ -509,11 +488,7 @@ public class TetraVm
     private void ExecutePrint(Instruction instr)
     {
         var a = instr.Operands[0];
-
-        // If the operand is a variable, get its value.
-        var toPrint = a;
-        if (toPrint.Type == OperandType.Variable)
-            toPrint = CurrentFrame.GetVariable(a.Name);
+        var toPrint = GetOperandValue(a);
 
         // Print the value.
         string s;
@@ -577,11 +552,7 @@ public class TetraVm
 
         Operand? a = instr.Operands.Length > 0 ? instr.Operands[0] : null;
         if (a.HasValue)
-        {
-            // If the operand is a variable, get its value.       
-            if (a.Value.Type == OperandType.Variable)
-                a = CurrentFrame.GetVariable(a.Value.Name);
-        }
+            a = GetOperandValue(a.Value);
 
         // Pop the scoped variable frame.
         m_frames.Pop();
@@ -598,83 +569,65 @@ public class TetraVm
     /// E.g. sin $a, $theta
     /// E.g. sin $a, 1.2
     /// </summary>
-    private void ExecuteSin(Instruction instr)
-    {
+    private void ExecuteSin(Instruction instr) =>
         ExecuteMath(instr, MathF.Sin, "sin");
-    }
 
     /// <summary>
     /// E.g. sinh $a, $theta
     /// E.g. sinh $a, 1.2
     /// </summary>
-    private void ExecuteSinh(Instruction instr)
-    {
+    private void ExecuteSinh(Instruction instr) =>
         ExecuteMath(instr, MathF.Sinh, "sinh");
-    }
 
     /// <summary>
     /// E.g. asin $a, $theta
     /// E.g. asin $a, 1.2
     /// </summary>
-    private void ExecuteAsin(Instruction instr)
-    {
+    private void ExecuteAsin(Instruction instr) =>
         ExecuteMath(instr, MathF.Asin, "asin");
-    }
 
     /// <summary>
     /// E.g. cos $a, $theta
     /// E.g. cos $a, 1.2
     /// </summary>
-    private void ExecuteCos(Instruction instr)
-    {
+    private void ExecuteCos(Instruction instr) =>
         ExecuteMath(instr, MathF.Cos, "cos");
-    }
 
     /// <summary>
     /// E.g. cosh $a, $theta
     /// E.g. cosh $a, 1.2
     /// </summary>
-    private void ExecuteCosh(Instruction instr)
-    {
+    private void ExecuteCosh(Instruction instr) =>
         ExecuteMath(instr, MathF.Cosh, "cosh");
-    }
 
     /// <summary>
     /// E.g. acos $a, $theta
     /// E.g. acos $a, 1.2
     /// </summary>
-    private void ExecuteAcos(Instruction instr)
-    {
+    private void ExecuteAcos(Instruction instr) =>
         ExecuteMath(instr, MathF.Acos, "acos");
-    }
 
     /// <summary>
     /// E.g. tan $a, $theta
     /// E.g. tan $a, 1.2
     /// </summary>
-    private void ExecuteTan(Instruction instr)
-    {
+    private void ExecuteTan(Instruction instr) =>
         ExecuteMath(instr, MathF.Tan, "tan");
-    }
 
     /// <summary>
     /// E.g. tanh $a, $theta
     /// E.g. tanh $a, 1.2
     /// </summary>
-    private void ExecuteTanh(Instruction instr)
-    {
+    private void ExecuteTanh(Instruction instr) =>
         ExecuteMath(instr, MathF.Tanh, "tanh");
-    }
 
     /// <summary>
     /// E.g. atan $a, $theta
     /// E.g. atan $a, 1.2
     /// </summary>
-    private void ExecuteAtan(Instruction instr)
-    {
+    private void ExecuteAtan(Instruction instr) =>
         ExecuteMath(instr, MathF.Atan, "atan");
-    }
-    
+
     /// <summary>
     /// E.g. pow $a, b
     /// E.g. pow $a, 1.2
@@ -687,9 +640,7 @@ public class TetraVm
             throw new RuntimeException($"'{instr}': Cannot perform pow() on target of type {a.Type}.");
         a = CurrentFrame.GetVariable(a.Name);
         
-        var b = instr.Operands[1];
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
 
         var result = b.Type switch
         {
@@ -705,37 +656,29 @@ public class TetraVm
     /// E.g. exp $a, $b
     /// E.g. exp $a, 1.2
     /// </summary>
-    private void ExecuteExp(Instruction instr)
-    {
+    private void ExecuteExp(Instruction instr) =>
         ExecuteMath(instr, MathF.Exp, "exp");
-    }
 
     /// <summary>
     /// E.g. log $a, $b
     /// E.g. log $a, 1.2 
     /// </summary>
-    private void ExecuteLog(Instruction instr)
-    {
+    private void ExecuteLog(Instruction instr) =>
         ExecuteMath(instr, MathF.Log, "log");
-    }
-    
+
     /// <summary>
     /// E.g. abs $a, $b
     /// E.g. abs $a, 1.2
     /// </summary>
-    private void ExecuteAbs(Instruction instr) 
-    {
+    private void ExecuteAbs(Instruction instr) =>
         ExecuteMath(instr, MathF.Abs, "abs");
-    }
 
     /// <summary>
     /// E.g. sign $a, $b 
     /// E.g. sign $a, 1.2
     /// </summary>
-    private void ExecuteSign(Instruction instr)
-    {
+    private void ExecuteSign(Instruction instr) =>
         ExecuteMath(instr, f => MathF.Sign(f), "sign");
-    }
 
     /// <summary>
     /// E.g. mod $a, $b
@@ -744,10 +687,7 @@ public class TetraVm
     private void ExecuteMod(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-    
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
     
         var current = CurrentFrame.GetVariable(a.Name);
         Operand result;
@@ -769,10 +709,7 @@ public class TetraVm
     private void ExecuteMin(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-    
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
     
         var current = CurrentFrame.GetVariable(a.Name);
         Operand result;
@@ -794,10 +731,7 @@ public class TetraVm
     private void ExecuteMax(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-    
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
     
         var current = CurrentFrame.GetVariable(a.Name);
         Operand result;
@@ -819,10 +753,8 @@ public class TetraVm
     private void ExecuteMath(Instruction instr, Func<float, float> mathFunc, string name)
     {
         var a = instr.Operands[0];
-        var b = instr.Operands[1];
-        
-        if (b.Type == OperandType.Variable)
-            b = CurrentFrame.GetVariable(b.Name);
+        var b = GetOperandValue(instr.Operands[1]);
+
         var result = b.Type switch
         {
             OperandType.Float => new Operand(mathFunc(b.FloatValue)),

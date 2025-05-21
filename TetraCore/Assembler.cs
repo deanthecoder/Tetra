@@ -76,10 +76,10 @@ public static class Assembler
             }
             
             // Find the OpCode.
-            var opCode = GetOpCode(words[0], lineIndex);
+            var opCode = GetOpCode(words[0], lineIndex, lines[lineIndex]);
                 
             // Find the operands.
-            var operands = words.Skip(1).Select(o => GetOperand(o, lineIndex, labels.Keys)).ToArray();
+            var operands = words.Skip(1).Select(o => GetOperand(o, opCode, lineIndex, lines[lineIndex], labels.Keys)).ToArray();
             
             // Build the instruction.
             var instruction = new Instruction
@@ -88,7 +88,8 @@ public static class Assembler
                 OpCode = opCode,
                 Operands = operands
             }; 
-            ValidateInstruction(instruction, lineIndex);
+            
+            ValidateInstruction(instruction);
             
             instructions.Add(instruction);
         }
@@ -118,36 +119,60 @@ public static class Assembler
         return commentIndex >= 0 ? line[..commentIndex].Trim() : line;
     }
 
-    private static void ValidateInstruction(Instruction instr, int lineIndex)
+    private static void ValidateInstruction(Instruction instr)
+    {
+        // Validate the operands.
+        var expectedTypes = GetExpectedOperandTypes(instr.OpCode);
+        var actualTypes = instr.Operands.Select(o => o.Type).ToArray();
+        foreach (var expected in expectedTypes)
+        {
+            if (expected.Length != actualTypes.Length)
+                continue; // Skip if operand count doesn't match.
+            
+            var allMatch = true;
+            for (var i = 0; i < expected.Length; i++)
+            {
+                // Match if either:
+                // 1. Types are identical, OR
+                // 2. Expected is numeric (float/int) and actual is a variable reference.
+                var typesMatch = actualTypes[i] == expected[i] ||
+                                 (actualTypes[i] == OperandType.Variable && expected[i] is OperandType.Float or OperandType.Int);
+                allMatch &= typesMatch;
+            }
+
+            if (allMatch)
+                return; // Found matching operand types - instruction is valid.
+        }
+        
+        // Invalid operands.
+        var s = "Error: Instruction has unexpected operands.";
+        s += $"\n  {instr}";
+        s += "\nReceived:";
+        s += $"\n  {instr.OpCode} {actualTypes.Select(op => $"<{op}>").ToCsv()}";
+        s += "\nExpected:";
+        expectedTypes.ForEach(o => s += $"\n  {instr.OpCode} {o.Select(op => $"<{op}>").ToCsv()}");
+        throw new SyntaxErrorException(s);
+    }
+
+    private static OperandType[][] GetExpectedOperandTypes(OpCode opCode)
     {
         var expectedValues = new (OpCode opCode, OperandType[] types)[]
         {
             new(OpCode.Ld, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Ld, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Ld, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Halt, []),
             new(OpCode.Add, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Add, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Add, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Sub, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Sub, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Sub, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Mul, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Mul, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Mul, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Div, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Div, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Div, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Inc, [OperandType.Variable]),
             new(OpCode.Dec, [OperandType.Variable]),
             new(OpCode.Neg, [OperandType.Variable]),
             new(OpCode.Jmp, [OperandType.Label]),
-            new(OpCode.JmpEq, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
-            new(OpCode.JmpNe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
-            new(OpCode.JmpLt, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
-            new(OpCode.JmpLe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
-            new(OpCode.JmpGt, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
-            new(OpCode.JmpGe, [OperandType.Variable, OperandType.Variable, OperandType.Label]),
             new(OpCode.JmpEq, [OperandType.Variable, OperandType.Int, OperandType.Label]),
             new(OpCode.JmpNe, [OperandType.Variable, OperandType.Int, OperandType.Label]),
             new(OpCode.JmpLt, [OperandType.Variable, OperandType.Int, OperandType.Label]),
@@ -162,72 +187,62 @@ public static class Assembler
             new(OpCode.JmpGe, [OperandType.Variable, OperandType.Float, OperandType.Label]),
             new(OpCode.Print, [OperandType.Int]),
             new(OpCode.Print, [OperandType.Float]),
-            new(OpCode.Print, [OperandType.Variable]),
             new(OpCode.PushFrame, []),
             new(OpCode.PopFrame, []),
             new(OpCode.Call, [OperandType.Label]),
             new(OpCode.Ret, []),
             new(OpCode.Ret, [OperandType.Int]),
             new(OpCode.Ret, [OperandType.Float]),
-            new(OpCode.Ret, [OperandType.Variable]),
             new(OpCode.Sin, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Sin, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Sinh, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Sinh, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Asin, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Asin, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Cos, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Cos, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Cosh, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Cosh, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Acos, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Acos, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Tan, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Tan, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Tanh, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Tanh, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Atan, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Atan, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Pow, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Pow, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Exp, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Exp, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Log, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Log, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Abs, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Sign, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Mod, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Mod, [OperandType.Variable, OperandType.Variable]),
             new(OpCode.Min, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Min, [OperandType.Variable, OperandType.Variable]),
-            new(OpCode.Max, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Max, [OperandType.Variable, OperandType.Variable])
+            new(OpCode.Max, [OperandType.Variable, OperandType.Float])
         };
 
-        var matches = expectedValues.Where(o => o.opCode == instr.OpCode).ToArray();
+        var matches = expectedValues.Where(o => o.opCode == opCode).ToArray();
         if (matches.Length == 0)
-            throw new InvalidOperationException($"'{instr}': Unrecognized instruction."); // We need to add entry to the table.
-        
-        // Validate the number of operands.
-        if (matches.All(o => o.types.Length != instr.Operands.Length))
-            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instr.OpCode}' expected {matches[0].types.Length} operands, but got {instr.Operands.Length}.");
-        
-        // Validate the operand types.
-        var actualTypes = instr.Operands.Select(o => o.Type).ToArray();
-        var expectedTypes = matches.Select(o => o.types).ToArray();
-        if (!expectedTypes.Any(o => o.SequenceEqual(actualTypes)))
-            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: '{instr.OpCode}' operand types do not match expected patterns.");
+            throw new InvalidOperationException($"'{opCode}': Unrecognized instruction."); // We need to add entry to the table.
+
+        return matches.Select(o => o.types).ToArray();
     }
 
-    private static OpCode GetOpCode(string word, int lineIndex)
+    private static OpCode GetOpCode(string word, int lineIndex, string line)
     {
         var opCode = OpCodeToStringMap.GetOpCode(word);
         if (!opCode.HasValue)
-            throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Unrecognized instruction '{word}'");
+            throw new SyntaxErrorException($"Error: Unrecognized instruction '{word}'.\n  {lineIndex + 1}: {line.Trim()}");
         return opCode.Value;
     }
     
-    private static Operand GetOperand(string word, int lineIndex, IEnumerable<string> labels)
+    /// <summary>
+    /// Parses and validates a single operand from a Tetra instruction.
+    /// </summary>
+    /// <param name="word">The raw operand text to parse.</param>
+    /// <param name="opCode">The instruction's OpCode for validation context.</param>
+    /// <param name="lineIndex">Current line number for error reporting (zero-based).</param>
+    /// <param name="line">The complete source line for error context.</param>
+    /// <param name="labels">Collection of valid label names for reference validation.</param>
+    /// <returns>A typed <see cref="Operand"/> representing the parsed value.</returns>
+    /// <exception cref="SyntaxErrorException">Thrown when the operand cannot be parsed or is invalid for the instruction.</exception>
+    private static Operand GetOperand(
+        string word,
+        OpCode opCode,
+        int lineIndex,
+        string line,
+        IEnumerable<string> labels)
     {
         if (word.StartsWith('$'))
         {
@@ -239,6 +254,14 @@ public static class Assembler
             };
         }
 
+        // Float.
+        if (word.Contains('.') && float.TryParse(word, out var floatValue))
+            return new Operand(floatValue);
+
+        // Integer.
+        if (int.TryParse(word, out var intValue))
+            return new Operand(intValue);
+
         if (labels.Contains(word))
         {
             // Label.
@@ -248,15 +271,11 @@ public static class Assembler
                 Name = word
             };
         }
-
-        // Float.
-        if (word.Contains('.') && float.TryParse(word, out var floatValue))
-            return new Operand(floatValue);
-
-        // Integer.
-        if (int.TryParse(word, out var intValue))
-            return new Operand(intValue);
         
-        throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Unrecognized operand '{word}'");
+        // Unrecognized operand.
+        var s = $"Error: Unrecognized operand '{word}'.\n  {lineIndex + 1}: {line.Trim()}\nExpected:";
+        GetExpectedOperandTypes(opCode).ForEach(o => s += $"\n  {opCode} {o.Select(op => $"<{op}>").ToCsv()}");
+
+        throw new SyntaxErrorException(s);
     }
 }
