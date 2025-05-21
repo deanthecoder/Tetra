@@ -2,54 +2,32 @@
 // Anyone is free to copy, modify, use, compile, or distribute this software,
 // either in source code form or as a compiled binary, for any non-commercial
 // purpose.
-//
+// 
 // If you modify the code, please retain this copyright header,
 // and consider contributing back to the repository or letting us know
 // about your modifications. Your contributions are valued!
-//
+// 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+using TetraCore;
 
-namespace TetraCore;
+namespace UnitTests;
 
-public enum OpCode
+[TestFixture]
+public class NopTests
 {
-    Nop,
-    Ld,
-    Halt,
-    Add,
-    Sub,
-    Inc,
-    Dec,
-    Neg,
-    Mul,
-    Div,
-    Jmp,
-    JmpEq,
-    JmpNe,
-    JmpLt,
-    JmpLe,
-    JmpGt,
-    JmpGe,
-    Print,
-    PushFrame,
-    PopFrame,
-    Call,
-    Ret,
-    Sin,
-    Sinh,
-    Asin,
-    Cos,
-    Cosh,
-    Acos,
-    Tan,
-    Tanh,
-    Atan,
-    Pow,
-    Exp,
-    Log,
-    Abs,
-    Sign,
-    Mod,
-    Min,
-    Max
+    [Test]
+    public void CheckNop()
+    {
+        const string code =
+            """
+                jmp end
+                halt
+            end:
+                nop
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+
+        Assert.That(() => vm.Run(), Throws.Nothing);
+    }
 }

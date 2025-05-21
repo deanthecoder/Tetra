@@ -82,6 +82,7 @@ public class TetraVm
     {
         switch (instr.OpCode)
         {
+            case OpCode.Nop: m_ip++; break;
             case OpCode.Ld: ExecuteLd(instr); break;
             case OpCode.Add: ExecuteAdd(instr); break;
             case OpCode.Sub: ExecuteSub(instr); break;

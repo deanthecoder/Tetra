@@ -158,6 +158,7 @@ public static class Assembler
     {
         var expectedValues = new (OpCode opCode, OperandType[] types)[]
         {
+            new(OpCode.Nop, []),
             new(OpCode.Ld, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Ld, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Halt, []),
