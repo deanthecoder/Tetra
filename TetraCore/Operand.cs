@@ -10,6 +10,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using System.Globalization;
+using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
 namespace TetraCore;
@@ -24,25 +25,18 @@ public readonly struct Operand
     {
         Type = OperandType.Int;
         IntValue = f;
-        Raw = f.ToString(CultureInfo.InvariantCulture);
     }
 
-    public Operand(float f)
+    public Operand(params float[] v)
     {
-        Type = OperandType.Float;
-        FloatValue = f;
-        Raw = f.ToString(CultureInfo.InvariantCulture);
+        Type = v.Length == 1 ? OperandType.Float : OperandType.Vector;
+        Xyzw = v;
     }
-
+    
     /// <summary>
     /// Gets the type of operand (e.g., variable, constant, label).
     /// </summary>
     public OperandType Type { get; init; }
-
-    /// <summary>
-    /// Gets the raw text representation of the operand, as it appeared in the source.
-    /// </summary>
-    public string Raw { get; init; }
 
     /// <summary>
     /// Gets the variable or label name (only applicable for operands of type Variable or Label).
@@ -52,26 +46,32 @@ public readonly struct Operand
     /// <summary>
     /// Gets the float value if the operand is a float constant.
     /// </summary>
-    public float FloatValue { get; init; }
+    public float FloatValue => Xyzw[0];
 
     /// <summary>
     /// Gets or sets the integer value if the operand is an integer constant.
     /// </summary>
-    public int IntValue { get; init; }
+    public int IntValue { get; }
+    
+    /// <summary>
+    /// Gets the vector value if the operand is a vector constant.
+    /// </summary>
+    public float[] Xyzw { get; }
 
     public float AsFloat() =>
         Type switch
         {
             OperandType.Float => FloatValue,
             OperandType.Int => IntValue,
-            _ => throw new RuntimeException($"Cannot convert operand '{Raw}' ({Type}) to a float.")
+            _ => throw new RuntimeException($"Cannot convert operand '{ToString()}' ({Type}) to a float.")
         };
 
     public override string ToString() =>
         Type switch
         {
-            OperandType.Float => $"{FloatValue.ToString(CultureInfo.InvariantCulture)}f",
+            OperandType.Float => $"{FloatValue:0.0###}f",
             OperandType.Int => IntValue.ToString(CultureInfo.InvariantCulture),
+            OperandType.Vector => $"vec{Xyzw.Length}({Xyzw.Select(o => $"{o:0.0###}").ToCsv()})",
             OperandType.Label => Name,
             OperandType.Variable => $"${Name}",
             _ => throw new ArgumentOutOfRangeException()

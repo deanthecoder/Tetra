@@ -39,7 +39,7 @@ public class AssemblerTests
         AssertOperand(instr.Operands[0], OperandType.Variable, "$a");
         Assert.That(instr.Operands[0].Name, Is.EqualTo("a"));
 
-        AssertOperand(instr.Operands[1], OperandType.Float, "1.0");
+        AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
         Assert.That(instr.Operands[1].FloatValue, Is.EqualTo(1.0).Within(0.001));
     }
     
@@ -62,7 +62,7 @@ public class AssemblerTests
         AssertOperand(instr.Operands[0], OperandType.Variable, "$a");
         Assert.That(instr.Operands[0].Name, Is.EqualTo("a"));
 
-        AssertOperand(instr.Operands[1], OperandType.Float, "1.0");
+        AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
         Assert.That(instr.Operands[1].FloatValue, Is.EqualTo(1.0).Within(0.001));
     }
 
@@ -92,6 +92,6 @@ public class AssemblerTests
         {
             Assert.That(op.Type, Is.EqualTo(expectedType));
             if (expectedRaw != null)
-                Assert.That(op.Raw, Is.EqualTo(expectedRaw));
+                Assert.That(op.ToString(), Is.EqualTo(expectedRaw));
         });
 }

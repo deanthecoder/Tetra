@@ -235,7 +235,6 @@ public static class Assembler
             return new Operand
             {
                 Type = OperandType.Variable,
-                Raw = word,
                 Name = word[1..]
             };
         }
@@ -246,32 +245,17 @@ public static class Assembler
             return new Operand
             {
                 Type = OperandType.Label,
-                Raw = word,
                 Name = word
             };
         }
 
+        // Float.
         if (word.Contains('.') && float.TryParse(word, out var floatValue))
-        {
-            // Float.
-            return new Operand
-            {
-                Type = OperandType.Float,
-                Raw = word,
-                FloatValue = floatValue
-            };
-        }
+            return new Operand(floatValue);
 
+        // Integer.
         if (int.TryParse(word, out var intValue))
-        {
-            // Integer.
-            return new Operand
-            {
-                Type = OperandType.Int,
-                Raw = word,
-                IntValue = intValue
-            };
-        }
+            return new Operand(intValue);
         
         throw new SyntaxErrorException($"[Line {lineIndex + 1}] Error: Unrecognized operand '{word}'");
     }
