@@ -84,16 +84,13 @@ public readonly struct Operand
             return operands[0];
         
         // All operands must be numeric.
-        if (operands.Any(o => o.Type != OperandType.Float))
-        {
-            var s = "Error: Multiple operands must all be numeric";
-            s += "\nReceived:";
-            s += $"\n  {operands.Select(op => $"<{op}>").ToCsv()}";
-            throw new SyntaxErrorException(s);
-        }
+        if (operands.All(o => o.Type is OperandType.Float or OperandType.Int or OperandType.Vector))
+            return new Operand(operands.SelectMany(o => o.Floats).ToArray());
         
-        // Build an array.
-        return new Operand(operands.Select(o => o.AsFloat()).ToArray());
+        var s = "Error: Multiple operands must all be numeric";
+        s += "\nReceived:";
+        s += $"\n  {operands.Select(op => $"<{op}>").ToCsv()}";
+        throw new SyntaxErrorException(s);
     }
 
     public override string ToString() =>

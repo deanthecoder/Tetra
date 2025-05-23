@@ -77,7 +77,7 @@ public class LdTests
     }
     
     [Test]
-    public void CheckLoadingVectorFromMixedTypes()
+    public void CheckLoadingVectorFromMixedNumericTypes()
     {
         const string code =
             """
@@ -90,6 +90,21 @@ public class LdTests
         Assert.That(vm["v"].Type, Is.EqualTo(OperandType.Vector));
         Assert.That(vm["v"].Floats[0], Is.EqualTo(1.0).Within(0.001));
         Assert.That(vm["v"].Floats[1], Is.EqualTo(2.0).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckLoadingVectorFromSmallerVectors()
+    {
+        const string code =
+            """
+            ld $a, 1.0
+            ld $b, 2.0, 3.0
+            ld $v, $a, $b, 4.0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["v"].Length, Is.EqualTo(4));
     }
 
     [Test]
