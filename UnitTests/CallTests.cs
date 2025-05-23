@@ -89,17 +89,16 @@ public class CallTests
                 print $retval
                 halt
             add:
-                push_frame
                 ld $a, $arg0
                 add $a, $arg1
                 ret $a
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
-        var output = new List<string>();
-        vm.OutputWritten += (_, message) => output.Add(message);
+        var output = string.Empty;
+        vm.OutputWritten += (_, message) => output += message;
         vm.Run();
 
-        Assert.That(output, Is.EqualTo((string[]) ["retval = 12"]));
+        Assert.That(output, Is.EqualTo("retval = 12"));
     }
 
     [Test]

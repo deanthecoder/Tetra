@@ -26,7 +26,7 @@ public class NegTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].IntValue, Is.EqualTo(-1));
+        Assert.That(vm["a"].Int, Is.EqualTo(-1));
     }
 
     [Test]
@@ -40,6 +40,22 @@ public class NegTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.2).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.2).Within(0.001));
+    }
+
+    [Test]
+    public void CheckNegatingVector()
+    {
+        const string code =
+            """
+            ld $a, 1.0, -2.0, 3.0
+            neg $a
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+    
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(-1.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(2.0).Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(-3.0).Within(0.001));
     }
 }

@@ -40,7 +40,14 @@ public class AssemblerTests
         Assert.That(instr.Operands[0].Name, Is.EqualTo("a"));
 
         AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
-        Assert.That(instr.Operands[1].FloatValue, Is.EqualTo(1.0).Within(0.001));
+        Assert.That(instr.Operands[1].Float, Is.EqualTo(1.0).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckInstructionsAreCaseInsensitive()
+    {
+        const string code = "LD $a, 1.0";
+        Assert.That(() => Assembler.Assemble(code), Throws.Nothing);
     }
     
     [Test]
@@ -63,7 +70,7 @@ public class AssemblerTests
         Assert.That(instr.Operands[0].Name, Is.EqualTo("a"));
 
         AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
-        Assert.That(instr.Operands[1].FloatValue, Is.EqualTo(1.0).Within(0.001));
+        Assert.That(instr.Operands[1].Float, Is.EqualTo(1.0).Within(0.001));
     }
 
     [Test]
@@ -78,7 +85,7 @@ public class AssemblerTests
     public void CheckParsingInstructionWithInvalidOperandCountThrows()
     {
         Assert.That(() => Assembler.Assemble("ld $a"), Throws.TypeOf<SyntaxErrorException>());
-        Assert.That(() => Assembler.Assemble("ld $a, $b, 1.2"), Throws.TypeOf<SyntaxErrorException>());
+        Assert.That(() => Assembler.Assemble("ld"), Throws.TypeOf<SyntaxErrorException>());
     }
 
     [Test]

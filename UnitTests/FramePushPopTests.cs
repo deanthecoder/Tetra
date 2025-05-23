@@ -41,7 +41,7 @@ public class FramePushPopTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm["result"].IntValue, Is.EqualTo(42));
-        Assert.That(vm["a"].IntValue, Is.EqualTo(23));
+        Assert.That(vm["result"].Int, Is.EqualTo(42));
+        Assert.That(vm["a"].Int, Is.EqualTo(23));
     }
 }

@@ -26,7 +26,7 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.25).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(2.25).Within(0.001));
     }
 
     [Test]
@@ -41,7 +41,38 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(21.112).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(21.112).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorsCheckPow()
+    {
+        const string code =
+            """
+            ld $a, 4.0, 2.0
+            ld $b, 2.2, 3.0
+            pow $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(21.112).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(8.0).Within(0.001));
+    }
+    
+    [Test]
+    public void GivenFloatAndVectorsCheckPow()
+    {
+        const string code =
+            """
+            ld $a, 2.0
+            ld $b, 2.2, 3.0
+            pow $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
 
     [Test]
@@ -51,7 +82,7 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(4.481).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(4.481).Within(0.001));
     }
 
     [Test]
@@ -65,7 +96,22 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(7.389).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(7.389).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorCheckExp()
+    {
+        const string code =
+            """
+            ld $b, 2.0, 3.0
+            exp $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(7.389).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(20.086).Within(0.001));
     }
 
     [Test]
@@ -75,7 +121,7 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.0).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.0).Within(0.001));
     }
 
     [Test]
@@ -89,7 +135,22 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.0).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(2.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorCheckLog()
+    {
+        const string code =
+            """
+            ld $b, 7.3891, 2.3
+            log $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(2.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.833).Within(0.001));
     }
 
     [Test]
@@ -103,7 +164,7 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.5).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.5).Within(0.001));
     }
 
     [Test]
@@ -118,7 +179,53 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.8).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.8).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorsCheckMod()
+    {
+        const string code =
+            """
+            ld $a, 8.3, 2.2
+            ld $b, 2.5, 1.2
+            mod $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.8).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(1.0).Within(0.001));
+    }
+    
+    [Test]
+    public void GivenFloatAndVectorCheckMod()
+    {
+        const string code =
+            """
+            ld $a, 8.3
+            ld $b, 2.5, 1.2
+            mod $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
+    }
+    
+    [Test]
+    public void GivenVectorAndFloatCheckMod()
+    {
+        const string code =
+            """
+            ld $a, 8.3, 2.3
+            ld $b, 2.5
+            mod $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
 
     [Test]
@@ -132,7 +239,7 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.0).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.0).Within(0.001));
     }
 
     [Test]
@@ -147,7 +254,53 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.0).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorsCheckMin()
+    {
+        const string code =
+            """
+            ld $a, 8.0, 3.0
+            ld $b, 6.0, 5.0
+            min $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(6.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(3.0).Within(0.001));
+    }
+    
+    [Test]
+    public void GivenFloatAndVectorCheckMin()
+    {
+        const string code =
+            """
+            ld $a, 8.0
+            ld $b, 6.0, 5.0
+            min $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
+    }
+    
+    [Test]
+    public void GivenVectorAndFloatCheckMin()
+    {
+        const string code =
+            """
+            ld $a, 8.0, 3.0
+            ld $b, 7.0
+            min $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
     
     [Test]
@@ -161,7 +314,7 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(5.0).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(5.0).Within(0.001));
     }
 
     [Test]
@@ -176,7 +329,53 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(9.0).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(9.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorsCheckMax()
+    {
+        const string code =
+            """
+            ld $a, 8.0, 3.0
+            ld $b, 6.0, 5.0
+            max $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(8.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(5.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenFloatAndVectorCheckMax()
+    {
+        const string code =
+            """
+            ld $a, 8.0
+            ld $b, 6.0, 5.0
+            max $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
+    }
+    
+    [Test]
+    public void GivenVectorAndFloatCheckMax()
+    {
+        const string code =
+            """
+            ld $a, 8.0, 3.0
+            ld $b, 7.0
+            max $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
 
     [Test]
@@ -192,7 +391,20 @@ public class MathTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a1"].FloatValue, Is.EqualTo(1.0).Within(0.001));
-        Assert.That(vm["a2"].FloatValue, Is.EqualTo(0.0).Within(0.001));
+        Assert.That(vm["a1"].Float, Is.EqualTo(1.0).Within(0.001));
+        Assert.That(vm["a2"].Float, Is.EqualTo(0.0).Within(0.001));
+    }
+    
+    [Test]
+    public void GivenVectorCheckSign()
+    {
+        const string code = "sign $a, 1.0, -0.0, -3.0";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(3));
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(1.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.Zero.Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(-1.0).Within(0.001));
     }
 }

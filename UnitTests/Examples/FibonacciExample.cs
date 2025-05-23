@@ -71,6 +71,6 @@ public class FibonacciExample
         vm.Run();
 
         // This will print the sequence 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
-        Assert.That(vm["retval"].IntValue, Is.EqualTo(34));
+        Assert.That(vm["retval"].Int, Is.EqualTo(34));
     }
 }

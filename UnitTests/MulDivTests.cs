@@ -36,7 +36,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm["a"].IntValue, Is.EqualTo(8487));
+        Assert.That(vm["a"].Int, Is.EqualTo(8487));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(-13.8).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(-13.8).Within(0.001));
     }
 
     [Test]
@@ -65,7 +65,67 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(6.9).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(6.9).Within(0.001));
+    }
+
+    [Test]
+    public void CheckMultiplyingVectors()
+    {
+        const string code =
+            """
+            ld $a, 3.0, 2.0
+            ld $b, 2.3, 1.2
+            mul $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(6.9).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(2.4).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckMultiplyingDifferentVectorLengthsThrows()
+    {
+        const string code =
+            """
+            ld $a, 3.0, 2.0
+            ld $b, 2.3, 1.2, 5.2
+            mul $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+    
+    [Test]
+    public void CheckMultiplyingFloatAndVector()
+    {
+        const string code =
+            """
+            ld $a, 3.0
+            ld $b, 2.3, 1.2
+            mul $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
+    }
+    
+    [Test]
+    public void CheckMultiplyingVectorAndFloat()
+    {
+        const string code =
+            """
+            ld $a, 3.0, 4.1
+            ld $b, 2.3
+            mul $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
 
     [Test]
@@ -87,7 +147,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
         
-        Assert.That(vm["a"].IntValue, Is.EqualTo(3));
+        Assert.That(vm["a"].Int, Is.EqualTo(3));
     }
     
     [Test]
@@ -101,7 +161,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.5));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.5));
     }
     
     [Test]
@@ -116,7 +176,7 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].Int, Is.EqualTo(2));
 
     }
     
@@ -131,5 +191,65 @@ public class MulDivTests
         var vm = new TetraVm(Assembler.Assemble(code));
 
         Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
+    [Test]
+    public void CheckDividingVectors()
+    {
+        const string code =
+            """
+            ld $a, 6.9, 2.4
+            ld $b, 2.3, 1.2
+            div $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+    
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(3.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(2.0).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckDividingDifferentVectorLengthsThrows()
+    {
+        const string code =
+            """
+            ld $a, 3.0, 2.0
+            ld $b, 2.3, 1.2, 5.2
+            div $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+    
+    [Test]
+    public void CheckDividingFloatAndVector()
+    {
+        const string code =
+            """
+            ld $a, 3.0
+            ld $b, 2.3, 1.2
+            div $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
+    }
+    
+    [Test]
+    public void CheckDividingVectorAndFloat()
+    {
+        const string code =
+            """
+            ld $a, 3.0, 4.1
+            ld $b, 2.3
+            div $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
 }

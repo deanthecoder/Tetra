@@ -52,7 +52,7 @@ public class PiApproximation
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        var result = vm["sum"].FloatValue;
+        var result = vm["sum"].Float;
 
         Assert.That(result, Is.EqualTo(3.14f).Within(0.01f));
     }

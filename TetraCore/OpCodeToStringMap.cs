@@ -47,10 +47,13 @@ public static class OpCodeToStringMap
     public static string GetString(OpCode opCode) =>
         Lut.First(o => o.opCode == opCode).asString;
 
+    /// <summary>
+    /// Case insensitive lookup of an opcode from plain text.
+    /// </summary>
     public static OpCode? GetOpCode(string opCode)
     {
-        if (Lut.All(o => o.asString != opCode))
-            return null;
-        return Lut.First(o => o.asString == opCode).opCode;
+        if (Lut.All(o => !o.asString.Equals(opCode, StringComparison.OrdinalIgnoreCase)))
+            return null; // Instruction not found.
+        return Lut.First(o => o.asString.Equals(opCode, StringComparison.OrdinalIgnoreCase)).opCode;
     }
 }

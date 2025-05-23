@@ -10,6 +10,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using TetraCore;
+using TetraCore.Exceptions;
 
 namespace UnitTests;
 
@@ -28,8 +29,8 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].IntValue, Is.EqualTo(3));
-        Assert.That(vm["b"].IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].Int, Is.EqualTo(3));
+        Assert.That(vm["b"].Int, Is.EqualTo(2));
     }
 
     [Test]
@@ -44,7 +45,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].IntValue, Is.EqualTo(-2));
+        Assert.That(vm["a"].Int, Is.EqualTo(-2));
     }
 
     [Test]
@@ -59,7 +60,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.75f).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.75f).Within(0.001));
     }
 
     [Test]
@@ -74,7 +75,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(-1.5f).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(-1.5f).Within(0.001));
     }
 
     [Test]
@@ -88,7 +89,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.5f).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.5f).Within(0.001));
     }
 
     [Test]
@@ -102,7 +103,7 @@ public class AddSubTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(3.5f).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(3.5f).Within(0.001));
     }
 
     [Test]
@@ -115,7 +116,7 @@ public class AddSubTests
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
-        
+
         Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
     }
 
@@ -131,5 +132,127 @@ public class AddSubTests
         vm.Run();
 
         Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
+    }
+
+    [Test, Sequential]
+    public void CheckAddingSameSizeVectors([Values("0.2, 0.4, 0.6", "$b")] string rhs)
+    {
+        var code =
+            $"""
+             ld $a, 1.0, 2.0, 3.0
+             ld $b, 0.2, 0.4, 0.6
+             add $a, {rhs}
+             """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
+        Assert.That(vm["a"].Floats, Has.Length.EqualTo(3));
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(1.2).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(2.4).Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(3.6).Within(0.001));
+    }
+
+    [Test, Sequential]
+    public void CheckSubtractingSameSizeVectors([Values("0.2, 0.4, 0.6", "$b")] string rhs)
+    {
+        var code =
+            $"""
+             ld $a, 1.0, 2.0, 3.0
+             ld $b, 0.2, 0.4, 0.6
+             sub $a, {rhs}
+             """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
+        Assert.That(vm["a"].Floats, Has.Length.EqualTo(3));
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.8).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(1.6).Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(2.4).Within(0.001));
+    }
+
+    [Test, Sequential]
+    public void CheckAddingDifferentSizeVectorsThrows([Values("0.2, 0.4", "$b")] string rhs)
+    {
+        var code =
+            $"""
+             ld $a, 1.0, 2.0, 3.0
+             ld $b, 0.2, 0.4
+             add $a, {rhs}
+             """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
+    [Test, Sequential]
+    public void CheckSubtractingDifferentSizeVectorsThrows([Values("0.2, 0.4", "$b")] string rhs)
+    {
+        var code =
+            $"""
+             ld $a, 1.0, 2.0, 3.0
+             ld $b, 0.2, 0.4
+             sub $a, {rhs}
+             """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
+    [Test]
+    public void CheckAddingVectorToFloatExpandsFloat()
+    {
+        var code =
+            """
+            ld $a, 1.0
+            add $a, 0.2, 0.4, 0.6
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats, Has.Length.EqualTo(3));
+    }
+
+    [Test]
+    public void CheckSubtractingVectorFromFloatExpandsFloat()
+    {
+        var code =
+            """
+            ld $a, 1.0
+            sub $a, 0.2, 0.4, 0.6
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats, Has.Length.EqualTo(3));
+    }
+
+    [Test]
+    public void CheckAddingFloatToVector()
+    {
+        var code =
+            """
+            ld $a, 0.2, 0.4, 0.6
+            add $a, 1.0 
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats, Has.Length.EqualTo(3));
+    }
+
+    [Test]
+    public void CheckSubtractingFloatFromVector()
+    {
+        var code =
+            """
+            ld $a, 0.2, 0.4, 0.6
+            sub $a, 1.0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats, Has.Length.EqualTo(3));
     }
 }

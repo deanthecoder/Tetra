@@ -27,8 +27,38 @@ in scoped frames — making code easier to read, debug, and understand.
 - **Manual Control Flow**: The VM does not auto-jump to `main:`; you must explicitly add `jmp main` at the end of your
   global setup.
 
----
+## 🧮 Vector Support
 
+Tetra supports first-class vector values. You can declare vector literals using `ld` with multiple float constants or float variables:
+
+```tetra
+ld $v, 1.1, -2.0, 3.0, 4.2
+ld $v, $a, $b
+```
+
+The result is a float vector. Arithmetic operations like `add`, `mul`, and `sub` apply **per element** when two vectors are used:
+
+```tetra
+ld $a, 1.0, 2.0, 3.0
+ld $b, 0.5, 0.5, 0.5
+mul $a, $b   # $a becomes [0.5, 1.0, 1.5]
+```
+
+Unary operations like `neg` apply to each element:
+
+```tetra
+neg $a       # $a becomes [-0.5, -1.0, -1.5]
+```
+
+When combining a scalar with a vector, the scalar is broadcast across the vector’s components:
+
+```tetra
+ld $a, 8.0
+ld $b, 6.0, 5.0
+min $a, $b   # $a becomes [min(8.0, 6.0), min(8.0, 5.0)]
+```
+
+---
 
 ## Instruction Set
 
@@ -270,4 +300,4 @@ Output: x = 10
 
 🚧 Work in progress. Instruction set and behavior are still evolving.
 
----
+---</file>

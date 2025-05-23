@@ -43,7 +43,7 @@ public class ScopeFrameTests
         m_scopeFrame.DefineVariable("test", operand);
         
         Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Int));
-        Assert.That(m_scopeFrame.GetVariable("test").IntValue, Is.EqualTo(23));
+        Assert.That(m_scopeFrame.GetVariable("test").Int, Is.EqualTo(23));
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class ScopeFrameTests
         m_scopeFrame.SetVariable("test", operand2);
         
         Assert.That(m_scopeFrame.GetVariable("test").Type, Is.EqualTo(OperandType.Int));
-        Assert.That(m_scopeFrame.GetVariable("test").IntValue, Is.EqualTo(42));
+        Assert.That(m_scopeFrame.GetVariable("test").Int, Is.EqualTo(42));
     }
 
     [Test]
@@ -82,6 +82,6 @@ public class ScopeFrameTests
         var localScopeFrame = new ScopeFrame(m_scopeFrame);
         
         Assert.That(localScopeFrame.IsDefined("test"), Is.True);
-        Assert.That(localScopeFrame.GetVariable("test").IntValue, Is.EqualTo(23));
+        Assert.That(localScopeFrame.GetVariable("test").Int, Is.EqualTo(23));
     }
 }

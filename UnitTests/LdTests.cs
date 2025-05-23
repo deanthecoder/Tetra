@@ -27,7 +27,7 @@ public class LdTests
         vm.Run();
 
         Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.0f));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.0f));
     }
 
     [Test]
@@ -40,7 +40,56 @@ public class LdTests
         vm.Run();
 
         Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
-        Assert.That(vm["a"].IntValue, Is.EqualTo(1));
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckLoadingVector()
+    {
+        const string code = "ld $v, 1.1, -2.0, 3.0, 4.2";
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+
+        vm.Run();
+
+        Assert.That(vm["v"].Type, Is.EqualTo(OperandType.Vector));
+        Assert.That(vm["v"].Floats[0], Is.EqualTo(1.1).Within(0.001));
+        Assert.That(vm["v"].Floats[1], Is.EqualTo(-2.0).Within(0.001));
+        Assert.That(vm["v"].Floats[2], Is.EqualTo(3.0).Within(0.001));
+        Assert.That(vm["v"].Floats[3], Is.EqualTo(4.2).Within(0.001));
+    }
+
+    [Test]
+    public void CheckLoadingVectorFromVariable()
+    {
+        const string code =
+            """
+            ld $a, 1.0
+            ld $b, 2.0
+            ld $v, $a, $b
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["v"].Type, Is.EqualTo(OperandType.Vector));
+        Assert.That(vm["v"].Floats[0], Is.EqualTo(1.0).Within(0.001));
+        Assert.That(vm["v"].Floats[1], Is.EqualTo(2.0).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckLoadingVectorFromMixedTypes()
+    {
+        const string code =
+            """
+            ld $a, 1.0
+            ld $v, $a, 2.0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["v"].Type, Is.EqualTo(OperandType.Vector));
+        Assert.That(vm["v"].Floats[0], Is.EqualTo(1.0).Within(0.001));
+        Assert.That(vm["v"].Floats[1], Is.EqualTo(2.0).Within(0.001));
     }
 
     [Test]
@@ -57,7 +106,23 @@ public class LdTests
         vm.Run();
 
         Assert.That(vm["b"].Type, Is.EqualTo(OperandType.Int));
-        Assert.That(vm["b"].IntValue, Is.EqualTo(69));
+        Assert.That(vm["b"].Int, Is.EqualTo(69));
+    }
+    
+    [Test]
+    public void CheckCopyingVectorVariable()
+    {
+        const string code =
+            """
+            ld $a, 69.0, 23.2
+            ld $b, $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+
+        vm.Run();
+
+        Assert.That(vm["b"].Length, Is.EqualTo(2));
     }
 
     [Test]
@@ -81,7 +146,7 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].IntValue, Is.EqualTo(2));
+        Assert.That(vm["a"].Int, Is.EqualTo(2));
     }
 
     [Test]
@@ -95,7 +160,35 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.3).Within(0.001));
+        Assert.That(vm["a"].Float, Is.EqualTo(2.3).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckOverwritingVectorWithFloat()
+    {
+        const string code =
+            """
+                ld $a, 1.1, 2.2
+                ld $a, 3.3
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(1));
+    }
+    
+    [Test]
+    public void CheckOverwritingFloatWithVector()
+    {
+        const string code =
+            """
+                ld $a, 1.1
+                ld $a, 2.2, 3.3
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
     }
 
     [Test]
@@ -108,14 +201,14 @@ public class LdTests
     }
 
     [Test]
-    public void CheckLoadingegativeNumber()
+    public void CheckLoadingNegativeNumber()
     {
         const string code = "ld $a, -42.69";
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
         var variable = vm["a"];
-        Assert.That(variable.FloatValue, Is.EqualTo(-42.69).Within(0.001));
+        Assert.That(variable.Float, Is.EqualTo(-42.69).Within(0.001));
     }
 
     [Test]
@@ -129,7 +222,7 @@ public class LdTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].IntValue, Is.EqualTo(1));
-        Assert.That(vm["A"].IntValue, Is.EqualTo(-2));
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+        Assert.That(vm["A"].Int, Is.EqualTo(-2));
     }
 }

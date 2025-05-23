@@ -22,8 +22,11 @@ public class PrintTests
     {
         const string code = "print 123";
         var vm = new TetraVm(Assembler.Assemble(code));
+        var s = string.Empty;
+        vm.OutputWritten += (_, output) => s += output; 
         
         Assert.That(() => vm.Run(), Throws.Nothing);
+        Assert.That(s, Is.EqualTo("123"));
     }
     
     [Test]
@@ -31,8 +34,11 @@ public class PrintTests
     {
         const string code = "print 123.456";
         var vm = new TetraVm(Assembler.Assemble(code));
+        var s = string.Empty;
+        vm.OutputWritten += (_, output) => s += output; 
         
         Assert.That(() => vm.Run(), Throws.Nothing);
+        Assert.That(s, Is.EqualTo("123.456f"));
     }
     
     [Test]
@@ -44,8 +50,39 @@ public class PrintTests
             print $a
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
+        var s = string.Empty;
+        vm.OutputWritten += (_, output) => s += output; 
         
         Assert.That(() => vm.Run(), Throws.Nothing);
+        Assert.That(s, Is.EqualTo("a = 69.23f"));
+    }
+
+    [Test]
+    public void CheckPrintingVector()
+    {
+        const string code = "print 69.0, 0.23";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        var s = string.Empty;
+        vm.OutputWritten += (_, output) => s += output; 
+
+        Assert.That(() => vm.Run(), Throws.Nothing);
+        Assert.That(s, Is.EqualTo("[69.0f,0.23f]"));
+    }
+    
+    [Test]
+    public void CheckPrintingVectorVariable()
+    {
+        const string code =
+            """
+            ld $a, 69.0, -0.23
+            print $a
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        var s = string.Empty;
+        vm.OutputWritten += (_, output) => s += output; 
+
+        Assert.That(() => vm.Run(), Throws.Nothing);
+        Assert.That(s, Is.EqualTo("a = [69.0f,-0.23f]"));
     }
 
     [Test]

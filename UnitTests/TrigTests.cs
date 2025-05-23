@@ -23,7 +23,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.93).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.93).Within(0.01));
     }
     
     [Test]
@@ -37,7 +37,142 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.93).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.93).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckSin()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            sin $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.93).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.91).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckSinh()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            sinh $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(1.51).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(3.63).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckAsin()
+    {
+        const string code =
+            """
+            ld $theta, 0.5, 0.3
+            asin $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.52).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.30).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckCos()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            cos $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.36).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(-0.42).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckCosh()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            cosh $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(1.81).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(3.76).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckAcos()
+    {
+        const string code =
+            """
+            ld $theta, 0.5, 0.3
+            acos $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(1.05).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(1.27).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckTan()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            tan $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(2.57).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(-2.19).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckTanh()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            tanh $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.833).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.964).Within(0.01));
+    }
+
+    [Test]
+    public void GivenVectorCheckAtan()
+    {
+        const string code =
+            """
+            ld $theta, 1.2, 2.0
+            atan $a, $theta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.876).Within(0.01));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(1.107).Within(0.01));
     }
 
     [Test]
@@ -47,7 +182,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.51).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.51).Within(0.01));
     }
 
     [Test]
@@ -61,7 +196,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.51).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.51).Within(0.01));
     }
 
     [Test]
@@ -71,7 +206,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.524).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.524).Within(0.01));
     }
 
     [Test]
@@ -85,7 +220,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.524).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.524).Within(0.01));
     }
     
     [Test]
@@ -95,7 +230,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.36).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.36).Within(0.01));
     }
 
     [Test]
@@ -109,7 +244,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.36).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.36).Within(0.01));
     }
 
     [Test]
@@ -119,7 +254,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.81).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.81).Within(0.01));
     }
 
     [Test]
@@ -133,7 +268,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.81).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.81).Within(0.01));
     }
 
     [Test]
@@ -143,7 +278,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.047).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.047).Within(0.01));
     }
 
     [Test]
@@ -157,7 +292,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(1.047).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.047).Within(0.01));
     }
     
     [Test]
@@ -167,7 +302,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.57).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(2.57).Within(0.01));
     }
 
     [Test]
@@ -181,7 +316,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(2.57).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(2.57).Within(0.01));
     }
 
     [Test]
@@ -191,7 +326,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.833).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.833).Within(0.01));
     }
 
     [Test]
@@ -205,7 +340,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.833).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.833).Within(0.01));
     }
 
     [Test]
@@ -215,7 +350,7 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.876).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.876).Within(0.01));
     }
 
     [Test]
@@ -229,6 +364,6 @@ public class TrigTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].FloatValue, Is.EqualTo(0.876).Within(0.01));
+        Assert.That(vm["a"].Float, Is.EqualTo(0.876).Within(0.01));
     }
 }

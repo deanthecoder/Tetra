@@ -126,8 +126,8 @@ public static class Assembler
         var actualTypes = instr.Operands.Select(o => o.Type).ToArray();
         foreach (var expected in expectedTypes)
         {
-            if (expected.Length != actualTypes.Length)
-                continue; // Skip if operand count doesn't match.
+            if (actualTypes.Length < expected.Length)
+                continue; // Not enough operands.
             
             var allMatch = true;
             for (var i = 0; i < expected.Length; i++)
@@ -206,8 +206,8 @@ public static class Assembler
             new(OpCode.Pow, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Exp, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Log, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Abs, [OperandType.Variable, OperandType.Variable]),
-            new(OpCode.Sign, [OperandType.Variable, OperandType.Variable]),
+            new(OpCode.Abs, [OperandType.Variable, OperandType.Float]),
+            new(OpCode.Sign, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Mod, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Min, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Max, [OperandType.Variable, OperandType.Float])

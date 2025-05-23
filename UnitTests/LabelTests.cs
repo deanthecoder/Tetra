@@ -59,6 +59,6 @@ public class LabelTests
         
         Assert.That(instructions.Count, Is.EqualTo(2));
         Assert.That(instructions[1].OpCode, Is.EqualTo(OpCode.Jmp));
-        Assert.That(instructions[1].Operands.Single().IntValue, Is.EqualTo(1));
+        Assert.That(instructions[1].Operands.Single().Int, Is.EqualTo(1));
     }
 }

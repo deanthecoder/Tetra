@@ -9,7 +9,6 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-using System.Globalization;
 using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
@@ -142,14 +141,15 @@ public class TetraVm
 
     /// <summary>
     /// E.g. ld $a, 3.141
-    /// E.g. ld $a, $b      (a = b)
+    /// E.g. ld $a, $b              (a = b)
+    /// E.g. ld $a, 1.1, 2.2, 3.3   (a = [1.1, 2.2, 3.3])
     /// </summary>
     private void ExecuteLd(Instruction instr)
     {
-        var variable = instr.Operands[0];
-        var value = instr.Operands[1];
+        var a = instr.Operands[0];
+        var b = Operand.FromOperands(instr.Operands.Skip(1).Select(GetOperandValue).ToArray());
 
-        CurrentFrame.DefineVariable(variable.Name, value);
+        CurrentFrame.DefineVariable(a.Name, b);
         m_ip++;
     }
 
@@ -157,107 +157,33 @@ public class TetraVm
     /// E.g. add $a, 3.141
     /// E.g. add $a, $b     (a += b)
     /// </summary>
-    private void ExecuteAdd(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aName = a.Name;
-        var b = GetOperandValue(instr.Operands[1]);
-
-        var current = CurrentFrame.GetVariable(aName);
-        Operand result;
-        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-            result = new Operand(current.AsFloat() + b.AsFloat());
-        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-            result = new Operand(current.IntValue + b.IntValue);
-        else
-            throw new RuntimeException($"'{instr}': Cannot add with {a.Type} and {b.Type}.");
-
-        CurrentFrame.SetVariable(aName, result);
-        m_ip++;
-    }
+    private void ExecuteAdd(Instruction instr, float multiplier = 1.0f) =>
+        DoMathOp(instr, (a , b) => a + b * multiplier);
 
     /// <summary>
     /// E.g. sub $a, 3.141
     /// E.g. sub $a, $b     (a -= b)
     /// </summary>
-    private void ExecuteSub(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aName = a.Name;
-        var b = GetOperandValue(instr.Operands[1]);
-
-        var current = CurrentFrame.GetVariable(aName);
-        Operand result;
-        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-            result = new Operand(current.AsFloat() - b.AsFloat());
-        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-            result = new Operand(current.IntValue - b.IntValue);
-        else
-            throw new RuntimeException($"'{instr}': Cannot subtract with {a.Type} and {b.Type}.");
-
-        CurrentFrame.SetVariable(aName, result);
-        m_ip++;
-    }
+    private void ExecuteSub(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a - b);
 
     /// <summary>
     /// E.g. inc $a
     /// </summary>
-    private void ExecuteInc(Instruction instr)
-    {
-        var variable = instr.Operands[0];
-        var variableName = variable.Name;
-
-        var current = CurrentFrame.GetVariable(variableName);
-        var result = current.Type switch
-        {
-            OperandType.Float => new Operand(current.FloatValue + 1.0f),
-            OperandType.Int => new Operand(current.IntValue + 1),
-            _ => throw new RuntimeException($"'{instr}': Cannot increment {variable.Type}.")
-        };
-
-        CurrentFrame.SetVariable(variableName, result);
-        m_ip++;
-    }
+    private void ExecuteInc(Instruction instr) =>
+        DoMathOp(instr, (a, _) => ++a);
 
     /// <summary>
     /// E.g. dec $a
     /// </summary>
-    private void ExecuteDec(Instruction instr)
-    {
-        var variable = instr.Operands[0];
-        var variableName = variable.Name;
-
-        var current = CurrentFrame.GetVariable(variableName);
-        var result = current.Type switch
-        {
-            OperandType.Float => new Operand(current.AsFloat() - 1.0f),
-            OperandType.Int => new Operand(current.IntValue - 1),
-            _ => throw new RuntimeException($"'{instr}': Cannot decrement {variable.Type}.")
-        };
-
-        CurrentFrame.SetVariable(variableName, result);
-        m_ip++;
-    }
+    private void ExecuteDec(Instruction instr) =>
+        DoMathOp(instr, (a, _) => --a);
 
     /// <summary>
     /// E.g. neg $a  (a = -a)
     /// </summary>
-    private void ExecuteNeg(Instruction instr)
-    {
-        var variable = instr.Operands[0];
-        var variableName = variable.Name;
-
-        var current = CurrentFrame.GetVariable(variableName);
-        var result = current.Type switch
-        {
-            OperandType.Float => new Operand(-current.AsFloat()),
-            OperandType.Int => new Operand(-current.IntValue),
-            _ => throw new RuntimeException($"'{instr}': Cannot negate {variable.Type}.")
-        };
-
-        CurrentFrame.SetVariable(variableName, result);
-        m_ip++;
-    }
+    private void ExecuteNeg(Instruction instr) =>
+        DoMathOp(instr, (a, _) => -a);
 
     /// <summary>
     /// Unconditional jump.
@@ -268,7 +194,7 @@ public class TetraVm
         var label = instr.Operands[0];
         if (label.Type != OperandType.Int)
             throw new RuntimeException($"'{instr}': Integer operand expected.");
-        m_ip = label.IntValue;
+        m_ip = label.Int;
     }
 
     /// <summary>
@@ -287,12 +213,12 @@ public class TetraVm
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat().IsApproximately(b.AsFloat());
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.IntValue == b.IntValue;
+            jump = aValue.Int == b.Int;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
-            m_ip = label.IntValue;
+            m_ip = label.Int;
         else
             m_ip++;
     }
@@ -313,12 +239,12 @@ public class TetraVm
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = !aValue.AsFloat().IsApproximately(b.AsFloat());
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.IntValue != b.IntValue;
+            jump = aValue.Int != b.Int;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
-            m_ip = label.IntValue;
+            m_ip = label.Int;
         else
             m_ip++;
     }
@@ -340,12 +266,12 @@ public class TetraVm
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() < b.AsFloat();
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.IntValue < b.IntValue;
+            jump = aValue.Int < b.Int;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
-            m_ip = label.IntValue;
+            m_ip = label.Int;
         else
             m_ip++;
     }
@@ -367,12 +293,12 @@ public class TetraVm
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() <= b.AsFloat();
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.IntValue <= b.IntValue;
+            jump = aValue.Int <= b.Int;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
-            m_ip = label.IntValue;
+            m_ip = label.Int;
         else
             m_ip++;
     }
@@ -394,12 +320,12 @@ public class TetraVm
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() > b.AsFloat();
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.IntValue > b.IntValue;
+            jump = aValue.Int > b.Int;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
-            m_ip = label.IntValue;
+            m_ip = label.Int;
         else
             m_ip++;
     }
@@ -421,12 +347,12 @@ public class TetraVm
         if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
             jump = aValue.AsFloat() >= b.AsFloat();
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.IntValue >= b.IntValue;
+            jump = aValue.Int >= b.Int;
         else
             throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
-            m_ip = label.IntValue;
+            m_ip = label.Int;
         else
             m_ip++;
     }
@@ -435,52 +361,15 @@ public class TetraVm
     /// E.g. mul $a, 3.141
     /// E.g. mul $a, $b     (a *= b)
     /// </summary>
-    private void ExecuteMul(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var b = GetOperandValue(instr.Operands[1]);
-
-        var current = CurrentFrame.GetVariable(a.Name);
-        Operand result;
-        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-            result = new Operand(current.AsFloat() * b.AsFloat());
-        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-            result = new Operand(current.IntValue * b.IntValue);
-        else
-            throw new RuntimeException($"'{instr}': Cannot multiply with {a.Type} and {b.Type}.");
-
-        CurrentFrame.SetVariable(a.Name, result);
-        m_ip++;
-    }
+    private void ExecuteMul(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a * b);
 
     /// <summary>
     /// E.g. div $a, 3.141
     /// E.g. div $a, $b     (a /= b)
     /// </summary>
-    private void ExecuteDiv(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var b = GetOperandValue(instr.Operands[1]);
-
-        var current = CurrentFrame.GetVariable(a.Name);
-        Operand result;
-        try
-        {
-            if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-                result = new Operand(current.AsFloat() / b.AsFloat());
-            else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-                result = new Operand(current.IntValue / b.IntValue);
-            else
-                throw new RuntimeException($"'{instr}': Cannot divide with {a.Type} and {b.Type}.");
-        }
-        catch (DivideByZeroException)
-        {
-            throw new RuntimeException($"'{instr}': Cannot divide by zero.");
-        }
-
-        CurrentFrame.SetVariable(a.Name, result);
-        m_ip++;
-    }
+    private void ExecuteDiv(Instruction instr) =>
+        DoMathOp(instr, (a, b) => b == 0.0f ? throw new RuntimeException($"'{instr}': Division by zero.") : a / b);
 
     /// <summary>
     /// E.g. print 3.141
@@ -489,18 +378,8 @@ public class TetraVm
     private void ExecutePrint(Instruction instr)
     {
         var a = instr.Operands[0];
-        var toPrint = GetOperandValue(a);
-
-        // Print the value.
-        string s;
-        if (toPrint.Type == OperandType.Float)
-            s = toPrint.FloatValue.ToString(CultureInfo.InvariantCulture);
-        else if (toPrint.Type == OperandType.Int)
-            s = toPrint.IntValue.ToString();
-        else
-            throw new RuntimeException($"'{instr}': Cannot print type '{toPrint.Type}'.");
-
-        OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.Name} = {s}" : s);
+        var toPrint = Operand.FromOperands(instr.Operands.Select(GetOperandValue).ToArray());
+        OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.Name} = {toPrint}" : toPrint.ToString());
         m_ip++;
     }
 
@@ -537,7 +416,7 @@ public class TetraVm
             throw new RuntimeException($"'{instr}': Integer operand expected.");
         m_frames.Push(new ScopeFrame(CurrentFrame));
         m_callStack.Push(m_ip + 1);
-        m_ip = label.IntValue;
+        m_ip = label.Int;
     }
 
     /// <summary>
@@ -571,198 +450,175 @@ public class TetraVm
     /// E.g. sin $a, 1.2
     /// </summary>
     private void ExecuteSin(Instruction instr) =>
-        ExecuteMath(instr, MathF.Sin, "sin");
+        DoMathOp(instr, (_, b) => MathF.Sin(b));
 
     /// <summary>
     /// E.g. sinh $a, $theta
     /// E.g. sinh $a, 1.2
     /// </summary>
     private void ExecuteSinh(Instruction instr) =>
-        ExecuteMath(instr, MathF.Sinh, "sinh");
+        DoMathOp(instr, (_, b) => MathF.Sinh(b));
 
     /// <summary>
     /// E.g. asin $a, $theta
     /// E.g. asin $a, 1.2
     /// </summary>
     private void ExecuteAsin(Instruction instr) =>
-        ExecuteMath(instr, MathF.Asin, "asin");
+        DoMathOp(instr, (_, b) => MathF.Asin(b));
 
     /// <summary>
     /// E.g. cos $a, $theta
     /// E.g. cos $a, 1.2
     /// </summary>
     private void ExecuteCos(Instruction instr) =>
-        ExecuteMath(instr, MathF.Cos, "cos");
+        DoMathOp(instr, (_, b) => MathF.Cos(b));
 
     /// <summary>
     /// E.g. cosh $a, $theta
     /// E.g. cosh $a, 1.2
     /// </summary>
     private void ExecuteCosh(Instruction instr) =>
-        ExecuteMath(instr, MathF.Cosh, "cosh");
+        DoMathOp(instr, (_, b) => MathF.Cosh(b));
 
     /// <summary>
     /// E.g. acos $a, $theta
     /// E.g. acos $a, 1.2
     /// </summary>
     private void ExecuteAcos(Instruction instr) =>
-        ExecuteMath(instr, MathF.Acos, "acos");
+        DoMathOp(instr, (_, b) => MathF.Acos(b));
 
     /// <summary>
     /// E.g. tan $a, $theta
     /// E.g. tan $a, 1.2
     /// </summary>
     private void ExecuteTan(Instruction instr) =>
-        ExecuteMath(instr, MathF.Tan, "tan");
+        DoMathOp(instr, (_, b) => MathF.Tan(b));
 
     /// <summary>
     /// E.g. tanh $a, $theta
     /// E.g. tanh $a, 1.2
     /// </summary>
     private void ExecuteTanh(Instruction instr) =>
-        ExecuteMath(instr, MathF.Tanh, "tanh");
+        DoMathOp(instr, (_, b) => MathF.Tanh(b));
 
     /// <summary>
     /// E.g. atan $a, $theta
     /// E.g. atan $a, 1.2
     /// </summary>
     private void ExecuteAtan(Instruction instr) =>
-        ExecuteMath(instr, MathF.Atan, "atan");
+        DoMathOp(instr, (_, b) => MathF.Atan(b));
 
     /// <summary>
     /// E.g. pow $a, b
     /// E.g. pow $a, 1.2
     /// </summary>
-    private void ExecutePow(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aName = a.Name;
-        if (a.Type != OperandType.Variable)
-            throw new RuntimeException($"'{instr}': Cannot perform pow() on target of type {a.Type}.");
-        a = CurrentFrame.GetVariable(a.Name);
-        
-        var b = GetOperandValue(instr.Operands[1]);
-
-        var result = b.Type switch
-        {
-            OperandType.Float => new Operand(MathF.Pow(a.FloatValue, b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform pow() on {b.Type}.")
-        };
-
-        CurrentFrame.SetVariable(aName, result, true);
-        m_ip++;
-    }
+    private void ExecutePow(Instruction instr) =>
+        DoMathOp(instr, MathF.Pow);
 
     /// <summary>
     /// E.g. exp $a, $b
     /// E.g. exp $a, 1.2
     /// </summary>
     private void ExecuteExp(Instruction instr) =>
-        ExecuteMath(instr, MathF.Exp, "exp");
+        DoMathOp(instr, (_, b) => MathF.Exp(b));
 
     /// <summary>
     /// E.g. log $a, $b
     /// E.g. log $a, 1.2 
     /// </summary>
     private void ExecuteLog(Instruction instr) =>
-        ExecuteMath(instr, MathF.Log, "log");
+        DoMathOp(instr, (_, b) => MathF.Log(b));
 
     /// <summary>
     /// E.g. abs $a, $b
     /// E.g. abs $a, 1.2
     /// </summary>
     private void ExecuteAbs(Instruction instr) =>
-        ExecuteMath(instr, MathF.Abs, "abs");
+        DoMathOp(instr, (_, b) => MathF.Abs(b));
 
     /// <summary>
     /// E.g. sign $a, $b 
     /// E.g. sign $a, 1.2
     /// </summary>
     private void ExecuteSign(Instruction instr) =>
-        ExecuteMath(instr, f => MathF.Sign(f), "sign");
+        DoMathOp(instr, (_, b) => MathF.Sign(b));
 
     /// <summary>
     /// E.g. mod $a, $b
     /// E.g. mod $a, 1.2
     /// </summary>
-    private void ExecuteMod(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var b = GetOperandValue(instr.Operands[1]);
-    
-        var current = CurrentFrame.GetVariable(a.Name);
-        Operand result;
-        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-            result = new Operand(current.AsFloat() % b.AsFloat());
-        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-            result = new Operand(current.IntValue % b.IntValue);
-        else
-            throw new RuntimeException($"'{instr}': Cannot perform modulo with {a.Type} and {b.Type}.");
-    
-        CurrentFrame.SetVariable(a.Name, result);
-        m_ip++;
-    }
-    
+    private void ExecuteMod(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a % b);
+
     /// <summary>
     /// E.g. min $a, $b
     /// E.g. min $a, 1.2
     /// </summary>
-    private void ExecuteMin(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var b = GetOperandValue(instr.Operands[1]);
-    
-        var current = CurrentFrame.GetVariable(a.Name);
-        Operand result;
-        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-            result = new Operand(MathF.Min(current.AsFloat(), b.AsFloat()));
-        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-            result = new Operand(Math.Min(current.IntValue, b.IntValue));
-        else
-            throw new RuntimeException($"'{instr}': Cannot find minimum between {a.Type} and {b.Type}.");
-    
-        CurrentFrame.SetVariable(a.Name, result);
-        m_ip++;
-    }
-    
+    private void ExecuteMin(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a < b ? a : b);
+
     /// <summary>
     /// E.g. max $a, $b
     /// E.g. max $a, 1.2
     /// </summary>
-    private void ExecuteMax(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var b = GetOperandValue(instr.Operands[1]);
-    
-        var current = CurrentFrame.GetVariable(a.Name);
-        Operand result;
-        if (current.Type == OperandType.Float || b.Type == OperandType.Float)
-            result = new Operand(MathF.Max(current.AsFloat(), b.AsFloat()));
-        else if (current.Type == OperandType.Int && b.Type == OperandType.Int)
-            result = new Operand(Math.Max(current.IntValue, b.IntValue));
-        else
-            throw new RuntimeException($"'{instr}': Cannot find maximum between {a.Type} and {b.Type}.");
-    
-        CurrentFrame.SetVariable(a.Name, result);
-        m_ip++;
-    }
-    
+    private void ExecuteMax(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a > b ? a : b);
+
     /// <summary>
-    /// E.g. foo $a, $b
-    /// E.g. foo $a, 1.2
+    /// Perform a float->float operation on the elements of a numeric operand.
     /// </summary>
-    private void ExecuteMath(Instruction instr, Func<float, float> mathFunc, string name)
+    private void DoMathOp(Instruction instr, Func<float, float, float> op)
     {
+        // Get target variable§.
         var a = instr.Operands[0];
-        var b = GetOperandValue(instr.Operands[1]);
-
-        var result = b.Type switch
+        var aName = a.Name;
+        if (CurrentFrame.IsDefined(aName))
         {
-            OperandType.Float => new Operand(mathFunc(b.FloatValue)),
-            _ => throw new RuntimeException($"'{instr}': Cannot perform '{name}' on {b.Type}.")
-        };
+            a = CurrentFrame.GetVariable(aName);
+            if (a.Type is OperandType.Label or OperandType.Variable)
+                throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on {a.Type}.");
+        }
 
-        CurrentFrame.SetVariable(a.Name, result, true);
+        // Single operand? We can do that...
+        Operand result;
+        if (instr.Operands.Length == 1)
+        {
+            result = new Operand(a.Floats.Select(o => op(o, float.NaN)).ToArray());
+
+            if (a.Type == OperandType.Int)
+                result = result with { Type = OperandType.Int };
+        }
+        else
+        {
+            // Get 2nd+ operands.
+            var b = Operand.FromOperands(instr.Operands.Skip(1).Select(GetOperandValue).ToArray());
+            if (b.Type is OperandType.Label or OperandType.Variable)
+                throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on {b.Type}.");
+
+            if (CurrentFrame.IsDefined(aName))
+            {
+                // Ensure that the operands have the same dimension.
+                if (a.Length == 1 && b.Length > 1)
+                    a = a.GrowFromOneToN(b.Length);
+                else if (b.Length == 1 && a.Length > 1)
+                    b = b.GrowFromOneToN(a.Length);
+                
+                if (a.Length != b.Length)
+                    throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on operands of different length ({a.Length} vs {b.Length}).");
+
+                result = new Operand(a.Floats.Select((o, i) => op(o, b.Floats[i])).ToArray());
+            }
+            else
+            {
+                result = new Operand(b.Floats.Select(o => op(float.NaN, o)).ToArray());
+            }
+
+            if (a.Type == OperandType.Int && b.Type == OperandType.Int)
+                result = result with { Type = OperandType.Int };
+        }
+
+        // Store the result.
+        CurrentFrame.SetVariable(aName, result, true);
         m_ip++;
     }
 }
