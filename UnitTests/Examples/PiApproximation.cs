@@ -50,10 +50,13 @@ public class PiApproximation
             """;
 
         var vm = new TetraVm(Assembler.Assemble(code));
+        var output = string.Empty;
+        vm.OutputWritten += (_, s) => output = s + "\n";
         vm.Run();
 
         var result = vm["sum"].Float;
 
         Assert.That(result, Is.EqualTo(3.14f).Within(0.01f));
+        Assert.That(output, Is.Not.Empty);
     }
 }

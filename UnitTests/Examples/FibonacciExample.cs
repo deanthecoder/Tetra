@@ -68,9 +68,12 @@ public class FibonacciExample
             """;
 
         var vm = new TetraVm(Assembler.Assemble(code));
+        var output = string.Empty;
+        vm.OutputWritten += (_, s) => output = s + "\n";
         vm.Run();
 
         // This will print the sequence 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
         Assert.That(vm["retval"].Int, Is.EqualTo(34));
+        Assert.That(output, Is.Not.Empty);
     }
 }

@@ -27,6 +27,98 @@ in scoped frames — making code easier to read, debug, and understand.
 - **Manual Control Flow**: The VM does not auto-jump to `main:`; you must explicitly add `jmp main` at the end of your
   global setup.
 
+---
+
+## 📌 Example Tetra Programs
+
+### 🥧 Pi Approximation
+
+Demonstrates use of arithmetic, loops, and alternating signs to compute an approximation of π using the Leibniz formula:
+
+```tetra
+ld $sum, 0
+ld $sign, 1
+ld $i, 0
+ld $limit, 800
+
+loop:
+    jmp_ge $i, $limit, done
+    ld $denominator, $i
+    mul $denominator, 2
+    add $denominator, 1
+    ld $term, 1.0
+    div $term, $denominator
+    mul $term, $sign
+    add $sum, $term
+    neg $sign
+    inc $i
+    jmp loop
+
+done:
+    mul $sum, 4
+    print $sum
+    halt
+```
+
+#### Output
+```
+sum = 3.1403f
+```
+### 🧮 Fibonacci Sequence
+
+Recursively computes and prints the first 10 [Fibonacci numbers](https://en.wikipedia.org/wiki/Fibonacci_sequence) using
+function calls and control flow:
+
+```tetra
+ld $i, 0
+ld $count, 10
+
+loop:
+    jmp_ge $i, $count, done
+    ld $arg0, $i
+    call fib
+    print $retval
+    inc $i
+    jmp loop
+
+done:
+    halt
+
+fib:
+    ld $n, $arg0
+    jmp_le $n, 1, base_case
+    ld $arg0, $n
+    dec $arg0
+    call fib
+    ld $a, $retval
+    ld $arg0, $n
+    dec $arg0
+    dec $arg0
+    call fib
+    ld $b, $retval
+    add $a, $b
+    ret $a
+
+base_case:
+    ret $n
+```
+
+#### Output
+```
+retval = 0
+retval = 1
+retval = 1
+retval = 2
+retval = 3
+retval = 5
+retval = 8
+retval = 13
+retval = 21
+retval = 34
+```
+
+---
+
 ## 🧮 Vector Support
 
 Tetra supports first-class vector values. You can declare vector literals using `ld` with multiple float constants or float variables:
@@ -179,75 +271,6 @@ Accessing vector elements from non-vector variables will throw a runtime error.
 
 ---
 
-## 📌 Example Tetra Programs
-
-### 🥧 Pi Approximation
-Demonstrates use of arithmetic, loops, and alternating signs to compute an approximation of π using the Leibniz formula:
-```tetra
-ld $sum, 0
-ld $sign, 1
-ld $i, 0
-ld $limit, 800
-
-loop:
-    jmp_ge $i, $limit, done
-    ld $denominator, $i
-    mul $denominator, 2
-    add $denominator, 1
-    ld $term, 1.0
-    div $term, $denominator
-    mul $term, $sign
-    add $sum, $term
-    neg $sign
-    inc $i
-    jmp loop
-
-done:
-    mul $sum, 4
-    print $sum
-    halt
-```
-
-### 🧮 Fibonacci Sequence
-
-Recursively computes and prints the first 10 [Fibonacci numbers](https://en.wikipedia.org/wiki/Fibonacci_sequence) using
-function calls and control flow:
-```tetra
-ld $i, 0
-ld $count, 10
-
-loop:
-    jmp_ge $i, $count, done
-    ld $arg0, $i
-    call fib
-    print $retval
-    inc $i
-    jmp loop
-
-done:
-    halt
-
-fib:
-    ld $n, $arg0
-    jmp_le $n, 1, base_case
-    ld $arg0, $n
-    dec $arg0
-    call fib
-    ld $a, $retval
-    ld $arg0, $n
-    dec $arg0
-    dec $arg0
-    call fib
-    ld $b, $retval
-    add $a, $b
-    ret $a
-
-base_case:
-    ret $n
-```
-
----
-
 ## 🔁 Function Calls
 
 Tetra supports calling functions using the `call` instruction, with optional return values via `ret $value`.
@@ -322,10 +345,10 @@ Output: x = 10
 
 ## Future Plans
 
-- Add support for `vec4` types and operations
 - GLSL-to-Tetra compiler frontend
-- Function parameters and `out` values
 - Optimizer pass (e.g. removing unnecessary frame pushes)
+- `stdlib` for math functions like `length`, `dot`, `normalize`, `clamp`, etc.
+- Support for more advanced vector ops: `cross`, `reflect`, `refract`, `smoothstep`
 
 ---
 
