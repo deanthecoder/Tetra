@@ -11,7 +11,7 @@ in scoped frames — making code easier to read, debug, and understand.
 
 ---
 
-## Features
+## 🛠️ Features
 
 - **Scoped Variable Stack**: Each block or function has its own variable frame. Stack frames are explicitly
   pushed/popped using `push_frame` / `pop_frame`.
