@@ -27,54 +27,78 @@ public class ScopeFrame
         m_parent = parent;
     }
     
-    public bool IsDefined(string name) =>
-        m_variables.ContainsKey(name) || (m_parent?.IsDefined(name) ?? false);
-    
+    public bool IsDefined(VarName name) =>
+        m_variables.ContainsKey(name.Name) || (m_parent?.IsDefined(name) ?? false);
+
     /// <summary>
     /// Creates a new variable in this scope.
     /// </summary>
-    public void DefineVariable(string name, Operand value)
+    public void DefineVariable(VarName varName, Operand value)
     {
+        // Array index specified, so the variable must already be defined to continue.
+        if (varName.ArrIndex.HasValue && !IsDefined(varName))
+            throw new RuntimeException($"Cannot define variable name containing array index: {varName}");
+
         // The value being set must be constant.
         if (value.Type == OperandType.Variable)
             value = GetVariable(value.Name);
 
-        m_variables[name] = value;
+        SetValue(varName, value);
+    }
+
+    private void SetValue(VarName varName, Operand value)
+    {
+        if (!varName.ArrIndex.HasValue)
+        {
+            m_variables[varName.Name] = value;
+            return;
+        }
+        
+        if (m_variables[varName.Name].Type != OperandType.Vector)
+            throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName}");
+
+        m_variables[varName.Name].Floats[varName.ArrIndex.Value] = value.AsFloat();
     }
 
     /// <summary>
     /// Sets the value of an existing variable in this scope.
     /// </summary>
-    public void SetVariable(string name, Operand value, bool defineIfMissing = false)
+    public void SetVariable(VarName varName, Operand value, bool defineIfMissing = false)
     {
-        if (string.IsNullOrEmpty(name))
-            throw new RuntimeException("Variable name cannot be null or empty.");
-        if (!defineIfMissing && !IsDefined(name))
-            throw new RuntimeException($"Variable '{name}' is undefined.");
-        if (name == value.Name)
-            throw new RuntimeException($"Cannot assign variable '{name}' to itself.");
+        if (!defineIfMissing && !IsDefined(varName))
+            throw new RuntimeException($"Variable '{varName}' is undefined.");
+        if (varName.Name == value.Name?.Name)
+            throw new RuntimeException($"Cannot assign variable '{varName}' to itself.");
 
         // The value being set must be constant.
         if (value.Type == OperandType.Variable)
             value = GetVariable(value.Name);
 
         // If variable is set in a parent scope, we need to set it there.
-        if (m_parent != null && !m_variables.ContainsKey(name))
+        if (m_parent != null && !m_variables.ContainsKey(varName.Name))
         {
-            m_parent.SetVariable(name, value);
+            m_parent.SetVariable(varName, value);
             return;
         }
         
         // Otherwise, we set the variable in this scope.
-        m_variables[name] = value;
+        SetValue(varName, value);
     }
 
-    public Operand GetVariable(string name)
+    public Operand GetVariable(VarName varName)
     {
-        if (!IsDefined(name))
-            throw new RuntimeException($"Variable '{name}' not found in scope.");
-        if (!m_variables.TryGetValue(name, out var variable))
-            variable = m_parent.GetVariable(name);
+        if (!IsDefined(varName))
+            throw new RuntimeException($"Variable '{varName.Name}' not found in scope.");
+        if (!m_variables.TryGetValue(varName.Name, out var variable))
+            variable = m_parent.GetVariable(varName);
+
+        if (varName.ArrIndex.HasValue)
+        {
+            if (variable.Type != OperandType.Vector)
+                throw new RuntimeException($"'{varName}': Variable ({variable.Type}) is not a vector.");
+            variable = new Operand(variable.Floats[varName.ArrIndex.Value]);
+        }
+        
         return variable;
     }
 }

@@ -37,7 +37,7 @@ public class AssemblerTests
         Assert.That(instr.Operands, Has.Length.EqualTo(2));
 
         AssertOperand(instr.Operands[0], OperandType.Variable, "$a");
-        Assert.That(instr.Operands[0].Name, Is.EqualTo("a"));
+        Assert.That(instr.Operands[0].Name.Name, Is.EqualTo("a"));
 
         AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
         Assert.That(instr.Operands[1].Float, Is.EqualTo(1.0).Within(0.001));
@@ -67,7 +67,7 @@ public class AssemblerTests
         Assert.That(instr.Operands, Has.Length.EqualTo(2));
 
         AssertOperand(instr.Operands[0], OperandType.Variable, "$a");
-        Assert.That(instr.Operands[0].Name, Is.EqualTo("a"));
+        Assert.That(instr.Operands[0].Name.Name, Is.EqualTo("a"));
 
         AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
         Assert.That(instr.Operands[1].Float, Is.EqualTo(1.0).Within(0.001));

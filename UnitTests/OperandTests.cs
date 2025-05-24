@@ -70,6 +70,6 @@ public class OperandTests
     [Test]
     public void CheckThrowsIfNonFloatUsedInFromOperands()
     {
-        Assert.That(() => Operand.FromOperands([new Operand(1.0f), new Operand { Type = OperandType.Label }]), Throws.TypeOf<SyntaxErrorException>());
+        Assert.That(() => Operand.FromOperands([new Operand(1.0f), new Operand { Type = OperandType.Label, Name = "label"}]), Throws.TypeOf<SyntaxErrorException>());
     }
 }

@@ -58,6 +58,39 @@ ld $b, 6.0, 5.0
 min $a, $b   # $a becomes [min(8.0, 6.0), min(8.0, 5.0)]
 ```
 
+### 🔍 Vector Element Access
+
+Individual vector components can be accessed using index notation:
+
+```tetra
+ld $v, 1.1, 2.2, 3.3
+ld $a, $v[1]     # $a = 2.2
+```
+
+You can also construct new vectors from specific elements of an existing vector (swizzling):
+
+```tetra
+ld $v, 1.1, 2.2, 3.3
+ld $a, $v[1], $v[0]   # $a = [2.2, 1.1]
+```
+
+Vector elements can be assigned to directly:
+
+```tetra
+ld $v, 1.1, 2.2, 3.3
+ld $v[1], 3.141   # $v = [1.1, 3.141, 3.3]
+```
+
+Any instruction that operates on scalars (like `inc`, `mul`, `jmp_eq`, etc.) can also target a specific vector component:
+
+```tetra
+inc $v[2]
+mul $a, $v[1]
+jmp_eq $a, $v[2], label
+```
+
+Accessing vector elements from non-vector variables will throw a runtime error.
+
 ---
 
 ## Instruction Set

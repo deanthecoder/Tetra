@@ -35,7 +35,7 @@ public static class Assembler
     
     private static Instruction[] AssembleImpl(string code)
     {
-        var labels = new Dictionary<string, int>();
+        var labels = new Dictionary<VarName, int>();
         
         if (code == null)
             throw new ArgumentNullException(nameof(code));
@@ -243,7 +243,7 @@ public static class Assembler
         OpCode opCode,
         int lineIndex,
         string line,
-        IEnumerable<string> labels)
+        IEnumerable<VarName> labels)
     {
         if (word.StartsWith('$'))
         {

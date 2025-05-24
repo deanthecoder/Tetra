@@ -44,7 +44,7 @@ public readonly struct Operand
     /// <summary>
     /// Gets the variable or label name (only applicable for operands of type Variable or Label).
     /// </summary>
-    public string Name { get; init; }
+    public VarName Name { get; init; }
 
     /// <summary>
     /// Gets the float value if the operand is a float constant.
@@ -99,7 +99,7 @@ public readonly struct Operand
             OperandType.Float => $"{Float:0.0###}f",
             OperandType.Int => Int.ToString(CultureInfo.InvariantCulture),
             OperandType.Vector => $"[{Floats.Select(o => $"{o:0.0###}f").ToCsv()}]",
-            OperandType.Label => Name,
+            OperandType.Label => Name.Name,
             OperandType.Variable => $"${Name}",
             _ => throw new ArgumentOutOfRangeException()
         };
