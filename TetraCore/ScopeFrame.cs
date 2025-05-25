@@ -53,11 +53,12 @@ public class ScopeFrame
             m_variables[varName.Name] = value;
             return;
         }
-        
-        if (m_variables[varName.Name].Type != OperandType.Vector)
+
+        var v = m_variables[varName.Name];
+        if (v.Type != OperandType.Vector)
             throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName}");
 
-        m_variables[varName.Name].Floats[varName.ArrIndex.Value] = value.AsFloat();
+        v.Floats[varName.ArrIndex.Value] = value.AsFloat();
     }
 
     /// <summary>

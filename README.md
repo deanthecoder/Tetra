@@ -5,28 +5,30 @@
 
 # Tetra VM
 
-Tetra is a compact virtual machine written in C#, designed to run a simple, low-level language that's great for
-math-heavy tasks. Inspired by GLSL, it emphasizes clean control flow and supports 4-element float vectors (`vec4`) for
-things like shader-style logic. Instead of a traditional stack or general-purpose registers, Tetra uses named variables
-in scoped frames — making code easier to read, debug, and understand.
+**Tetra** is a custom bytecode language designed for numerical and graphical computation. It’s versatile enough for general purpose logic, but also for expressing GLSL-style shader behavior.
+
+Tetra code is executed by a lightweight, cross-platform virtual machine runtime written in C#. Programs are made up of simple, low-level instructions using named variables, vector math, and clean control flow.
 
 ---
 
-## 🛠️ Features
+## TetraShade
+![TetraShade Screenshot](img/TetraShade.png)
+
+**TetraShade** is a cross-platform UI for visualizing Tetra bytecode that simulates a fragment shader pipeline. Each pixel is computed by running the loaded Tetra code with a `fragCoord` input, allowing real-time visual output from shader-style programs.
+
+## 🛠️ Language Features
 
 - **Scoped Variable Stack**: Each block or function has its own variable frame. Stack frames are explicitly
   pushed/popped using `push_frame` / `pop_frame`.
 - **Named Variables**: No general-purpose registers. All values are stored and looked up by name.
 - **Conditional and Unconditional Jumps**: Support for jump labels like `mylabel:` and instructions like `jmp`,
   `jmp_ne`, `jmp_ge`, etc.
-- **4-element Float Vector Support**: Planned support for `vec4` operations alongside scalar floats.
+- **Multi-element Float Vector Support**: Support for `vec4` operations alongside scalar floats.
 - **Basic Arithmetic**: Instructions like `add`, `sub`, `inc`, `dec`.
 - **Debugging Aids**: A `print` instruction that outputs variable values along with the line number of the source
   instruction.
-- **Globals Support**: A global frame is automatically pushed on startup. Any code before `jmp main` is treated as
+- **Globals Support**: A global frame is automatically pushed on startup. Any code variables defined at the root level are treated as
   global initialization.
-- **Manual Control Flow**: The VM does not auto-jump to `main:`; you must explicitly add `jmp main` at the end of your
-  global setup.
 
 ---
 

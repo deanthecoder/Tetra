@@ -13,7 +13,7 @@ using TetraCore.Exceptions;
 
 namespace TetraCore;
 
-public class VarName
+public partial class VarName
 {
     public string Name { get; }
     public int? ArrIndex { get; }
@@ -26,7 +26,7 @@ public class VarName
             throw new SyntaxErrorException("Variable name cannot be empty.");
 
         // Capture name and optional '[]' brackets.
-        var match = Regex.Match(name, @"^([a-zA-Z_][a-zA-Z_0-9]*)(\[(\d+)\])?$");
+        var match = MyRegex().Match(name);
         if (!match.Success)
             throw new SyntaxErrorException($"Invalid variable name: {name}");
 
@@ -46,4 +46,7 @@ public class VarName
 
     public override string ToString() =>
         Name + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
+    
+    [GeneratedRegex(@"^([a-zA-Z_][a-zA-Z_0-9]*)(\[(\d+)\])?$")]
+    private static partial Regex MyRegex();
 }

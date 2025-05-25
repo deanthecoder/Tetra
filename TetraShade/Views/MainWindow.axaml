@@ -5,6 +5,7 @@
         xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
         xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:viewModels="clr-namespace:TetraShade.ViewModels"
+        xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
         mc:Ignorable="d"
         x:Class="TetraShade.Views.MainWindow"
         x:DataType="viewModels:MainViewModel"
@@ -44,10 +45,26 @@
                 
                 <!-- Shader Preview -->
                 <Border BorderThickness="1" Margin="8,8,8,4">
-                    <Viewbox Stretch="Uniform" Margin="8">
-                        <Image Source="{Binding PreviewImage}"
-                               Loaded="OnImageControlLoaded" />
-                    </Viewbox>
+                    <Grid RowDefinitions="*,Auto">
+                        <Viewbox Stretch="Uniform" Margin="8">
+                            <Image Source="{Binding PreviewImage}"
+                                   Loaded="OnImageControlLoaded" />
+                        </Viewbox>
+                        
+                        <controls:Card Grid.Row="1" CornerRadius="0">
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                                <TextBlock Text="iTime: " />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Time, StringFormat=\{0:F1\}}"
+                                           TextAlignment="Left" FontWeight="Bold" />
+                                
+                                <TextBlock Grid.Column="3" Text="FPS: " />
+                                <TextBlock Grid.Column="4"
+                                           Text="{Binding Fps, StringFormat=\{0:F1\}}"
+                                           TextAlignment="Left" FontWeight="Bold" />
+                            </Grid>
+                        </controls:Card>
+                    </Grid>
                 </Border>
                 
                 <!-- Timeline -->
