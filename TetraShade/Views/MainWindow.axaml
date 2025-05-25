@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+        xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:viewModels="clr-namespace:TetraShade.ViewModels"
+        mc:Ignorable="d"
+        x:Class="TetraShade.Views.MainWindow"
+        x:DataType="viewModels:MainViewModel"
+        Title="TetraShade"
+        Width="800" Height="500"
+        Icon="/Assets/app.ico">
+    <Design.DataContext>
+        <viewModels:MainViewModel />
+    </Design.DataContext>
+    
+    <dialogHostAvalonia:DialogHost>
+        <Grid ColumnDefinitions="*,Auto">
+            <Grid.Styles>
+                <Style Selector="Border">
+                    <Setter Property="CornerRadius" Value="2"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignBody}" />
+                </Style>
+                <Style Selector="Button">
+                    <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}" />
+                </Style>
+                <Style Selector="avalonia|MaterialIcon">
+                    <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}" />
+                    <Setter Property="Width" Value="24" />
+                    <Setter Property="Height" Value="24" />
+                </Style>
+            </Grid.Styles>
+
+            <Grid RowDefinitions="*,Auto">
+                <Grid.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Background" Value="{DynamicResource MaterialCardBackgroundBrush}" />
+                        <Setter Property="TextAlignment" Value="Center" />
+                        <Setter Property="Width" Value="50" />
+                        <Setter Property="Padding" Value="4" />
+                    </Style>
+                </Grid.Styles>
+                
+                <!-- Shader Preview -->
+                <Border BorderThickness="1" Margin="8,8,8,4">
+                    <Viewbox Stretch="Uniform" Margin="8">
+                        <Image Source="{Binding PreviewImage}"
+                               Loaded="OnImageControlLoaded" />
+                    </Viewbox>
+                </Border>
+                
+                <!-- Timeline -->
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto"
+                      Margin="8,8">
+                    <TextBlock Text="0s"/>
+                    <Slider Grid.Column="1"
+                            Minimum="0" Maximum="60"
+                            Value="{Binding Time}"
+                            TickPlacement="Outside" TickFrequency="1"
+                            Margin="16,0"/>
+                    <TextBlock Grid.Column="2" Text="60s"/>
+                </Grid>
+            </Grid>
+
+            <!-- Import options -->
+            <Grid Grid.Column="1" Margin="0,8,8,8"
+                  RowDefinitions="Auto,Auto,*">
+                <Button>
+                    <StackPanel Orientation="Horizontal">
+                        <avalonia:MaterialIcon Kind="FolderOutline" />
+                        <TextBlock Text="Load" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Grid>
+    </dialogHostAvalonia:DialogHost>
+</Window>

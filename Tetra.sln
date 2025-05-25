@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TetraCore", "TetraCore\Tetr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTC.Core", "DTC.Core\DTC.Core\DTC.Core.csproj", "{C8BD8786-35D1-4579-A8D2-67F78C5931F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TetraShade", "TetraShade\TetraShade.csproj", "{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8BD8786-35D1-4579-A8D2-67F78C5931F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
