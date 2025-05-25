@@ -35,9 +35,15 @@ public class TetraVm
         m_instructions = instructions ?? throw new ArgumentNullException(nameof(instructions));
 
         OutputWritten += (_, message) => Console.WriteLine(message);
+        
+        Reset();
     }
 
-    public Operand this[string variableName] => CurrentFrame.GetVariable(variableName);
+    public Operand this[string variableName]
+    {
+        get => CurrentFrame.GetVariable(variableName);
+        set => CurrentFrame.DefineVariable(variableName, value);
+    }
 
     public void Run()
     {
@@ -56,25 +62,36 @@ public class TetraVm
     {
         const int maxInstructionExecutions = 10_000;
 
-        // Reset the VM.
-        m_frames.Clear();
-        m_frames.Push(new ScopeFrame()); // Global scope
-        m_callStack.Clear();
-        m_ip = 0;
-
         // Execute the instructions.
         var instructionExecutions = 0;
         while (m_ip < m_instructions.Length)
         {
             var instr = m_instructions[m_ip];
-            var keepRunning = Execute(instr);
-            if (!keepRunning)
-                break;
-            instructionExecutions++;
+            try
+            {
+                var keepRunning = Execute(instr);
 
+                if (!keepRunning)
+                    break;
+                instructionExecutions++;
+            }
+            catch (Exception)
+            {
+                Console.WriteLine(instr);
+                throw;
+            }
+            
             if (instructionExecutions >= maxInstructionExecutions)
                 throw new RuntimeException("Too many instruction executions.");
         }
+    }
+
+    public void Reset()
+    {
+        m_frames.Clear();
+        m_frames.Push(new ScopeFrame()); // Global scope
+        m_callStack.Clear();
+        m_ip = 0;
     }
 
     private bool Execute(Instruction instr)
@@ -569,7 +586,7 @@ public class TetraVm
     /// </summary>
     private void DoMathOp(Instruction instr, Func<float, float, float> op)
     {
-        // Get target variable§.
+        // Get target variable.
         var a = instr.Operands[0];
         var aName = a.Name;
         if (CurrentFrame.IsDefined(aName))

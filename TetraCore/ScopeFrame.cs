@@ -75,7 +75,7 @@ public class ScopeFrame
             value = GetVariable(value.Name);
 
         // If variable is set in a parent scope, we need to set it there.
-        if (m_parent != null && !m_variables.ContainsKey(varName.Name))
+        if (m_parent?.IsDefined(varName) == true && !m_variables.ContainsKey(varName.Name))
         {
             m_parent.SetVariable(varName, value);
             return;
@@ -90,7 +90,7 @@ public class ScopeFrame
         if (!IsDefined(varName))
             throw new RuntimeException($"Variable '{varName.Name}' not found in scope.");
         if (!m_variables.TryGetValue(varName.Name, out var variable))
-            variable = m_parent.GetVariable(varName);
+            return m_parent.GetVariable(varName);
 
         if (varName.ArrIndex.HasValue)
         {

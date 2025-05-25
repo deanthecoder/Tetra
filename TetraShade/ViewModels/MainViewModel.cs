@@ -11,17 +11,19 @@
 
 using System;
 using System.Numerics;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using DTC.Core.ViewModels;
+using TetraCore;
 using Vector = Avalonia.Vector;
 
 namespace TetraShade.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
-    public const int PixelWidth = 360;
+    public const int PixelWidth = 320;
     public const int PixelHeight = 180;
     
     private readonly Vector3[] m_rawPixels;
@@ -44,12 +46,39 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        const string code =
+            """
+                call main
+                halt
+                
+            main:
+                ld $uv, $fragCoord
+                div $uv, $iResolution
+                ld $theta, 0.0, 2.0, 4.0
+                add $theta, $uv[0], $uv[1], $uv[0]
+                add $theta, $iTime
+                cos $col, $theta
+                mul $col, 0.5
+                add $col, 0.5
+                ret $col
+            """;
+        var instructions = Assembler.Assemble(code);
+
         m_rawPixels = new Vector3[PixelWidth * PixelHeight];
         for (var y = 0; y < PixelHeight; y++)
-        for (var x = 0; x < PixelWidth; x++)
         {
-            var pixel = new Vector3((float)x / PixelWidth, (float)y / PixelHeight, 0.0f);
-            m_rawPixels[y * PixelWidth + x] = pixel;
+            Parallel.For(0, PixelWidth, x =>
+            {
+                var vm = new TetraVm(instructions)
+                {
+                    ["fragCoord"] = new Operand(x, PixelHeight - y),
+                    ["iResolution"] = new Operand(PixelWidth, PixelHeight),
+                    ["iTime"] = new Operand(8.9f)
+                };
+                vm.Run();
+                var pixel = new Vector3(vm["retval"].Floats);
+                m_rawPixels[y * PixelWidth + x] = pixel;
+            });
         }
 
         UpdatePreview();

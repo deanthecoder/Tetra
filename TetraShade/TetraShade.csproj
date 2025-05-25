@@ -33,6 +33,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DTC.Core\DTC.Core\DTC.Core.csproj" />
+      <ProjectReference Include="..\TetraCore\TetraCore.csproj" />
     </ItemGroup>
 
     <ItemGroup>
