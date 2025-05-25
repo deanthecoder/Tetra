@@ -267,6 +267,7 @@ Accessing vector elements from non-vector variables will throw a runtime error.
 | Instruction  | Description |
 |--------------|-------------|
 | `print $a`   | Print the value of `$a` with line number |
+| `nop`        | 💤 Does nothing. Useful for padding or jump targets. |
 | `halt`       | Stop execution |
 
 ---
