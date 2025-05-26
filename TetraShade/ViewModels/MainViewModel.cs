@@ -35,6 +35,9 @@ public class MainViewModel : ViewModelBase
     private WriteableBitmap m_previewImage;
     private double m_time;
     private double m_fps;
+    private bool m_isPaused = true;
+    private double m_playStartTime;
+    private Stopwatch m_playStopwatch;
 
     /// <summary>
     /// Raised when the preview image needs to be updated in the UI.
@@ -69,36 +72,65 @@ public class MainViewModel : ViewModelBase
         private set => SetField(ref m_fps, value);
     }
 
+    public bool IsPaused
+    {
+        get => m_isPaused;
+        set
+        {
+            if (!SetField(ref m_isPaused, value))
+                return;
+            
+            // Record when playing started.
+            m_playStartTime = Time;
+            
+            // Allow us to keep track of elapsed time.
+            m_playStopwatch = Stopwatch.StartNew();
+            
+            // Start frame updates.
+            m_refreshEventRaiser.Invoke();
+        }
+    }
+
     public MainViewModel()
     {
         GenerateShaderCode();
 
-        m_refreshEventRaiser = new ActionConsolidator(() =>
+        m_refreshEventRaiser = new ActionConsolidator(RefreshPreviewAsync, 0.0);
+    }
+
+    private void RefreshPreviewAsync()
+    {
+        if (m_refreshTaskRunning)
+            return;
+
+        Task.Run(async () =>
         {
-            if (m_refreshTaskRunning)
-                return;
-            
-            Task.Run(async () =>
+            m_refreshTaskRunning = true;
+            try
             {
-                m_refreshTaskRunning = true;
-                try
+                long elapsedMs = 0;
+                await Task.Run(() =>
                 {
-                    long elapsedMs = 0;
-                    await Task.Run(() =>
-                    {
-                        var s = Stopwatch.StartNew();
-                        UpdatePreview();
-                        elapsedMs = s.ElapsedMilliseconds;
-                    });
+                    var s = Stopwatch.StartNew();
+                    UpdatePreview();
+                    elapsedMs = s.ElapsedMilliseconds;
+                });
                     
-                    Fps = 1000.0 / elapsedMs;
-                }
-                finally
-                {
-                    m_refreshTaskRunning = false;
-                }
-            });
+                Fps = 1000.0 / elapsedMs;
+            }
+            finally
+            {
+                m_refreshTaskRunning = false;
+                OnFrameCompleted();
+            }
         });
+    }
+
+    private void OnFrameCompleted()
+    {
+        if (IsPaused)
+            return;
+        Time = m_playStartTime + m_playStopwatch.Elapsed.TotalSeconds;
     }
 
     private void GenerateShaderCode()
@@ -174,4 +206,7 @@ public class MainViewModel : ViewModelBase
             ptr[i * 4 + 3] = 255;
         }
     }
+    
+    internal void TogglePause() =>
+        IsPaused = !IsPaused;
 }

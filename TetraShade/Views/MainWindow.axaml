@@ -46,20 +46,29 @@
                 <!-- Shader Preview -->
                 <Border BorderThickness="1" Margin="8,8,8,4">
                     <Grid RowDefinitions="*,Auto">
-                        <Viewbox Stretch="Uniform" Margin="8">
+                        <Viewbox Stretch="Uniform">
                             <Image Source="{Binding PreviewImage}"
                                    Loaded="OnImageControlLoaded" />
                         </Viewbox>
                         
                         <controls:Card Grid.Row="1" CornerRadius="0">
-                            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                                <TextBlock Text="iTime: " />
-                                <TextBlock Grid.Column="1"
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+                                <Grid Margin="0,0,4,0">
+                                    <Button Content="{avalonia:MaterialIconExt Play}" Padding="4,0"
+                                            IsVisible="{Binding IsPaused}"
+                                            Command="{Binding TogglePause}" />
+                                    <Button Content="{avalonia:MaterialIconExt Pause}" Padding="4,0"
+                                            IsVisible="{Binding !IsPaused}"
+                                            Command="{Binding TogglePause}" />
+                                </Grid>
+                                
+                                <TextBlock Grid.Column="1" Text="iTime:" />
+                                <TextBlock Grid.Column="2"
                                            Text="{Binding Time, StringFormat=\{0:F1\}}"
                                            TextAlignment="Left" FontWeight="Bold" />
                                 
-                                <TextBlock Grid.Column="3" Text="FPS: " />
-                                <TextBlock Grid.Column="4"
+                                <TextBlock Grid.Column="4" Text="FPS:" />
+                                <TextBlock Grid.Column="5"
                                            Text="{Binding Fps, StringFormat=\{0:F1\}}"
                                            TextAlignment="Left" FontWeight="Bold" />
                             </Grid>
