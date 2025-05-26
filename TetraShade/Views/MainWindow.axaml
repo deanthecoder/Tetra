@@ -92,10 +92,12 @@
             <!-- Import options -->
             <Grid Grid.Column="1" Margin="0,8,8,8"
                   RowDefinitions="Auto,Auto,*">
-                <Button>
+                <Button Command="{Binding ImportFromClipboard}"
+                        ToolTip.Tip="Import Tetra code from clipboard">
                     <StackPanel Orientation="Horizontal">
-                        <avalonia:MaterialIcon Kind="FolderOutline" />
-                        <TextBlock Text="Load" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <avalonia:MaterialIcon Kind="ClipboardArrowDown" />
+                        <TextBlock Text="Paste"
+                                   Margin="8,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </Grid>

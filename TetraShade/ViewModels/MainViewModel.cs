@@ -18,6 +18,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using DTC.Core.ViewModels;
 using TetraCore;
+using TextCopy;
 using Vector = Avalonia.Vector;
 
 namespace TetraShade.ViewModels;
@@ -150,6 +151,24 @@ public class MainViewModel : ViewModelBase
         m_instructions = Assembler.Assemble(code);
     }
 
+    internal void ImportFromClipboard()
+    {
+        var code = ClipboardService.GetText();
+        if (string.IsNullOrWhiteSpace(code))
+            return; // Nothing to do.
+
+        try
+        {
+            m_instructions = Assembler.Assemble(code);
+            Time = 0.0;
+            RefreshPreviewAsync();
+        }
+        catch
+        {
+            // Import failed.
+        }
+    }
+
     /// <summary>
     /// Updates the preview image by executing the shader instructions for each pixel.
     /// </summary>
@@ -165,6 +184,7 @@ public class MainViewModel : ViewModelBase
         var iTime = new Operand((float)Time);
         var iResolution = new Operand(PixelWidth, PixelHeight);
 
+        Exception ex = null;
         Parallel.For(0, PixelWidth * PixelHeight, i =>
         {
             var x = i % PixelWidth;
@@ -177,12 +197,25 @@ public class MainViewModel : ViewModelBase
                 ["iResolution"] = iResolution,
                 ["iTime"] = iTime
             };
-            vm.Run();
+            
+            Vector3 pixel;
+            try
+            {
+                vm.Run();
+                pixel = new Vector3(vm["retval"].Floats);
+            }
+            catch (Exception e)
+            {
+                ex = e;
+                pixel = Vector3.Zero;
+            }
             
             // Copy the result to the internal pixel buffer.
-            var pixel = new Vector3(vm["retval"].Floats);
             m_rawPixels[y * PixelWidth + x] = pixel;
         });
+        
+        if (ex != null)
+            Console.WriteLine(ex.Message);
 
         BlitPixelsToPreviewImage(m_rawPixels);
 
