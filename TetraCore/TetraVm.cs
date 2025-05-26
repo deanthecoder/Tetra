@@ -478,10 +478,16 @@ public class TetraVm
 
     /// <summary>
     /// E.g. asin $a, $theta
-    /// E.g. asin $a, 1.2
     /// </summary>
-    private void ExecuteAsin(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Asin(b));
+    private void ExecuteAsin(Instruction instr)
+    {
+        DoMathOp(instr, (_, b) =>
+        {
+            if (b < -1f || b > 1f)
+                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be in the range [-1, 1].");
+            return MathF.Asin(b);
+        });
+    }
 
     /// <summary>
     /// E.g. cos $a, $theta
@@ -499,10 +505,16 @@ public class TetraVm
 
     /// <summary>
     /// E.g. acos $a, $theta
-    /// E.g. acos $a, 1.2
     /// </summary>
-    private void ExecuteAcos(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Acos(b));
+    private void ExecuteAcos(Instruction instr)
+    {
+        DoMathOp(instr, (_, b) =>
+        {
+            if (b < -1f || b > 1f)
+                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be in the range [-1, 1].");
+            return MathF.Acos(b);
+        });
+    }
 
     /// <summary>
     /// E.g. tan $a, $theta
@@ -527,10 +539,16 @@ public class TetraVm
 
     /// <summary>
     /// E.g. pow $a, b
-    /// E.g. pow $a, 1.2
     /// </summary>
-    private void ExecutePow(Instruction instr) =>
-        DoMathOp(instr, MathF.Pow);
+    private void ExecutePow(Instruction instr)
+    {
+        DoMathOp(instr, (a, b) =>
+        {
+            if (a == 0f && b < 0f)
+                throw new RuntimeException($"'{instr}': Zero cannot be raised to a negative power (base: {a:0.0###}, exponent: {b:0.0###}).");
+            return MathF.Pow(a, b);
+        });
+    }
 
     /// <summary>
     /// E.g. exp $a, $b
@@ -541,10 +559,16 @@ public class TetraVm
 
     /// <summary>
     /// E.g. log $a, $b
-    /// E.g. log $a, 1.2 
     /// </summary>
-    private void ExecuteLog(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Log(b));
+    private void ExecuteLog(Instruction instr)
+    {
+        DoMathOp(instr, (_, b) =>
+        {
+            if (b <= 0f)
+                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be greater than 0.");
+            return MathF.Log(b);
+        });
+    }
 
     /// <summary>
     /// E.g. abs $a, $b
@@ -565,7 +589,12 @@ public class TetraVm
     /// E.g. mod $a, 1.2
     /// </summary>
     private void ExecuteMod(Instruction instr) =>
-        DoMathOp(instr, (a, b) => a % b);
+        DoMathOp(instr, (a, b) =>
+        {
+            if (b == 0f)
+                throw new RuntimeException($"'{instr}': Modulus by zero is undefined.");
+            return a % b;
+        });
 
     /// <summary>
     /// E.g. min $a, $b
