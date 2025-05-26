@@ -9,6 +9,8 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System.Diagnostics;
+using DTC.Core;
 using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
@@ -22,21 +24,28 @@ public static class Assembler
 {
     public static Instruction[] Assemble(string code)
     {
+        var stopwatch = Stopwatch.StartNew();
         try
         {
-            return AssembleImpl(code);
+            Logger.Instance.Info("Assembling Tetra source...");
+            var instructions = AssembleImpl(code);
+            Logger.Instance.Info($"Assembled {instructions.Length:N0} Tetra instructions.");
+            return instructions;
         }
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
             throw;
         }
+        finally
+        {
+            stopwatch.Stop();
+            Logger.Instance.Info($"Assembled in {stopwatch.ElapsedMilliseconds}ms.");
+        }
     }
     
     private static Instruction[] AssembleImpl(string code)
     {
-        var labels = new Dictionary<VarName, int>();
-        
         if (code == null)
             throw new ArgumentNullException(nameof(code));
 
@@ -53,6 +62,7 @@ public static class Assembler
         var duplicateLabels = labelNames.Where(o => labelNames.Count(n => n == o) > 1).ToArray();
         if (duplicateLabels.Length > 0)
             throw new SyntaxErrorException($"Error: Duplicate labels found: {duplicateLabels.ToCsv()}.");
+        var labels = new Dictionary<VarName, int>();
         labelNames.ForEach(o => labels[o] = -1);
         
         // Second pass: Compile the instructions.
