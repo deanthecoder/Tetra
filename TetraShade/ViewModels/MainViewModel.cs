@@ -16,7 +16,6 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using DTC.Core;
 using DTC.Core.ViewModels;
 using TetraCore;
 using Vector = Avalonia.Vector;
@@ -29,7 +28,6 @@ public class MainViewModel : ViewModelBase
     public const int PixelHeight = 180;
 
     private readonly Vector3[] m_rawPixels = new Vector3[PixelWidth * PixelHeight];
-    private readonly ActionConsolidator m_refreshEventRaiser;
     private Instruction[] m_instructions;
     private bool m_refreshTaskRunning;
     private WriteableBitmap m_previewImage;
@@ -59,7 +57,7 @@ public class MainViewModel : ViewModelBase
         set
         {
             if (SetField(ref m_time, value))
-                m_refreshEventRaiser.Invoke();
+                RefreshPreviewAsync();
         }
     }
 
@@ -87,15 +85,13 @@ public class MainViewModel : ViewModelBase
             m_playStopwatch = Stopwatch.StartNew();
             
             // Start frame updates.
-            m_refreshEventRaiser.Invoke();
+            RefreshPreviewAsync();
         }
     }
 
     public MainViewModel()
     {
         GenerateShaderCode();
-
-        m_refreshEventRaiser = new ActionConsolidator(RefreshPreviewAsync, 0.0);
     }
 
     private void RefreshPreviewAsync()
