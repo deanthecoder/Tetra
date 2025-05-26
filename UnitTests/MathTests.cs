@@ -9,6 +9,7 @@
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 using TetraCore;
+using TetraCore.Exceptions;
 
 namespace UnitTests;
 
@@ -73,6 +74,19 @@ public class MathTests
         vm.Run();
 
         Assert.That(vm["a"].Length, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void GivenOutOfRangeValueCheckPowThrows()
+    {
+        const string code =
+            """
+            ld $a, 0
+            pow $a, -1.2
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
     }
 
     [Test]
@@ -151,6 +165,15 @@ public class MathTests
 
         Assert.That(vm["a"].Floats[0], Is.EqualTo(2.0).Within(0.001));
         Assert.That(vm["a"].Floats[1], Is.EqualTo(0.833).Within(0.001));
+    }
+
+    [Test]
+    public void GivenOutOfRangeValueCheckLogThrows()
+    {
+        const string code = "log $a, -0.23";
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
     }
 
     [Test]

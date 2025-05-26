@@ -10,6 +10,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using TetraCore;
+using TetraCore.Exceptions;
 
 namespace UnitTests;
 
@@ -222,6 +223,15 @@ public class TrigTests
 
         Assert.That(vm["a"].Float, Is.EqualTo(0.524).Within(0.01));
     }
+
+    [Test]
+    public void GivenOutOfRangeValueCheckAsinThrows()
+    {
+        const string code = "asin $a, 1.2";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());   
+    }
     
     [Test]
     public void GivenFloatConstantCheckCos()
@@ -294,7 +304,16 @@ public class TrigTests
 
         Assert.That(vm["a"].Float, Is.EqualTo(1.047).Within(0.01));
     }
-    
+
+    [Test]
+    public void GivenOutOfRangeValueCheckAcosThrows()
+    {
+        const string code = "acos $a, 1.2";
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
     [Test]
     public void GivenFloatConstantCheckTan()
     {
