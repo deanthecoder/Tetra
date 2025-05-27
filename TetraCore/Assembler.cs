@@ -219,13 +219,16 @@ public static class Assembler
             new(OpCode.Tanh, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Atan, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Pow, [OperandType.Variable, OperandType.Float]),
+            new(OpCode.Sqrt, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Exp, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Log, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Abs, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Sign, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Mod, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Min, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Max, [OperandType.Variable, OperandType.Float])
+            new(OpCode.Max, [OperandType.Variable, OperandType.Float]),
+            new(OpCode.Ceil, [OperandType.Variable, OperandType.Float]),
+            new(OpCode.Fract, [OperandType.Variable, OperandType.Float])
         };
 
         var matches = expectedValues.Where(o => o.opCode == opCode).ToArray();

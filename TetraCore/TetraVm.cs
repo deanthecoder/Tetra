@@ -9,7 +9,6 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-using DTC.Core;
 using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
@@ -30,6 +29,9 @@ public class TetraVm
     private ScopeFrame CurrentFrame => m_frames.Peek();
 
     public event EventHandler<string> OutputWritten;
+
+    // ReSharper disable once PropertyCanBeMadeInitOnly.Global
+    public bool Debug { get; set; }
 
     public TetraVm(Instruction[] instructions)
     {
@@ -70,8 +72,17 @@ public class TetraVm
             var instr = m_instructions[m_ip];
             try
             {
+                if (Debug)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Variables:");
+                    var state = CurrentFrame.ToString();
+                    foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
+                        Console.WriteLine($"  {s}");
+                    Console.WriteLine($"Next: {instr}");
+                }
+                
                 var keepRunning = Execute(instr);
-
                 if (!keepRunning)
                     break;
                 instructionExecutions++;
@@ -133,11 +144,14 @@ public class TetraVm
             case OpCode.Pow: ExecutePow(instr); break;
             case OpCode.Exp: ExecuteExp(instr); break;
             case OpCode.Log: ExecuteLog(instr); break;
+            case OpCode.Sqrt: ExecuteSqrt(instr); break;
             case OpCode.Abs: ExecuteAbs(instr); break;
             case OpCode.Sign: ExecuteSign(instr); break;
             case OpCode.Mod: ExecuteMod(instr); break;
             case OpCode.Min: ExecuteMin(instr); break;
             case OpCode.Max: ExecuteMax(instr); break;
+            case OpCode.Ceil: ExecuteCeil(instr); break;
+            case OpCode.Fract: ExecuteFract(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction defined, but not implemented: '{instr}'");
         }
@@ -432,6 +446,8 @@ public class TetraVm
         var label = instr.Operands[0];
         if (label.Type != OperandType.Int)
             throw new RuntimeException($"'{instr}': Integer operand expected.");
+        if (instr.Operands.Length > 1)
+            throw new RuntimeException($"'{instr}': Too many operands.");
         m_frames.Push(new ScopeFrame(CurrentFrame));
         m_callStack.Push(m_ip + 1);
         m_ip = label.Int;
@@ -539,7 +555,7 @@ public class TetraVm
         DoMathOp(instr, (_, b) => MathF.Atan(b));
 
     /// <summary>
-    /// E.g. pow $a, b
+    /// E.g. pow $a, $b
     /// </summary>
     private void ExecutePow(Instruction instr)
     {
@@ -548,6 +564,19 @@ public class TetraVm
             if (a == 0f && b < 0f)
                 throw new RuntimeException($"'{instr}': Zero cannot be raised to a negative power (base: {a:0.0###}, exponent: {b:0.0###}).");
             return MathF.Pow(a, b);
+        });
+    }
+    
+    /// <summary>
+    /// E.g. sqrt $a, $b
+    /// </summary>
+    private void ExecuteSqrt(Instruction instr)
+    {
+        DoMathOp(instr, (_, b) =>
+        {
+            if (b < 0f)
+                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be greater than or equal to zero.");
+            return MathF.Sqrt(b);
         });
     }
 
@@ -610,6 +639,20 @@ public class TetraVm
     /// </summary>
     private void ExecuteMax(Instruction instr) =>
         DoMathOp(instr, (a, b) => a > b ? a : b);
+
+    /// <summary>
+    /// E.g. ceil $a, $b
+    /// E.g. ceil $a, 1.2
+    /// </summary>
+    private void ExecuteCeil(Instruction instr) =>
+        DoMathOp(instr, (_, b) => MathF.Ceiling(b));
+    
+    /// <summary>
+    /// E.g. fract $a, $b
+    /// E.g. fract $a, 1.2
+    /// </summary>
+    private void ExecuteFract(Instruction instr) =>
+        DoMathOp(instr, (_, b) => b - MathF.Floor(b));
 
     /// <summary>
     /// Perform a float->float operation on the elements of a numeric operand.

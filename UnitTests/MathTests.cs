@@ -430,4 +430,86 @@ public class MathTests
         Assert.That(vm["a"].Floats[1], Is.Zero.Within(0.001));
         Assert.That(vm["a"].Floats[2], Is.EqualTo(-1.0).Within(0.001));
     }
+
+    [Test]
+    public void GivenFloatCheckSqrt()
+    {
+        const string code = "sqrt $a, 2.0";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(1.414).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorCheckSqrt()
+    {
+        const string code = "sqrt $a, 2.0, 3.0";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(1.414).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(1.732).Within(0.001));
+    }
+
+    [Test]
+    public void GivenZeroCheckSqrt()
+    {
+        const string code = "sqrt $a, 0.0";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(0.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenNegativeCheckSqrtThrows()
+    {
+        const string code = "sqrt $a, -1.0";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
+    [Test]
+    public void GivenFloatConstantCheckCeil()
+    {
+        const string code = "ceil $a, 1.3";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Float, Is.EqualTo(2.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorCheckCeil()
+    {
+        const string code = "ceil $a, 1.3, 2.7";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(2.0).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(3.0).Within(0.001));
+    }
+
+    [Test]
+    public void GivenFloatConstantCheckFract()
+    {
+        const string code = "fract $a, 1.3";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Float, Is.EqualTo(0.3).Within(0.001));
+    }
+
+    [Test]
+    public void GivenVectorCheckFract()
+    {
+        const string code = "fract $a, 1.3, 2.7";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.3).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.7).Within(0.001));
+    }
 }

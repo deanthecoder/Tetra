@@ -45,11 +45,14 @@ public enum OpCode
     Tanh,
     Atan,
     Pow,
+    Sqrt,
     Exp,
     Log,
     Abs,
     Sign,
     Mod,
     Min,
-    Max
+    Max,
+    Ceil,
+    Fract
 }
