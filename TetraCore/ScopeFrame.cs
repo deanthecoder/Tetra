@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System.Text;
 using TetraCore.Exceptions;
 
 namespace TetraCore;
@@ -101,5 +102,20 @@ public class ScopeFrame
         }
         
         return variable;
+    }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        if (m_parent != null)
+        {
+            sb.Append(m_parent);
+            sb.AppendLine("---");
+        }
+        
+        foreach (var kvp in m_variables)
+            sb.AppendLine($"{kvp.Key} = {kvp.Value}");
+        
+        return sb.ToString();
     }
 }
