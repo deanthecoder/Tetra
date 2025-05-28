@@ -21,7 +21,7 @@ namespace TetraCore;
 public class ScopeFrame
 {
     private readonly ScopeFrame m_parent;
-    private readonly Dictionary<string, Operand> m_variables = [];
+    private readonly Dictionary<string, Operand> m_variables = new Dictionary<string, Operand>(8);
 
     public ScopeFrame(ScopeFrame parent = null)
     {
@@ -67,7 +67,9 @@ public class ScopeFrame
     /// </summary>
     public void SetVariable(VarName varName, Operand value, bool defineIfMissing = false)
     {
-        if (!defineIfMissing && !IsDefined(varName))
+        var isLocal = m_variables.ContainsKey(varName.Name);
+        
+        if (!isLocal && !defineIfMissing && !IsDefined(varName))
             throw new RuntimeException($"Variable '{varName}' is undefined.");
         if (varName.Name == value.Name?.Name)
             throw new RuntimeException($"Cannot assign variable '{varName}' to itself.");
@@ -77,7 +79,7 @@ public class ScopeFrame
             value = GetVariable(value.Name);
 
         // If variable is set in a parent scope, we need to set it there.
-        if (m_parent?.IsDefined(varName) == true && !m_variables.ContainsKey(varName.Name))
+        if (!isLocal && m_parent?.IsDefined(varName) == true)
         {
             m_parent.SetVariable(varName, value);
             return;
@@ -89,19 +91,20 @@ public class ScopeFrame
 
     public Operand GetVariable(VarName varName)
     {
-        if (!IsDefined(varName))
-            throw new RuntimeException($"Variable '{varName.Name}' not found in scope.");
-        if (!m_variables.TryGetValue(varName.Name, out var variable))
-            return m_parent.GetVariable(varName);
-
-        if (varName.ArrIndex.HasValue)
+        var isLocal = m_variables.TryGetValue(varName.Name, out var variable);
+        if (!isLocal)
         {
-            if (variable.Type != OperandType.Vector)
-                throw new RuntimeException($"'{varName}': Variable ({variable.Type}) is not a vector.");
-            variable = new Operand(variable.Floats[varName.ArrIndex.Value]);
+            if (m_parent == null)
+                throw new RuntimeException($"Variable '{varName.Name}' not found in scope.");
+            return m_parent.GetVariable(varName);
         }
+
+        if (!varName.ArrIndex.HasValue)
+            return variable;
         
-        return variable;
+        if (variable.Type != OperandType.Vector)
+            throw new RuntimeException($"'{varName}': Variable ({variable.Type}) is not a vector.");
+        return new Operand(variable.Floats[varName.ArrIndex.Value]);
     }
 
     public override string ToString()

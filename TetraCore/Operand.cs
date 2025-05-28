@@ -111,6 +111,13 @@ public readonly struct Operand
     {
         if (Length != 1)
             throw new InvalidOperationException("Only one-dimensional operands can be grown.");
-        return new Operand(Enumerable.Repeat(Float, length).ToArray());   
+        
+        if (length == Length)
+            return this; // No change.
+        
+        var floats = new float[length];
+        for (var i = 0; i < length; i++)
+            floats[i] = Float;
+        return new Operand(floats);
     }
 }

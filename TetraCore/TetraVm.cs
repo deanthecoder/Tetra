@@ -179,7 +179,21 @@ public class TetraVm
     private void ExecuteLd(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = Operand.FromOperands(instr.Operands.Skip(1).Select(GetOperandValue).ToArray());
+
+        Operand b;
+        if (instr.Operands.Length == 2)
+        {
+            // Just one 'b' operand.
+            b = instr.Operands[1];
+        }
+        else
+        {
+            // Get 2nd+ operands.
+            var operands = new Operand[instr.Operands.Length - 1];
+            for (var i = 1; i < instr.Operands.Length; i++)
+                operands[i - 1] = GetOperandValue(instr.Operands[i]);
+            b = Operand.FromOperands(operands);
+        }
 
         CurrentFrame.DefineVariable(a.Name, b);
         m_ip++;
@@ -189,8 +203,8 @@ public class TetraVm
     /// E.g. add $a, 3.141
     /// E.g. add $a, $b     (a += b)
     /// </summary>
-    private void ExecuteAdd(Instruction instr, float multiplier = 1.0f) =>
-        DoMathOp(instr, (a , b) => a + b * multiplier);
+    private void ExecuteAdd(Instruction instr) =>
+        DoMathOp(instr, (a , b) => a + b);
 
     /// <summary>
     /// E.g. sub $a, 3.141
@@ -673,7 +687,9 @@ public class TetraVm
         Operand result;
         if (instr.Operands.Length == 1)
         {
-            result = new Operand(a.Floats.Select(o => op(o, float.NaN)).ToArray());
+            result = new Operand(new float[a.Length]);
+            for (var i = 0; i < a.Length; i++)
+                result.Floats[i] = op(a.Floats[i], float.NaN);
 
             if (a.Type == OperandType.Int)
                 result = result with { Type = OperandType.Int };
@@ -681,7 +697,10 @@ public class TetraVm
         else
         {
             // Get 2nd+ operands.
-            var b = Operand.FromOperands(instr.Operands.Skip(1).Select(GetOperandValue).ToArray());
+            var operands = new Operand[instr.Operands.Length - 1];
+            for (var i = 1; i < instr.Operands.Length; i++)
+                operands[i - 1] = GetOperandValue(instr.Operands[i]);
+            var b = Operand.FromOperands(operands);
             if (b.Type is OperandType.Label or OperandType.Variable)
                 throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on {b.Type}.");
 
@@ -696,11 +715,15 @@ public class TetraVm
                 if (a.Length != b.Length)
                     throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on operands of different length ({a.Length} vs {b.Length}).");
 
-                result = new Operand(a.Floats.Select((o, i) => op(o, b.Floats[i])).ToArray());
+                result = new Operand(new float[a.Length]);
+                for (var i = 0; i < a.Length; i++)
+                    result.Floats[i] = op(a.Floats[i], b.Floats[i]);
             }
             else
             {
-                result = new Operand(b.Floats.Select(o => op(float.NaN, o)).ToArray());
+                result = new Operand(new float[b.Length]);
+                for (var i = 0; i < b.Length; i++)
+                    result.Floats[i] = op(float.NaN, b.Floats[i]);
             }
 
             if (a.Type == OperandType.Int && b.Type == OperandType.Int)
