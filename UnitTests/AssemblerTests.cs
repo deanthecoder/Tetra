@@ -28,7 +28,9 @@ public class AssemblerTests
     public void ParseSingleInstruction()
     {
         const string code = "ld $a, 1.0";
-        var instructions = Assembler.Assemble(code);
+        
+        var program = Assembler.Assemble(code);
+        var instructions = program.Instructions;
 
         Assert.That(instructions, Has.Length.EqualTo(1));
         var instr = instructions[0];
@@ -36,8 +38,8 @@ public class AssemblerTests
         Assert.That(instr.OpCode, Is.EqualTo(OpCode.Ld));
         Assert.That(instr.Operands, Has.Length.EqualTo(2));
 
-        AssertOperand(instr.Operands[0], OperandType.Variable, "$a");
-        Assert.That(instr.Operands[0].Name.Name, Is.EqualTo("a"));
+        AssertOperand(instr.Operands[0], OperandType.Variable, "1");
+        Assert.That(instr.Operands[0].ToUiString(program.SymbolTable), Is.EqualTo("a"));
 
         AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
         Assert.That(instr.Operands[1].Float, Is.EqualTo(1.0).Within(0.001));
@@ -58,7 +60,8 @@ public class AssemblerTests
             # This is a comment
             ld $a, 1.0  # Another comment.
             """;
-        var instructions = Assembler.Assemble(code);
+        var program = Assembler.Assemble(code);
+        var instructions = program.Instructions;
 
         Assert.That(instructions, Has.Length.EqualTo(1));
         var instr = instructions[0];
@@ -66,8 +69,8 @@ public class AssemblerTests
         Assert.That(instr.OpCode, Is.EqualTo(OpCode.Ld));
         Assert.That(instr.Operands, Has.Length.EqualTo(2));
 
-        AssertOperand(instr.Operands[0], OperandType.Variable, "$a");
-        Assert.That(instr.Operands[0].Name.Name, Is.EqualTo("a"));
+        AssertOperand(instr.Operands[0], OperandType.Variable, "1");
+        Assert.That(instr.Operands[0].ToUiString(program.SymbolTable), Is.EqualTo("a"));
 
         AssertOperand(instr.Operands[1], OperandType.Float, "1.0f");
         Assert.That(instr.Operands[1].Float, Is.EqualTo(1.0).Within(0.001));
@@ -99,6 +102,6 @@ public class AssemblerTests
         {
             Assert.That(op.Type, Is.EqualTo(expectedType));
             if (expectedRaw != null)
-                Assert.That(op.ToString(), Is.EqualTo(expectedRaw));
+                Assert.That(op.ToUiString(), Is.EqualTo(expectedRaw));
         });
 }

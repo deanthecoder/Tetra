@@ -16,13 +16,13 @@ using TetraCore.Exceptions;
 namespace TetraCore;
 
 /// <summary>
-/// Represents a typed operand in a Tetra instruction. Operands may be variable names, 
-/// constants (float or int), or label identifiers, and carry both raw and parsed forms.
+/// Represents a single operand used in a Tetra instruction, encapsulating values such as variables, constants, and labels.
 /// </summary>
 /// <remarks>
-/// Internally all values are stored in a float array.
+/// Internally, all numeric values are stored using a float array, supporting scalars and vectors.
+/// Each operand also records its type, along with optional metadata like variable or label name.
 /// </remarks>
-public readonly struct Operand
+public sealed class Operand
 {
     public Operand(int f)
     {
@@ -35,6 +35,14 @@ public readonly struct Operand
         Type = v.Length == 1 ? OperandType.Float : OperandType.Vector;
         Floats = v;
     }
+
+    public Operand(OperandType type, VarName name, string label, float[] floats)
+    {
+        Type = type;
+        Name = name;
+        Label = label;
+        Floats = floats;
+    }
     
     /// <summary>
     /// Gets the type of operand (e.g., variable, constant, label).
@@ -42,9 +50,14 @@ public readonly struct Operand
     public OperandType Type { get; init; }
 
     /// <summary>
-    /// Gets the variable or label name (only applicable for operands of type Variable or Label).
+    /// Gets the variable name (only applicable for operands of type Variable).
     /// </summary>
     public VarName Name { get; init; }
+    
+    /// <summary>
+    /// Gets the label name.
+    /// </summary>
+    public string Label { get; init; }
 
     /// <summary>
     /// Gets the float value if the operand is a float constant.
@@ -94,15 +107,20 @@ public readonly struct Operand
     }
 
     public override string ToString() =>
-        Type switch
+        ToUiString();
+
+    public string ToUiString(SymbolTable symbolTable = null)
+    {
+        return Type switch
         {
             OperandType.Float => $"{Float:0.0###}f",
             OperandType.Int => Int.ToString(CultureInfo.InvariantCulture),
             OperandType.Vector => $"[{Floats.Select(o => $"{o:0.0###}f").ToCsv()}]",
-            OperandType.Label => Name.Name,
-            OperandType.Variable => $"${Name}",
+            OperandType.Label => Label,
+            OperandType.Variable => Name.ToUiString(symbolTable),
             _ => throw new ArgumentOutOfRangeException()
         };
+    }
 
     /// <summary>
     /// Turn a single-length operand into a multi-length operand (by repeating the value).
@@ -120,4 +138,7 @@ public readonly struct Operand
             floats[i] = Float;
         return new Operand(floats);
     }
+
+    public Operand WithType(OperandType newType) =>
+        new Operand(newType, Name, Label, Floats);
 }

@@ -15,21 +15,31 @@ using TetraCore.Exceptions;
 namespace TetraCore;
 
 /// <summary>
-/// ScopeFrame represents a single variable scope in the Tetra virtual machine.
-/// Variables are stored by name, and each frame may shadow variables in lower frames on the stack.
+/// Represents a single stack frame in the Tetra virtual machine, responsible for storing and resolving variables.
+/// Variables are stored in fixed slots indexed by <see cref="VarName.Slot"/> and may optionally support vector-style indexing.
+/// Each frame maintains a reference to an optional parent scope, allowing variable shadowing and resolution through chained scopes.
 /// </summary>
 public class ScopeFrame
 {
+    public const int MaxSlots = 32;
+    public const int RetvalSlot = 0;
+
     private readonly ScopeFrame m_parent;
-    private readonly Dictionary<string, Operand> m_variables = new Dictionary<string, Operand>(8);
+    private readonly Operand[] m_slots = new Operand[MaxSlots];
+    
+    public Operand Retval
+    {
+        get => m_slots[0];
+        set => m_slots[0] = value;
+    }
 
     public ScopeFrame(ScopeFrame parent = null)
     {
         m_parent = parent;
     }
-    
+
     public bool IsDefined(VarName name) =>
-        m_variables.ContainsKey(name.Name) || (m_parent?.IsDefined(name) ?? false);
+        m_slots[name.Slot] != null || (m_parent?.IsDefined(name) ?? false);
 
     /// <summary>
     /// Creates a new variable in this scope.
@@ -51,11 +61,11 @@ public class ScopeFrame
     {
         if (!varName.ArrIndex.HasValue)
         {
-            m_variables[varName.Name] = value;
+            m_slots[varName.Slot] = value;
             return;
         }
 
-        var v = m_variables[varName.Name];
+        var v = m_slots[varName.Slot];
         if (v.Type != OperandType.Vector)
             throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName}");
 
@@ -67,12 +77,12 @@ public class ScopeFrame
     /// </summary>
     public void SetVariable(VarName varName, Operand value, bool defineIfMissing = false)
     {
-        var isLocal = m_variables.ContainsKey(varName.Name);
+        var isLocal = m_slots[varName.Slot] != null;
         var definedInParent = !isLocal && m_parent?.IsDefined(varName) == true;
 
         if (!isLocal && !defineIfMissing && !definedInParent)
             throw new RuntimeException($"Variable '{varName}' is undefined.");
-        if (varName.Name == value.Name?.Name)
+        if (varName.Slot == value.Name?.Slot)
             throw new RuntimeException($"Cannot assign variable '{varName}' to itself.");
 
         // The value being set must be constant.
@@ -95,7 +105,8 @@ public class ScopeFrame
         var frame = this;
         while (frame != null)
         {
-            if (frame.m_variables.TryGetValue(varName.Name, out var variable))
+            var variable = frame.m_slots[varName.Slot];
+            if (variable != null)
             {
                 if (!varName.ArrIndex.HasValue)
                     return variable;
@@ -108,7 +119,7 @@ public class ScopeFrame
             frame = frame.m_parent;
         }
 
-        throw new RuntimeException($"Variable '{varName.Name}' not found in scope.");
+        throw new RuntimeException($"Variable '{varName.Slot}' not found in scope.");
     }
 
     public override string ToString()
@@ -120,8 +131,10 @@ public class ScopeFrame
             sb.AppendLine("---");
         }
         
-        foreach (var kvp in m_variables)
-            sb.AppendLine($"{kvp.Key} = {kvp.Value}");
+        foreach (var slotIndex in m_slots.Where(o => o != null))
+            sb.AppendLine($"{slotIndex} = {slotIndex}");
+        if (Retval != null)
+            sb.AppendLine($"retval = {Retval}");
         
         return sb.ToString();
     }

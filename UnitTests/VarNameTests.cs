@@ -42,16 +42,16 @@ public class VarNameTests
     [Test]
     public void GivenValidNameWhenParsedShouldParseCorrectly()
     {
-        var v = new VarName("foo");
-        Assert.That(v.Name, Is.EqualTo("foo"));
+        var v = new VarName("23");
+        Assert.That(v.Slot, Is.EqualTo(23));
         Assert.That(v.ArrIndex, Is.Null);
     }
 
     [Test]
     public void GivenValidIndexedNameWhenParsedShouldParseNameAndIndex()
     {
-        var v = new VarName("bar[3]");
-        Assert.That(v.Name, Is.EqualTo("bar"));
+        var v = new VarName("10[3]");
+        Assert.That(v.Slot, Is.EqualTo(10));
         Assert.That(v.ArrIndex, Is.EqualTo(3));
     }
 

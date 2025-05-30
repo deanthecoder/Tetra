@@ -20,17 +20,22 @@ namespace TetraCore;
 /// Converts Tetra source code into a list of validated <see cref="Instruction"/> objects.
 /// Handles comment stripping, instruction parsing, operand typing, and basic syntax validation.
 /// </summary>
-public static class Assembler
+public class Assembler
 {
-    public static Instruction[] Assemble(string code)
+    private readonly Dictionary<string, int> m_operandSlots = [];
+
+    public static Program Assemble(string code) =>
+        new Assembler().Assemble(code);
+
+    public Program Assemble(string code, params string[] uniforms)
     {
         var stopwatch = Stopwatch.StartNew();
         try
         {
             Logger.Instance.Info("Assembling Tetra source...");
-            var instructions = AssembleImpl(code);
-            Logger.Instance.Info($"Assembled {instructions.Length:N0} Tetra instructions.");
-            return instructions;
+            var program = AssembleImpl(code, uniforms);
+            Logger.Instance.Info($"Assembled {program.Instructions.Length:N0} Tetra instructions.");
+            return program;
         }
         catch (Exception e)
         {
@@ -44,10 +49,15 @@ public static class Assembler
         }
     }
     
-    private static Instruction[] AssembleImpl(string code)
+    private Program AssembleImpl(string code, string[] uniforms)
     {
         if (code == null)
             throw new ArgumentNullException(nameof(code));
+        
+        m_operandSlots.Clear();
+        m_operandSlots["retval"] = ScopeFrame.RetvalSlot;
+        uniforms.ForEach(o => m_operandSlots[o] = GetNextOperandSlot());
+        var symbolTable = new SymbolTable();
 
         var instructions = new List<Instruction>();
         var lines =
@@ -62,9 +72,8 @@ public static class Assembler
         var duplicateLabels = labelNames.Where(o => labelNames.Count(n => n == o) > 1).ToArray();
         if (duplicateLabels.Length > 0)
             throw new SyntaxErrorException($"Error: Duplicate labels found: {duplicateLabels.ToCsv()}.");
-        var labels = new Dictionary<VarName, int>();
-        labelNames.ForEach(o => labels[o] = -1);
-        
+        var labels = labelNames.ToDictionary(o => o, _ => -1);
+
         // Second pass: Compile the instructions.
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
@@ -94,10 +103,10 @@ public static class Assembler
             var opCode = GetOpCode(words[0], lineIndex, lines[lineIndex]);
                 
             // Find the operands.
-            var operands = words.Skip(1).Select(o => GetOperand(o, opCode, lineIndex, lines[lineIndex], labels.Keys)).ToArray();
+            var operands = words.Skip(1).Select(o => GetOperand(o, opCode, lineIndex, lines[lineIndex], labels.Keys, symbolTable)).ToArray();
             
             // Build the instruction.
-            var instruction = new Instruction
+            var instruction = new Instruction(symbolTable)
             {
                 LineNumber = lineIndex + 1,
                 OpCode = opCode,
@@ -118,14 +127,14 @@ public static class Assembler
                     continue; // Instruction doesn't reference a label.
                 
                 // Replace the label with the actual value.
-                var labelName = instr.Operands[j].Name;
+                var labelName = instr.Operands[j].Label;
                 if (!labels.TryGetValue(labelName, out var labelIp))
                     throw new SyntaxErrorException($"[Line {instr.LineNumber}] Error: Label '{labelName}' not found.");
                 instr.Operands[j] = new Operand(labelIp);
             }
         }
-        
-        return instructions.ToArray();
+
+        return new Program(instructions.ToArray(), symbolTable);
     }
 
     private static string RemoveComments(string line)
@@ -245,7 +254,7 @@ public static class Assembler
             throw new SyntaxErrorException($"Error: Unrecognized instruction '{word}'.\n  {lineIndex + 1}: {line.Trim()}");
         return opCode.Value;
     }
-    
+
     /// <summary>
     /// Parses and validates a single operand from a Tetra instruction.
     /// </summary>
@@ -254,22 +263,32 @@ public static class Assembler
     /// <param name="lineIndex">Current line number for error reporting (zero-based).</param>
     /// <param name="line">The complete source line for error context.</param>
     /// <param name="labels">Collection of valid label names for reference validation.</param>
+    /// <param name="symbolTable">A map of variable names to slot index.</param>
     /// <returns>A typed <see cref="Operand"/> representing the parsed value.</returns>
     /// <exception cref="SyntaxErrorException">Thrown when the operand cannot be parsed or is invalid for the instruction.</exception>
-    private static Operand GetOperand(
+    private Operand GetOperand(
         string word,
         OpCode opCode,
         int lineIndex,
         string line,
-        IEnumerable<VarName> labels)
+        IEnumerable<string> labels,
+        SymbolTable symbolTable)
     {
         if (word.StartsWith('$'))
         {
+            var bracketIndex = word.IndexOf('[');
+            var brackets = bracketIndex >= 0 ? word[bracketIndex..] : string.Empty;
+            var variableName = bracketIndex < 0 ? word[1..] : word[1..bracketIndex];
+
+            if (!m_operandSlots.TryGetValue(variableName, out var opSlot))
+                opSlot = m_operandSlots[variableName] = GetNextOperandSlot();
+            symbolTable[opSlot] = variableName;
+            
             // Variable.
             return new Operand
             {
                 Type = OperandType.Variable,
-                Name = word[1..]
+                Name = $"{opSlot}{brackets}"
             };
         }
 
@@ -287,7 +306,7 @@ public static class Assembler
             return new Operand
             {
                 Type = OperandType.Label,
-                Name = word
+                Label = word
             };
         }
         
@@ -296,5 +315,12 @@ public static class Assembler
         GetExpectedOperandTypes(opCode).ForEach(o => s += $"\n  {opCode} {o.Select(op => $"<{op}>").ToCsv()}");
 
         throw new SyntaxErrorException(s);
+    }
+
+    private int GetNextOperandSlot()
+    {
+        if (m_operandSlots.Count == ScopeFrame.RetvalSlot - 1)
+            throw new InvalidOperationException("Variable limit reached.");
+        return m_operandSlots.Count;
     }
 }

@@ -21,7 +21,7 @@ public class LabelTests
     public void CheckAssemblingLabelDoesNotTreatAsInstruction()
     {
         const string code = "label:";
-        var instructions = Assembler.Assemble(code);
+        var instructions = Assembler.Assemble(code).Instructions;
 
         Assert.That(instructions, Is.Empty);
     }
@@ -55,7 +55,7 @@ public class LabelTests
             label:
                 jmp label
             """;
-        var instructions = Assembler.Assemble(code);
+        var instructions = Assembler.Assemble(code).Instructions;
         
         Assert.That(instructions.Count, Is.EqualTo(2));
         Assert.That(instructions[1].OpCode, Is.EqualTo(OpCode.Jmp));

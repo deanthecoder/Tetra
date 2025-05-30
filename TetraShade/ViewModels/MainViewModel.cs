@@ -29,7 +29,14 @@ public class MainViewModel : ViewModelBase
     public const int PixelHeight = 180;
 
     private readonly Vector3[] m_rawPixels = new Vector3[PixelWidth * PixelHeight];
-    private Instruction[] m_instructions;
+    private readonly string[] m_uniforms =
+    [
+        "fragCoord",
+        "iResolution",
+        "iTime"
+    ];
+
+    private TetraCore.Program m_program;
     private bool m_refreshTaskRunning;
     private WriteableBitmap m_previewImage;
     private double m_time;
@@ -89,7 +96,7 @@ public class MainViewModel : ViewModelBase
             RefreshPreviewAsync();
         }
     }
-
+    
     public MainViewModel()
     {
         GenerateShaderCode();
@@ -132,11 +139,11 @@ public class MainViewModel : ViewModelBase
 
     private void GenerateShaderCode()
     {
-        const string code =
+        var assembler = new Assembler();
+        m_program = assembler.Assemble(
             """
                 call main
                 halt
-                
             main:
                 ld $uv, $fragCoord
                 div $uv, $iResolution
@@ -147,8 +154,8 @@ public class MainViewModel : ViewModelBase
                 mul $col, 0.5
                 add $col, 0.5
                 ret $col
-            """;
-        m_instructions = Assembler.Assemble(code);
+            """,
+            m_uniforms);
     }
 
     internal void ImportFromClipboard()
@@ -159,7 +166,8 @@ public class MainViewModel : ViewModelBase
 
         try
         {
-            m_instructions = Assembler.Assemble(code);
+            var assembler = new Assembler();
+            m_program = assembler.Assemble(code, m_uniforms);
             Time = 0.0;
             RefreshPreviewAsync();
         }
@@ -184,42 +192,46 @@ public class MainViewModel : ViewModelBase
         var iTime = new Operand((float)Time);
         var iResolution = new Operand(PixelWidth, PixelHeight);
 
-        Exception ex = null;
+        // Compute single pixel to catch obvious errors.
+        ComputePixelColor(new Operand(0, PixelHeight - 0), iResolution, iTime, out var didError);
+        if (didError)
+            return;
+        
+        // Process each pixel in parallel.
         Parallel.For(0, PixelWidth * PixelHeight, i =>
         {
             var x = i % PixelWidth;
             var y = i / PixelWidth;
 
-            // Run the shader for this pixel.
-            var vm = new TetraVm(m_instructions)
-            {
-                ["fragCoord"] = new Operand(x, PixelHeight - y),
-                ["iResolution"] = iResolution,
-                ["iTime"] = iTime
-            };
-            
-            Vector3 pixel;
-            try
-            {
-                vm.Run();
-                pixel = new Vector3(vm["retval"].Floats);
-            }
-            catch (Exception e)
-            {
-                ex = e;
-                pixel = Vector3.Zero;
-            }
-            
-            // Copy the result to the internal pixel buffer.
-            m_rawPixels[y * PixelWidth + x] = pixel;
+            var fragCoord = new Operand(x, PixelHeight - y);
+            m_rawPixels[y * PixelWidth + x] = ComputePixelColor(fragCoord, iResolution, iTime, out _);
         });
         
-        if (ex != null)
-            Console.WriteLine(ex.Message);
-
         BlitPixelsToPreviewImage(m_rawPixels);
 
         RefreshPreview?.Invoke(this, EventArgs.Empty);
+    }
+
+    private Vector3 ComputePixelColor(Operand fragCoord, Operand iResolution, Operand iTime, out bool didError)
+    {
+        didError = false;
+        
+        // Run the shader for this pixel.
+        var vm = new TetraVm(m_program);
+        vm.AddUniform("fragCoord", fragCoord);
+        vm.AddUniform("iResolution", iResolution);
+        vm.AddUniform("iTime", iTime);
+            
+        try
+        {
+            vm.Run();
+            return new Vector3(vm.CurrentFrame.Retval?.Floats);
+        }
+        catch (Exception)
+        {
+            didError = true;
+            return Vector3.Zero;
+        }
     }
 
     private unsafe void BlitPixelsToPreviewImage(Vector3[] rawPixels)

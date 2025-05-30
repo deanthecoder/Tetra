@@ -8,14 +8,17 @@
 // about your modifications. Your contributions are valued!
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
-using System.Text.RegularExpressions;
 using TetraCore.Exceptions;
 
 namespace TetraCore;
 
-public partial class VarName
+/// <summary>
+/// Represents a variable identifier used in the Tetra virtual machine.
+/// Variables are identified by a numeric slot index and may optionally include a subscript index (e.g., for vector access).
+/// </summary>
+public class VarName
 {
-    public string Name { get; }
+    public int Slot { get; }
     public int? ArrIndex { get; }
 
     public VarName(string name)
@@ -25,28 +28,54 @@ public partial class VarName
         if (string.IsNullOrWhiteSpace(name))
             throw new SyntaxErrorException("Variable name cannot be empty.");
 
-        // Capture name and optional '[]' brackets.
-        var match = MyRegex().Match(name);
-        if (!match.Success)
-            throw new SyntaxErrorException($"Invalid variable name: {name}");
+        var bracketIndex = name.IndexOf('[');
+        if (bracketIndex == -1)
+        {
+            // Simple variable name - No array index.
+            Slot = ParseName(name);
+            return;
+        }
+        
+        // Variable name with array index.
+        Slot = ParseName(name[..bracketIndex]);
 
-        Name = match.Groups[1].Value;
-        ArrIndex = match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : null;
+        var closingBracketIndex = name.IndexOf(']', bracketIndex);
+        if (closingBracketIndex == -1)
+            throw new SyntaxErrorException($"Missing closing bracket in variable name: {name}");
+
+        var indexPart = name[(bracketIndex + 1)..closingBracketIndex];
+        if (!int.TryParse(indexPart, out var arrIndex))
+            throw new SyntaxErrorException($"Invalid variable array subscript: {name}");
+
+        ArrIndex = arrIndex;
     }
 
-    public static implicit operator VarName(string name) => new VarName(name);
+    private static int ParseName(string name)
+    {
+        if (!int.TryParse(name, out var slot))
+            throw new SyntaxErrorException($"Invalid variable name: {name}");
+        if (slot >= ScopeFrame.MaxSlots)
+            throw new SyntaxErrorException("Variable count limit reached.");
+        return slot;
+    }
+
+    public static implicit operator VarName(string name) =>
+        new VarName(name);
 
     public override bool Equals(object obj) =>
         obj is VarName other &&
-        Name == other.Name &&
+        Slot == other.Slot &&
         ArrIndex == other.ArrIndex;
 
     public override int GetHashCode() =>
-        HashCode.Combine(Name, ArrIndex);
+        HashCode.Combine(Slot, ArrIndex);
 
     public override string ToString() =>
-        Name + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
-    
-    [GeneratedRegex(@"^([a-zA-Z_][a-zA-Z_0-9]*)(\[(\d+)\])?$")]
-    private static partial Regex MyRegex();
+        ToUiString();
+
+    public string ToUiString(SymbolTable symbolTable = null)
+    {
+        var varName = symbolTable != null ? symbolTable[Slot] : Slot.ToString();
+        return varName + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
+    }
 }

@@ -21,21 +21,23 @@ namespace TetraCore;
 /// </summary>
 public class TetraVm
 {
-    private readonly Instruction[] m_instructions;
+    private readonly Program m_program;
     private readonly Stack<ScopeFrame> m_frames = [];
     private readonly Stack<int> m_callStack = [];
+    private readonly List<string> m_uniforms = ["retval"];
     private int m_ip;
 
-    private ScopeFrame CurrentFrame => m_frames.Peek();
+    public ScopeFrame CurrentFrame => m_frames.Peek();
 
     public event EventHandler<string> OutputWritten;
 
     // ReSharper disable once PropertyCanBeMadeInitOnly.Global
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public bool Debug { get; set; }
 
-    public TetraVm(Instruction[] instructions)
+    public TetraVm(Program program)
     {
-        m_instructions = instructions ?? throw new ArgumentNullException(nameof(instructions));
+        m_program = program ?? throw new ArgumentNullException(nameof(program));
 
         OutputWritten += (_, message) => Console.WriteLine(message);
         
@@ -44,8 +46,11 @@ public class TetraVm
 
     public Operand this[string variableName]
     {
-        get => CurrentFrame.GetVariable(variableName);
-        set => CurrentFrame.DefineVariable(variableName, value);
+        get
+        {
+            var slot = m_program.SymbolTable.GetSlotFromName(variableName);
+            return CurrentFrame.GetVariable(slot.ToString());
+        }
     }
 
     public void Run()
@@ -67,9 +72,11 @@ public class TetraVm
 
         // Execute the instructions.
         var instructionExecutions = 0;
-        while (m_ip < m_instructions.Length)
+        var instructions = m_program.Instructions;
+        var instructionCount = instructions.Length;
+        while (m_ip < instructionCount)
         {
-            var instr = m_instructions[m_ip];
+            var instr = instructions[m_ip];
             try
             {
                 if (Debug)
@@ -98,7 +105,7 @@ public class TetraVm
         }
     }
 
-    public void Reset()
+    private void Reset()
     {
         m_frames.Clear();
         m_frames.Push(new ScopeFrame()); // Global scope
@@ -425,7 +432,7 @@ public class TetraVm
     {
         var a = instr.Operands[0];
         var toPrint = Operand.FromOperands(instr.Operands.Select(GetOperandValue).ToArray());
-        OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.Name} = {toPrint}" : toPrint.ToString());
+        OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.ToUiString(m_program.SymbolTable).TrimStart('$')} = {toPrint}" : toPrint.ToString());
         m_ip++;
     }
 
@@ -478,16 +485,15 @@ public class TetraVm
         if (m_callStack.Count == 0)
             throw new RuntimeException($"'{instr}': No procedure to return to.");
 
-        Operand? a = instr.Operands.Length > 0 ? instr.Operands[0] : null;
-        if (a.HasValue)
-            a = GetOperandValue(a.Value);
+        var a = instr.Operands.Length > 0 ? instr.Operands[0] : null;
+        if (a != null)
+            a = GetOperandValue(a);
 
         // Pop the scoped variable frame.
         m_frames.Pop();
 
-        // Make the return value available to the caller.
-        if (a.HasValue)
-            CurrentFrame.DefineVariable("retval", a.Value);
+        // Make the return value available to the caller (may be null).
+        CurrentFrame.Retval = a;
 
         // Restore the IP.
         m_ip = m_callStack.Pop();
@@ -692,7 +698,7 @@ public class TetraVm
                 result.Floats[i] = op(a.Floats[i], float.NaN);
 
             if (a.Type == OperandType.Int)
-                result = result with { Type = OperandType.Int };
+                result = result.WithType(OperandType.Int);
         }
         else
         {
@@ -727,11 +733,19 @@ public class TetraVm
             }
 
             if (a.Type == OperandType.Int && b.Type == OperandType.Int)
-                result = result with { Type = OperandType.Int };
+                result = result.WithType(OperandType.Int);
         }
 
         // Store the result.
         CurrentFrame.SetVariable(aName, result, true);
         m_ip++;
+    }
+
+    public void AddUniform(string name, Operand value)
+    {
+        if (m_uniforms.Contains(name))
+            throw new RuntimeException($"Uniform '{name}' already defined.");
+        CurrentFrame.DefineVariable($"{m_uniforms.Count}", value);
+        m_uniforms.Add(name);
     }
 }
