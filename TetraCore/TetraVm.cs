@@ -484,6 +484,7 @@ public class TetraVm
     /// Return from a procedure (implicitly popping the top-scoped variable frame).
     /// E.g. ret
     /// E.g. ret $a
+    /// E.g. ret $r, $g, $b
     /// E.g. ret 123
     /// </summary>
     private void ExecuteRet(Instruction instr)
@@ -491,10 +492,19 @@ public class TetraVm
         if (m_callStack.Count == 0)
             throw new RuntimeException("No procedure to return to.");
 
-        var a = instr.Operands.Length > 0 ? instr.Operands[0] : null;
-        if (a != null)
-            a = GetOperandValue(a);
-
+        Operand a;
+        if (instr.Operands.Length > 0)
+        {
+            var operands = new Operand[instr.Operands.Length];
+            for (var i = 0; i < operands.Length; i++)
+                operands[i] = GetOperandValue(instr.Operands[i]);
+            a = Operand.FromOperands(operands);
+        }
+        else
+        {
+            a = null;
+        }
+        
         // Pop the scoped variable frame.
         m_frames.Pop();
 
@@ -830,7 +840,7 @@ public class TetraVm
     {
         var a = instr.Operands[0];
         var aName = a.Name;
-        var bName = instr.Operands[1].Name;;
+        var bName = instr.Operands[1].Name;
         a = GetOperandValue(a);
         var b = UnpackBPlusOperands(instr.Operands);
 

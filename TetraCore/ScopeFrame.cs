@@ -139,8 +139,9 @@ public class ScopeFrame
             if (m_slots[slotIndex] == null)
                 continue;
             var variable = m_slots[slotIndex];
-            
-            var varName = symbolTable?[slotIndex] ?? $"${slotIndex}";
+
+            symbolTable.TryGetValue(slotIndex, out var varName);
+            varName ??= $"${slotIndex}";
             sb.AppendLine($"{varName} = {variable}");
         }
         if (Retval != null)
