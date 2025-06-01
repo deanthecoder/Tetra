@@ -28,9 +28,9 @@ loop:
     
     # float z = max(1.-dot(p,p),0.);
     ld $z, 1.0
-    ld $arg0, $p
-    call dot
-    sub $z, $retval
+    ld $d, $p
+    dot $d, $d
+    sub $z, $d
     max $z, 0.0
     
     jmp_le $z, 0.1, skip    # Early exit of color is near black.
@@ -89,11 +89,3 @@ end:
     mul $o, $o
     tanh $o, $o
     ret $o
-   
-# dot(vec2 arg0): float
-dot:
-    ld $d, $arg0    
-    mul $d, $d
-    ld $s, $d[0]
-    add $s, $d[1]
-    ret $s

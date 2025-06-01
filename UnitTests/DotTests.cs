@@ -43,6 +43,7 @@ public class DotTests
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
         Assert.That(vm["a"].Length, Is.EqualTo(1));
         Assert.That(vm["a"].Float, Is.EqualTo(-2.0f).Within(0.001));
     }
