@@ -56,6 +56,7 @@ public enum OpCode
     Clamp,
     Smoothstep,
     Reflect,
+    Refract,
     Normalize,
     Length,
     Dot,

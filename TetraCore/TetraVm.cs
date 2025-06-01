@@ -177,6 +177,7 @@ public class TetraVm
             case OpCode.Smoothstep: ExecuteSmoothstep(instr); break;
             case OpCode.Dot: ExecuteDot(instr); break;
             case OpCode.Reflect: ExecuteReflect(instr); break;
+            case OpCode.Refract: ExecuteRefract(instr); break;
             case OpCode.Cross: ExecuteCross(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction defined, but not implemented: '{instr}'");
@@ -205,9 +206,7 @@ public class TetraVm
     private void ExecuteLd(Instruction instr)
     {
         var a = instr.Operands[0];
-
-        Operand b;
-        b = UnpackBPlusOperands(instr.Operands);
+        var b = UnpackBPlusOperands(instr.Operands);
 
         CurrentFrame.DefineVariable(a.Name, b);
         m_ip++;
@@ -760,7 +759,7 @@ public class TetraVm
         CurrentFrame.DefineVariable(aName, new Operand(result));
         m_ip++;
     }
-    
+
     /// <summary>
     /// E.g. reflect $a, $n    (a = reflect(a, n))
     /// </summary>
@@ -785,7 +784,45 @@ public class TetraVm
         CurrentFrame.DefineVariable(aName, new Operand(result));
         m_ip++;
     }
+    
+    /// <summary>
+    /// E.g. refract $a, $n, $eta    (a = refract(a, n, eta))
+    /// </summary>
+    private void ExecuteRefract(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        var bName = instr.Operands[1].Name;
+        a = GetOperandValue(instr.Operands[0]);
+        var b = GetOperandValue(instr.Operands[1]);
 
+        // Both operands must be a 3D vector.
+        if (a.Length != 3 || b.Length != 3)
+            throw new RuntimeException($"Operation is only valid for 3D vectors ({aName}: {a.ToUiString()}, {bName}: {b.ToUiString()}).");
+
+        // Get eta value from last operand
+        var eta = GetOperandValue(instr.Operands[2]).Float;
+    
+        // Compute dot product of incident vector and normal
+        var dot = 0.0f;
+        for (var i = 0; i < a.Length; i++)
+            dot += a.Floats[i] * b.Floats[i];
+    
+        // Compute refraction vector
+        var k = 1.0f - eta * eta * (1.0f - dot * dot);
+        
+        var result = new float[a.Length];
+        if (k >= 0.0f) 
+        {
+            var f = eta * dot + MathF.Sqrt(k);
+            for (var i = 0; i < a.Length; i++)
+                result[i] = eta * a.Floats[i] - f * b.Floats[i];
+        }
+    
+        CurrentFrame.SetVariable(aName, new Operand(result));
+        m_ip++;
+    }
+    
     /// <summary>
     /// E.g. cross $a, $b    (a = cross(a, b))
     /// </summary>
@@ -793,12 +830,13 @@ public class TetraVm
     {
         var a = instr.Operands[0];
         var aName = a.Name;
+        var bName = instr.Operands[1].Name;;
         a = GetOperandValue(a);
         var b = UnpackBPlusOperands(instr.Operands);
 
         // Both operands must be a 3D vector.
         if (a.Length != 3 || b.Length != 3)
-            throw new RuntimeException($"Cross product is only defined for 3D vectors (a: {a.ToUiString()}, b: {b.ToUiString()}).");
+            throw new RuntimeException($"Operation is only valid for 3D vectors ({aName}: {a.ToUiString()}, {bName}: {b.ToUiString()}).");
 
         // Compute cross product.
         var result = new float[a.Length];
