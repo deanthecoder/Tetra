@@ -33,6 +33,6 @@ public readonly struct Instruction
     public override string ToString()
     {
         var table = m_symbolTable;
-        return $"{LineNumber}: {OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.ToUiString(table)).ToCsv()}".TrimEnd();
+        return $"[Line {LineNumber}] {OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.ToUiString(table)).ToCsv()}".TrimEnd();
     }
 }

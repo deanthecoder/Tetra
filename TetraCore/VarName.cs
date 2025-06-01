@@ -75,7 +75,7 @@ public class VarName
 
     public string ToUiString(SymbolTable symbolTable = null)
     {
-        var varName = symbolTable != null ? symbolTable[Slot] : Slot.ToString();
+        var varName = symbolTable?[Slot] ?? $"${Slot}";
         return varName + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
     }
 }

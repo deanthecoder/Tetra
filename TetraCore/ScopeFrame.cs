@@ -67,7 +67,7 @@ public class ScopeFrame
 
         var v = m_slots[varName.Slot];
         if (v.Type != OperandType.Vector)
-            throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName}");
+            throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName} ({v.Type})");
 
         v.Floats[varName.ArrIndex.Value] = value.AsFloat();
     }
@@ -112,17 +112,20 @@ public class ScopeFrame
                     return variable;
 
                 if (variable.Type != OperandType.Vector)
-                    throw new RuntimeException($"'{varName}': Variable ({variable.Type}) is not a vector.");
+                    throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName} ({variable.Type})");
                 return new Operand(variable.Floats[varName.ArrIndex.Value]);
             }
 
             frame = frame.m_parent;
         }
 
-        throw new RuntimeException($"Variable '{varName.Slot}' not found in scope.");
+        throw new RuntimeException($"Variable '{varName}' is not defined.");
     }
 
-    public override string ToString()
+    public override string ToString() =>
+        ToUiString(null);
+
+    public string ToUiString(SymbolTable symbolTable)
     {
         var sb = new StringBuilder();
         if (m_parent != null)
@@ -130,12 +133,19 @@ public class ScopeFrame
             sb.Append(m_parent);
             sb.AppendLine("---");
         }
-        
-        foreach (var slotIndex in m_slots.Where(o => o != null))
-            sb.AppendLine($"{slotIndex} = {slotIndex}");
+
+        for (var slotIndex = 0; slotIndex < m_slots.Length; slotIndex++)
+        {
+            if (m_slots[slotIndex] == null)
+                continue;
+            var variable = m_slots[slotIndex];
+            
+            var varName = symbolTable?[slotIndex] ?? $"${slotIndex}";
+            sb.AppendLine($"{varName} = {variable}");
+        }
         if (Retval != null)
             sb.AppendLine($"retval = {Retval}");
-        
+
         return sb.ToString();
     }
 }

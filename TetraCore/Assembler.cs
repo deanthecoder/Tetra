@@ -72,7 +72,8 @@ public class Assembler
         var duplicateLabels = labelNames.Where(o => labelNames.Count(n => n == o) > 1).ToArray();
         if (duplicateLabels.Length > 0)
             throw new SyntaxErrorException($"Error: Duplicate labels found: {duplicateLabels.ToCsv()}.");
-        var labels = labelNames.ToDictionary(o => o, _ => -1);
+        var labelTable = new LabelTable();
+        labelNames.ForEach(o => labelTable.Add(o, -1));
 
         // Second pass: Compile the instructions.
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
@@ -95,7 +96,7 @@ public class Assembler
                 var labelName = words[0][..^1];
 
                 var ip = instructions.Count;
-                labels[labelName] = ip;
+                labelTable[labelName] = ip;
                 continue;
             }
             
@@ -103,7 +104,7 @@ public class Assembler
             var opCode = GetOpCode(words[0], lineIndex, lines[lineIndex]);
                 
             // Find the operands.
-            var operands = words.Skip(1).Select(o => GetOperand(o, opCode, lineIndex, lines[lineIndex], labels.Keys, symbolTable)).ToArray();
+            var operands = words.Skip(1).Select(o => GetOperand(o, opCode, lineIndex, lines[lineIndex], labelTable.Keys, symbolTable)).ToArray();
             
             // Build the instruction.
             var instruction = new Instruction(symbolTable)
@@ -128,13 +129,13 @@ public class Assembler
                 
                 // Replace the label with the actual value.
                 var labelName = instr.Operands[j].Label;
-                if (!labels.TryGetValue(labelName, out var labelIp))
+                if (!labelTable.TryGetValue(labelName, out var labelIp))
                     throw new SyntaxErrorException($"[Line {instr.LineNumber}] Error: Label '{labelName}' not found.");
                 instr.Operands[j] = new Operand(labelIp);
             }
         }
 
-        return new Program(instructions.ToArray(), symbolTable);
+        return new Program(instructions.ToArray(), symbolTable, labelTable);
     }
 
     private static string RemoveComments(string line)
@@ -172,9 +173,9 @@ public class Assembler
         var s = "Error: Instruction has unexpected operands.";
         s += $"\n  {instr}";
         s += "\nReceived:";
-        s += $"\n  {instr.OpCode} {actualTypes.Select(op => $"<{op}>").ToCsv()}";
+        s += $"\n  {OpCodeToStringMap.GetString(instr.OpCode)} {actualTypes.Select(op => $"<{op}>").ToCsv()}";
         s += "\nExpected:";
-        expectedTypes.ForEach(o => s += $"\n  {instr.OpCode} {o.Select(op => $"<{op}>").ToCsv()}");
+        expectedTypes.ForEach(o => s += $"\n  {OpCodeToStringMap.GetString(instr.OpCode)} {o.Select(op => $"<{op}>").ToCsv()}");
         throw new SyntaxErrorException(s);
     }
 
@@ -312,7 +313,7 @@ public class Assembler
         
         // Unrecognized operand.
         var s = $"Error: Unrecognized operand '{word}'.\n  {lineIndex + 1}: {line.Trim()}\nExpected:";
-        GetExpectedOperandTypes(opCode).ForEach(o => s += $"\n  {opCode} {o.Select(op => $"<{op}>").ToCsv()}");
+        GetExpectedOperandTypes(opCode).ForEach(o => s += $"\n  {OpCodeToStringMap.GetString(opCode)} {o.Select(op => $"<{op}>").ToCsv()}");
 
         throw new SyntaxErrorException(s);
     }

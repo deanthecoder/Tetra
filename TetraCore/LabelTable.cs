@@ -11,18 +11,14 @@
 namespace TetraCore;
 
 /// <summary>
-/// A Tetra program (Instruction list and debugging symbol table).
+/// Maintains a mapping between instruction pointers and label names as assigned by the assembler.
 /// </summary>
-public class Program
+/// <remarks>
+/// This is primarily used for debugging and tooling purposes to resolve label names
+/// to their corresponding instruction pointer locations.
+/// </remarks>
+public class LabelTable : Dictionary<string, int>
 {
-    public Instruction[] Instructions { get; }
-    public SymbolTable SymbolTable { get; }
-    public LabelTable LabelTable { get; }
-
-    public Program(Instruction[] instructions, SymbolTable symbolTable, LabelTable labelTable)
-    {
-        Instructions = instructions;
-        SymbolTable = symbolTable;
-        LabelTable = labelTable;
-    }
+    public string GetLabelFromInstructionPointer(int ip) =>
+        this.First(o => o.Value == ip).Key;
 }

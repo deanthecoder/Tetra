@@ -9,6 +9,9 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System.Text;
+using System.Text.RegularExpressions;
+using DTC.Core;
 using DTC.Core.Extensions;
 using TetraCore.Exceptions;
 
@@ -23,7 +26,7 @@ public class TetraVm
 {
     private readonly Program m_program;
     private readonly Stack<ScopeFrame> m_frames = [];
-    private readonly Stack<int> m_callStack = [];
+    private readonly Stack<(int functionLabel, int returnIp)> m_callStack = [];
     private readonly List<string> m_uniforms = ["retval"];
     private int m_ip;
 
@@ -55,19 +58,6 @@ public class TetraVm
 
     public void Run()
     {
-        try
-        {
-            RunImpl();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-            throw;
-        }
-    }
-
-    private void RunImpl()
-    {
         const int maxInstructionExecutions = 10_000;
 
         // Execute the instructions.
@@ -83,7 +73,7 @@ public class TetraVm
                 {
                     Console.WriteLine();
                     Console.WriteLine("Variables:");
-                    var state = CurrentFrame.ToString();
+                    var state = CurrentFrame.ToUiString(m_program.SymbolTable);
                     foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
                         Console.WriteLine($"  {s}");
                     Console.WriteLine($"Next: {instr}");
@@ -94,9 +84,29 @@ public class TetraVm
                     break;
                 instructionExecutions++;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Console.WriteLine(instr);
+                var sb = new StringBuilder();
+                var message = Regex.Replace(
+                    e.Message,
+                    @"\$(\d+)",
+                    match => m_program.SymbolTable[int.Parse(match.Groups[1].Value)]);
+                sb.AppendLine(message);
+                sb.AppendLine($"  └─ {instr}");
+
+                var callstack = m_callStack
+                    .Select(o => m_program.LabelTable.GetLabelFromInstructionPointer(o.functionLabel))
+                    .Append("<Root>");
+                sb.AppendLine("Callstack:");
+                foreach(var funcName in callstack)
+                    sb.AppendLine($"  → {funcName}");
+
+                sb.AppendLine("Variables:");
+                var state = CurrentFrame.ToUiString(m_program.SymbolTable);
+                foreach(var s in state!.Split('\n').Where(o => !string.IsNullOrWhiteSpace(o)))
+                    sb.AppendLine($"  {s}");
+
+                Logger.Instance.Error(sb.ToString());
                 throw;
             }
             
@@ -136,7 +146,7 @@ public class TetraVm
             case OpCode.JmpGe: ExecuteJmpGe(instr); break;
             case OpCode.Print: ExecutePrint(instr); break;
             case OpCode.PushFrame: ExecutePushFrame(); break;
-            case OpCode.PopFrame: ExecutePopFrame(instr); break;
+            case OpCode.PopFrame: ExecutePopFrame(); break;
             case OpCode.Call: ExecuteCall(instr); break;
             case OpCode.Ret: ExecuteRet(instr); break;
             case OpCode.Sin: ExecuteSin(instr); break;
@@ -246,7 +256,7 @@ public class TetraVm
     {
         var label = instr.Operands[0];
         if (label.Type != OperandType.Int)
-            throw new RuntimeException($"'{instr}': Integer operand expected.");
+            throw new RuntimeException("Integer operand expected.");
         m_ip = label.Int;
     }
 
@@ -268,7 +278,7 @@ public class TetraVm
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
             jump = aValue.Int == b.Int;
         else
-            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
             m_ip = label.Int;
@@ -294,7 +304,7 @@ public class TetraVm
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
             jump = aValue.Int != b.Int;
         else
-            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
             m_ip = label.Int;
@@ -321,7 +331,7 @@ public class TetraVm
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
             jump = aValue.Int < b.Int;
         else
-            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
             m_ip = label.Int;
@@ -348,7 +358,7 @@ public class TetraVm
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
             jump = aValue.Int <= b.Int;
         else
-            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
             m_ip = label.Int;
@@ -375,7 +385,7 @@ public class TetraVm
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
             jump = aValue.Int > b.Int;
         else
-            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
             m_ip = label.Int;
@@ -402,7 +412,7 @@ public class TetraVm
         else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
             jump = aValue.Int >= b.Int;
         else
-            throw new RuntimeException($"'{instr}': Cannot compare {a.Type} and {b.Type}.");
+            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
 
         if (jump)
             m_ip = label.Int;
@@ -422,7 +432,7 @@ public class TetraVm
     /// E.g. div $a, $b     (a /= b)
     /// </summary>
     private void ExecuteDiv(Instruction instr) =>
-        DoMathOp(instr, (a, b) => b == 0.0f ? throw new RuntimeException($"'{instr}': Division by zero.") : a / b);
+        DoMathOp(instr, (a, b) => b == 0.0f ? throw new RuntimeException("Division by zero.") : a / b);
 
     /// <summary>
     /// E.g. print 3.141
@@ -440,10 +450,10 @@ public class TetraVm
     /// Pops the top-scoped variable frame from the stack.
     /// E.g. pop_frame
     /// </summary>
-    private void ExecutePopFrame(Instruction instr)
+    private void ExecutePopFrame()
     {
         if (m_frames.Count == 1)
-            throw new RuntimeException($"'{instr}': Cannot pop the last remaining frame.");
+            throw new RuntimeException("Cannot pop the last remaining frame.");
         m_frames.Pop();
         m_ip++;
     }
@@ -466,11 +476,11 @@ public class TetraVm
     {
         var label = instr.Operands[0];
         if (label.Type != OperandType.Int)
-            throw new RuntimeException($"'{instr}': Integer operand expected.");
+            throw new RuntimeException("Integer operand expected.");
         if (instr.Operands.Length > 1)
-            throw new RuntimeException($"'{instr}': Too many operands.");
+            throw new RuntimeException("Too many operands.");
         m_frames.Push(new ScopeFrame(CurrentFrame));
-        m_callStack.Push(m_ip + 1);
+        m_callStack.Push((label.Int, m_ip + 1));
         m_ip = label.Int;
     }
 
@@ -483,7 +493,7 @@ public class TetraVm
     private void ExecuteRet(Instruction instr)
     {
         if (m_callStack.Count == 0)
-            throw new RuntimeException($"'{instr}': No procedure to return to.");
+            throw new RuntimeException("No procedure to return to.");
 
         var a = instr.Operands.Length > 0 ? instr.Operands[0] : null;
         if (a != null)
@@ -496,7 +506,7 @@ public class TetraVm
         CurrentFrame.Retval = a;
 
         // Restore the IP.
-        m_ip = m_callStack.Pop();
+        m_ip = m_callStack.Pop().returnIp;
     }
 
     /// <summary>
@@ -521,7 +531,7 @@ public class TetraVm
         DoMathOp(instr, (_, b) =>
         {
             if (b < -1f || b > 1f)
-                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be in the range [-1, 1].");
+                throw new RuntimeException($"Input value '{b:0.0###}' must be in the range [-1, 1].");
             return MathF.Asin(b);
         });
     }
@@ -548,7 +558,7 @@ public class TetraVm
         DoMathOp(instr, (_, b) =>
         {
             if (b < -1f || b > 1f)
-                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be in the range [-1, 1].");
+                throw new RuntimeException($"Input value '{b:0.0###}' must be in the range [-1, 1].");
             return MathF.Acos(b);
         });
     }
@@ -582,7 +592,7 @@ public class TetraVm
         DoMathOp(instr, (a, b) =>
         {
             if (a == 0f && b < 0f)
-                throw new RuntimeException($"'{instr}': Zero cannot be raised to a negative power (base: {a:0.0###}, exponent: {b:0.0###}).");
+                throw new RuntimeException($"Zero cannot be raised to a negative power (base: {a:0.0###}, exponent: {b:0.0###}).");
             return MathF.Pow(a, b);
         });
     }
@@ -595,7 +605,7 @@ public class TetraVm
         DoMathOp(instr, (_, b) =>
         {
             if (b < 0f)
-                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be greater than or equal to zero.");
+                throw new RuntimeException($"Input value '{b:0.0###}' must be greater than or equal to zero.");
             return MathF.Sqrt(b);
         });
     }
@@ -615,7 +625,7 @@ public class TetraVm
         DoMathOp(instr, (_, b) =>
         {
             if (b <= 0f)
-                throw new RuntimeException($"'{instr}': Input value '{b:0.0###}' must be greater than 0.");
+                throw new RuntimeException($"Input value '{b:0.0###}' must be greater than 0.");
             return MathF.Log(b);
         });
     }
@@ -642,7 +652,7 @@ public class TetraVm
         DoMathOp(instr, (a, b) =>
         {
             if (b == 0f)
-                throw new RuntimeException($"'{instr}': Modulus by zero is undefined.");
+                throw new RuntimeException("Modulus by zero is undefined.");
             return a % b;
         });
 
@@ -686,7 +696,7 @@ public class TetraVm
         {
             a = CurrentFrame.GetVariable(aName);
             if (a.Type is OperandType.Label or OperandType.Variable)
-                throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on {a.Type}.");
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
         }
 
         // Single operand? We can do that...
@@ -708,7 +718,7 @@ public class TetraVm
                 operands[i - 1] = GetOperandValue(instr.Operands[i]);
             var b = Operand.FromOperands(operands);
             if (b.Type is OperandType.Label or OperandType.Variable)
-                throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on {b.Type}.");
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {b.Type}.");
 
             if (CurrentFrame.IsDefined(aName))
             {
@@ -719,7 +729,7 @@ public class TetraVm
                     b = b.GrowFromOneToN(a.Length);
                 
                 if (a.Length != b.Length)
-                    throw new RuntimeException($"'{instr}': Cannot perform '{instr.OpCode}' on operands of different length ({a.Length} vs {b.Length}).");
+                    throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on operands of different length ({a.Length} vs {b.Length}).");
 
                 result = new Operand(new float[a.Length]);
                 for (var i = 0; i < a.Length; i++)
