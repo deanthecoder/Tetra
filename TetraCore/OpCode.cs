@@ -60,5 +60,6 @@ public enum OpCode
     Length,
     Dot,
     Ceil,
-    Fract
+    Fract,
+    Cross
 }

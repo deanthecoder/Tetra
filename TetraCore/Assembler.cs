@@ -161,7 +161,7 @@ public class Assembler
                 // 1. Types are identical, OR
                 // 2. Expected is numeric (float/int) and actual is a variable reference.
                 var typesMatch = actualTypes[i] == expected[i] ||
-                                 (actualTypes[i] == OperandType.Variable && expected[i] is OperandType.Float or OperandType.Int);
+                                 (actualTypes[i] == OperandType.Variable && expected[i] is OperandType.Float or OperandType.Int or OperandType.Vector);
                 allMatch &= typesMatch;
             }
 
@@ -246,7 +246,8 @@ public class Assembler
             new(OpCode.Clamp, [OperandType.Variable, OperandType.Float, OperandType.Float]),
             new(OpCode.Smoothstep, [OperandType.Variable, OperandType.Float, OperandType.Float]),
             new(OpCode.Dot, [OperandType.Variable, OperandType.Float]),
-            new(OpCode.Reflect, [OperandType.Variable, OperandType.Float]),
+            new(OpCode.Reflect, [OperandType.Vector, OperandType.Vector]),
+            new(OpCode.Cross, [OperandType.Vector, OperandType.Float]),
         };
 
         var matches = expectedValues.Where(o => o.opCode == opCode).ToArray();

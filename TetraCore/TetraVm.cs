@@ -177,6 +177,7 @@ public class TetraVm
             case OpCode.Smoothstep: ExecuteSmoothstep(instr); break;
             case OpCode.Dot: ExecuteDot(instr); break;
             case OpCode.Reflect: ExecuteReflect(instr); break;
+            case OpCode.Cross: ExecuteCross(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction defined, but not implemented: '{instr}'");
         }
@@ -206,7 +207,7 @@ public class TetraVm
         var a = instr.Operands[0];
 
         Operand b;
-        b = UnpackBPlusOperands(instr);
+        b = UnpackBPlusOperands(instr.Operands);
 
         CurrentFrame.DefineVariable(a.Name, b);
         m_ip++;
@@ -671,7 +672,7 @@ public class TetraVm
     private void ExecuteLength(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = UnpackBPlusOperands(instr);
+        var b = UnpackBPlusOperands(instr.Operands);
         
         // Calculate length.
         var sum2 = 0.0f;
@@ -689,7 +690,7 @@ public class TetraVm
     private void ExecuteNormalize(Instruction instr)
     {
         var a = instr.Operands[0];
-        var b = UnpackBPlusOperands(instr);
+        var b = UnpackBPlusOperands(instr.Operands);
 
         if (b.Length == 1)
             throw new RuntimeException($"Cannot normalize a single value ({b.ToUiString()}).");
@@ -747,7 +748,7 @@ public class TetraVm
         var a = instr.Operands[0];
         var aName = a.Name;
         a = GetOperandValue(a);
-        var b = UnpackBPlusOperands(instr);
+        var b = UnpackBPlusOperands(instr.Operands);
 
         EnsureArrayDimensionsMatch(instr, ref a, ref b);
 
@@ -768,7 +769,7 @@ public class TetraVm
         var a = instr.Operands[0];
         var aName = a.Name;
         a = GetOperandValue(a);
-        var b = UnpackBPlusOperands(instr);
+        var b = UnpackBPlusOperands(instr.Operands);
 
         EnsureArrayDimensionsMatch(instr, ref a, ref b);
 
@@ -785,6 +786,30 @@ public class TetraVm
         m_ip++;
     }
 
+    /// <summary>
+    /// E.g. cross $a, $b    (a = cross(a, b))
+    /// </summary>
+    private void ExecuteCross(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        a = GetOperandValue(a);
+        var b = UnpackBPlusOperands(instr.Operands);
+
+        // Both operands must be a 3D vector.
+        if (a.Length != 3 || b.Length != 3)
+            throw new RuntimeException($"Cross product is only defined for 3D vectors (a: {a.ToUiString()}, b: {b.ToUiString()}).");
+
+        // Compute cross product.
+        var result = new float[a.Length];
+        result[0] = a.Floats[1] * b.Floats[2] - a.Floats[2] * b.Floats[1];
+        result[1] = a.Floats[2] * b.Floats[0] - a.Floats[0] * b.Floats[2];
+        result[2] = a.Floats[0] * b.Floats[1] - a.Floats[1] * b.Floats[0];
+
+        CurrentFrame.DefineVariable(aName, new Operand(result));
+        m_ip++;
+    }
+    
     /// <summary>
     /// Applies a binary float operation element-wise between the target variable <c>$a</c>
     /// and the second operand (e.g., <c>$b</c>), storing the result back in <c>$a</c>.
@@ -913,19 +938,19 @@ public class TetraVm
     /// <summary>
     /// Find the '$b' operand, and any that follow, and unpack into a single array operand.
     /// </summary>
-    private Operand UnpackBPlusOperands(Instruction instr)
+    private Operand UnpackBPlusOperands(Operand[] operands)
     {
-        if (instr.Operands.Length == 2)
+        if (operands.Length == 2)
         {
             // Just one 'b' operand.
-            return GetOperandValue(instr.Operands[1]);
+            return GetOperandValue(operands[1]);
         }
         
         // Get 2nd+ operands.
-        var operands = new Operand[instr.Operands.Length - 1];
-        for (var i = 1; i < instr.Operands.Length; i++)
-            operands[i - 1] = GetOperandValue(instr.Operands[i]);
-        return Operand.FromOperands(operands);
+        var moreOperands = new Operand[operands.Length - 1];
+        for (var i = 1; i < operands.Length; i++)
+            moreOperands[i - 1] = GetOperandValue(operands[i]);
+        return Operand.FromOperands(moreOperands);
     }
 
     public void AddUniform(string name, Operand value)
