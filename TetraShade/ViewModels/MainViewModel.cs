@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using DTC.Core;
 using DTC.Core.ViewModels;
 using TetraCore;
 using TextCopy;
@@ -225,13 +226,21 @@ public class MainViewModel : ViewModelBase
         try
         {
             vm.Run();
-            return new Vector3(vm.CurrentFrame.Retval?.Floats);
+
+            if (vm.CurrentFrame.Retval == null)
+                Logger.Instance.Error("No return value from shader.");
+            else if (vm.CurrentFrame.Retval.Length < 3)
+                Logger.Instance.Error($"Shader returned unexpected value ({vm.CurrentFrame.Retval}).");
+            else
+                return new Vector3(vm.CurrentFrame.Retval?.Floats);
         }
-        catch (Exception)
+        catch
         {
-            didError = true;
-            return Vector3.Zero;
+            // Fall through.
         }
+        
+        didError = true;
+        return Vector3.Zero;
     }
 
     private unsafe void BlitPixelsToPreviewImage(Vector3[] rawPixels)
