@@ -53,6 +53,12 @@ public enum OpCode
     Mod,
     Min,
     Max,
+    Clamp,
+    Smoothstep,
+    Reflect,
+    Normalize,
+    Length,
+    Dot,
     Ceil,
     Fract
 }

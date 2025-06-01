@@ -103,6 +103,8 @@ public class TetraVm
 
                 sb.AppendLine("Variables:");
                 var state = CurrentFrame.ToUiString(m_program.SymbolTable);
+                if (string.IsNullOrEmpty(state))
+                    state = "<None>";
                 foreach(var s in state!.Split('\n').Where(o => !string.IsNullOrWhiteSpace(o)))
                     sb.AppendLine($"  {s}");
 
@@ -169,6 +171,12 @@ public class TetraVm
             case OpCode.Max: ExecuteMax(instr); break;
             case OpCode.Ceil: ExecuteCeil(instr); break;
             case OpCode.Fract: ExecuteFract(instr); break;
+            case OpCode.Length: ExecuteLength(instr); break;
+            case OpCode.Normalize: ExecuteNormalize(instr); break;
+            case OpCode.Clamp: ExecuteClamp(instr); break;
+            case OpCode.Smoothstep: ExecuteSmoothstep(instr); break;
+            case OpCode.Dot: ExecuteDot(instr); break;
+            case OpCode.Reflect: ExecuteReflect(instr); break;
             default:
                 throw new InvalidOperationException($"Instruction defined, but not implemented: '{instr}'");
         }
@@ -189,7 +197,7 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. ld $a, 3.141
+    /// E.g. ld $a, 3.141           (a = 3.141)
     /// E.g. ld $a, $b              (a = b)
     /// E.g. ld $a, 1.1, 2.2, 3.3   (a = [1.1, 2.2, 3.3])
     /// </summary>
@@ -198,24 +206,12 @@ public class TetraVm
         var a = instr.Operands[0];
 
         Operand b;
-        if (instr.Operands.Length == 2)
-        {
-            // Just one 'b' operand.
-            b = instr.Operands[1];
-        }
-        else
-        {
-            // Get 2nd+ operands.
-            var operands = new Operand[instr.Operands.Length - 1];
-            for (var i = 1; i < instr.Operands.Length; i++)
-                operands[i - 1] = GetOperandValue(instr.Operands[i]);
-            b = Operand.FromOperands(operands);
-        }
+        b = UnpackBPlusOperands(instr);
 
         CurrentFrame.DefineVariable(a.Name, b);
         m_ip++;
     }
-
+    
     /// <summary>
     /// E.g. add $a, 3.141
     /// E.g. add $a, $b     (a += b)
@@ -231,19 +227,19 @@ public class TetraVm
         DoMathOp(instr, (a, b) => a - b);
 
     /// <summary>
-    /// E.g. inc $a
+    /// E.g. inc $a    (a = a + 1)
     /// </summary>
     private void ExecuteInc(Instruction instr) =>
         DoMathOp(instr, (a, _) => ++a);
 
     /// <summary>
-    /// E.g. dec $a
+    /// E.g. dec $a    (a = a - 1)
     /// </summary>
     private void ExecuteDec(Instruction instr) =>
         DoMathOp(instr, (a, _) => --a);
 
     /// <summary>
-    /// E.g. neg $a  (a = -a)
+    /// E.g. neg $a    (a = -a)
     /// </summary>
     private void ExecuteNeg(Instruction instr) =>
         DoMathOp(instr, (a, _) => -a);
@@ -510,21 +506,19 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. sin $a, $theta
-    /// E.g. sin $a, 1.2
+    /// E.g. sin $a, $b    (a = sin(b))
     /// </summary>
     private void ExecuteSin(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Sin(b));
 
     /// <summary>
-    /// E.g. sinh $a, $theta
-    /// E.g. sinh $a, 1.2
+    /// E.g. sinh $a, $b    (a = sinh(b))
     /// </summary>
     private void ExecuteSinh(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Sinh(b));
 
     /// <summary>
-    /// E.g. asin $a, $theta
+    /// E.g. asin $a, $b    (a = asin(b))
     /// </summary>
     private void ExecuteAsin(Instruction instr)
     {
@@ -537,21 +531,19 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. cos $a, $theta
-    /// E.g. cos $a, 1.2
+    /// E.g. cos $a, $b    (a = cos(b))
     /// </summary>
     private void ExecuteCos(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Cos(b));
 
     /// <summary>
-    /// E.g. cosh $a, $theta
-    /// E.g. cosh $a, 1.2
+    /// E.g. cosh $a, $b    (a = cosh(b))
     /// </summary>
     private void ExecuteCosh(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Cosh(b));
 
     /// <summary>
-    /// E.g. acos $a, $theta
+    /// E.g. acos $a, $b    (a = acos(b))
     /// </summary>
     private void ExecuteAcos(Instruction instr)
     {
@@ -564,28 +556,25 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. tan $a, $theta
-    /// E.g. tan $a, 1.2
+    /// E.g. tan $a, $b    (a = tan(b))
     /// </summary>
     private void ExecuteTan(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Tan(b));
 
     /// <summary>
-    /// E.g. tanh $a, $theta
-    /// E.g. tanh $a, 1.2
+    /// E.g. tanh $a, $b    (a = tanh(b))
     /// </summary>
     private void ExecuteTanh(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Tanh(b));
 
     /// <summary>
-    /// E.g. atan $a, $theta
-    /// E.g. atan $a, 1.2
+    /// E.g. atan $a, $b    (a = atan(b))
     /// </summary>
     private void ExecuteAtan(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Atan(b));
 
     /// <summary>
-    /// E.g. pow $a, $b
+    /// E.g. pow $a, $b    (a = pow(a, b))
     /// </summary>
     private void ExecutePow(Instruction instr)
     {
@@ -598,7 +587,7 @@ public class TetraVm
     }
     
     /// <summary>
-    /// E.g. sqrt $a, $b
+    /// E.g. sqrt $a, $b    (a = sqrt(b))
     /// </summary>
     private void ExecuteSqrt(Instruction instr)
     {
@@ -611,14 +600,13 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. exp $a, $b
-    /// E.g. exp $a, 1.2
+    /// E.g. exp $a, $b    (a = exp(b))
     /// </summary>
     private void ExecuteExp(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Exp(b));
 
     /// <summary>
-    /// E.g. log $a, $b
+    /// E.g. log $a, $b    (a = log(b))
     /// </summary>
     private void ExecuteLog(Instruction instr)
     {
@@ -631,22 +619,19 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. abs $a, $b
-    /// E.g. abs $a, 1.2
+    /// E.g. abs $a, $b    (a = abs(b))
     /// </summary>
     private void ExecuteAbs(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Abs(b));
 
     /// <summary>
-    /// E.g. sign $a, $b 
-    /// E.g. sign $a, 1.2
+    /// E.g. sign $a, $b    (a = sign(b))
     /// </summary>
     private void ExecuteSign(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Sign(b));
 
     /// <summary>
-    /// E.g. mod $a, $b
-    /// E.g. mod $a, 1.2
+    /// E.g. mod $a, $b    (a = a % b)
     /// </summary>
     private void ExecuteMod(Instruction instr) =>
         DoMathOp(instr, (a, b) =>
@@ -657,35 +642,154 @@ public class TetraVm
         });
 
     /// <summary>
-    /// E.g. min $a, $b
-    /// E.g. min $a, 1.2
+    /// E.g. min $a, $b    (a = min(a, b))
     /// </summary>
     private void ExecuteMin(Instruction instr) =>
         DoMathOp(instr, (a, b) => a < b ? a : b);
 
     /// <summary>
-    /// E.g. max $a, $b
-    /// E.g. max $a, 1.2
+    /// E.g. max $a, $b    (a = max(a, b))
     /// </summary>
     private void ExecuteMax(Instruction instr) =>
         DoMathOp(instr, (a, b) => a > b ? a : b);
 
     /// <summary>
-    /// E.g. ceil $a, $b
-    /// E.g. ceil $a, 1.2
+    /// E.g. ceil $a, $b    (a = ceil(b))
     /// </summary>
     private void ExecuteCeil(Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Ceiling(b));
     
     /// <summary>
-    /// E.g. fract $a, $b
-    /// E.g. fract $a, 1.2
+    /// E.g. fract $a, $b    (a = fract(b))
     /// </summary>
     private void ExecuteFract(Instruction instr) =>
         DoMathOp(instr, (_, b) => b - MathF.Floor(b));
 
     /// <summary>
-    /// Perform a float->float operation on the elements of a numeric operand.
+    /// E.g. length $a, $b    (a = length(b))
+    /// </summary>
+    private void ExecuteLength(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = UnpackBPlusOperands(instr);
+        
+        // Calculate length.
+        var sum2 = 0.0f;
+        foreach (var f in b.Floats)
+            sum2 += f * f;
+        var l = new Operand(sum2 == 0.0f ? 0.0f : MathF.Sqrt(sum2));
+
+        CurrentFrame.DefineVariable(a.Name, l);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. normalize $a, $b    (a = normalize(b))
+    /// </summary>
+    private void ExecuteNormalize(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = UnpackBPlusOperands(instr);
+
+        if (b.Length == 1)
+            throw new RuntimeException($"Cannot normalize a single value ({b.ToUiString()}).");
+
+        // Calculate length.
+        var sum2 = 0.0f;
+        foreach (var f in b.Floats)
+            sum2 += f * f;
+        var result = new Operand(new float[b.Length]);
+        if (sum2 > 0.0f)
+        {
+            var l = MathF.Sqrt(sum2);
+            for (var i = 0; i < result.Floats.Length; i++)
+                result.Floats[i] = b.Floats[i] / l;
+        }
+
+        CurrentFrame.DefineVariable(a.Name, result);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. clamp $a, $from, $to    (a = clamp(a, from, to))
+    /// </summary>
+    private void ExecuteClamp(Instruction instr)
+    {
+        if (instr.Operands.Length < 3)
+            throw new RuntimeException("Expected: clamp $a, $from, $to");
+
+        DoMathOp(instr, (a, b, c) => MathF.Max(b, MathF.Min(c, a)));
+    }
+
+    /// <summary>
+    /// E.g. smoothstep $a, $edge0, $edge1    (a = smoothstep(a, edge0, edge1))
+    /// </summary>
+    private void ExecuteSmoothstep(Instruction instr)
+    {
+        if (instr.Operands.Length != 3)
+            throw new RuntimeException("Expected: smoothstep $a, $edge0, $edge1");
+
+        DoMathOp(instr, (x, edge0, edge1) =>
+        {
+            if (edge0.Equals(edge1))
+                throw new RuntimeException("edge0 and edge1 must not be equal.");
+
+            var t = ((x - edge0) / (edge1 - edge0)).Clamp(0.0f, 1.0f);
+            return t * t * (3.0f - 2.0f * t);
+        });
+    }
+
+    /// <summary>
+    /// E.g. dot $a, $b    (a = dot(a, b))
+    /// </summary>
+    private void ExecuteDot(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        a = GetOperandValue(a);
+        var b = UnpackBPlusOperands(instr);
+
+        EnsureArrayDimensionsMatch(instr, ref a, ref b);
+
+        // Calculate length.
+        var result = 0.0f;
+        for (var i = 0; i < a.Floats.Length; i++)
+            result += a.Floats[i] * b.Floats[i];
+
+        CurrentFrame.DefineVariable(aName, new Operand(result));
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. reflect $a, $n    (a = reflect(a, n))
+    /// </summary>
+    private void ExecuteReflect(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        a = GetOperandValue(a);
+        var b = UnpackBPlusOperands(instr);
+
+        EnsureArrayDimensionsMatch(instr, ref a, ref b);
+
+        // Compute reflection vector: R = I - 2 * dot(N, I) * N
+        var dot = 0.0f;
+        for (var i = 0; i < a.Length; i++)
+            dot += a.Floats[i] * b.Floats[i];
+
+        var result = new float[a.Length];
+        for (var i = 0; i < a.Length; i++)
+            result[i] = a.Floats[i] - 2.0f * dot * b.Floats[i];
+
+        CurrentFrame.DefineVariable(aName, new Operand(result));
+        m_ip++;
+    }
+
+    /// <summary>
+    /// Applies a binary float operation element-wise between the target variable <c>$a</c>
+    /// and the second operand (e.g., <c>$b</c>), storing the result back in <c>$a</c>.
+    /// 
+    /// This supports scalar or vector operands.
     /// </summary>
     private void DoMathOp(Instruction instr, Func<float, float, float> op)
     {
@@ -722,14 +826,7 @@ public class TetraVm
 
             if (CurrentFrame.IsDefined(aName))
             {
-                // Ensure that the operands have the same dimension.
-                if (a.Length == 1 && b.Length > 1)
-                    a = a.GrowFromOneToN(b.Length);
-                else if (b.Length == 1 && a.Length > 1)
-                    b = b.GrowFromOneToN(a.Length);
-                
-                if (a.Length != b.Length)
-                    throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on operands of different length ({a.Length} vs {b.Length}).");
+                EnsureArrayDimensionsMatch(instr, ref a, ref b);
 
                 result = new Operand(new float[a.Length]);
                 for (var i = 0; i < a.Length; i++)
@@ -749,6 +846,86 @@ public class TetraVm
         // Store the result.
         CurrentFrame.SetVariable(aName, result, true);
         m_ip++;
+    }
+
+    /// <summary>
+    /// Applies a ternary float operation element-wise across three operands: the target <c>$a</c>,
+    /// and inputs <c>$b</c> and <c>$c</c>, storing the result back in <c>$a</c>.
+    ///
+    /// The lambda receives each element as <c>(a, b, c)</c>.
+    /// </summary>
+    private void DoMathOp(Instruction instr, Func<float, float, float, float> op)
+    {
+        // Get target variable.
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        Operand aVal;
+        if (CurrentFrame.IsDefined(aName))
+        {
+            aVal = CurrentFrame.GetVariable(aName);
+            if (aVal.Type is OperandType.Label or OperandType.Variable)
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {aVal.Type}.");
+        }
+        else
+        {
+            aVal = new Operand(new float[1]);
+        }
+
+        if (instr.Operands.Length < 3)
+            throw new RuntimeException("Expected three operands for this operation.");
+
+        var b = GetOperandValue(instr.Operands[1]);
+        var c = GetOperandValue(instr.Operands[2]);
+
+        if (b.Type is OperandType.Label or OperandType.Variable)
+            throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {b.Type}.");
+        if (c.Type is OperandType.Label or OperandType.Variable)
+            throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {c.Type}.");
+
+        // Make sure all arrays are compatible
+        EnsureArrayDimensionsMatch(instr, ref aVal, ref b);
+        EnsureArrayDimensionsMatch(instr, ref aVal, ref c);
+
+        var result = new Operand(new float[aVal.Length]);
+        for (var i = 0; i < aVal.Length; i++)
+            result.Floats[i] = op(aVal.Floats[i], b.Floats[i], c.Floats[i]);
+
+        if (aVal.Type == OperandType.Int && b.Type == OperandType.Int && c.Type == OperandType.Int)
+            result = result.WithType(OperandType.Int);
+
+        // Store the result.
+        CurrentFrame.SetVariable(aName, result, true);
+        m_ip++;
+    }
+
+    private static void EnsureArrayDimensionsMatch(Instruction instr, ref Operand a, ref Operand b)
+    {
+        // Ensure that the operands have the same dimension.
+        if (a.Length == 1 && b.Length > 1)
+            a = a.GrowFromOneToN(b.Length);
+        else if (b.Length == 1 && a.Length > 1)
+            b = b.GrowFromOneToN(a.Length);
+
+        if (a.Length != b.Length)
+            throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on operands of different length ({a.Length} vs {b.Length}).");
+    }
+
+    /// <summary>
+    /// Find the '$b' operand, and any that follow, and unpack into a single array operand.
+    /// </summary>
+    private Operand UnpackBPlusOperands(Instruction instr)
+    {
+        if (instr.Operands.Length == 2)
+        {
+            // Just one 'b' operand.
+            return GetOperandValue(instr.Operands[1]);
+        }
+        
+        // Get 2nd+ operands.
+        var operands = new Operand[instr.Operands.Length - 1];
+        for (var i = 1; i < instr.Operands.Length; i++)
+            operands[i - 1] = GetOperandValue(instr.Operands[i]);
+        return Operand.FromOperands(operands);
     }
 
     public void AddUniform(string name, Operand value)
