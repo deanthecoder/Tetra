@@ -1,0 +1,87 @@
+# Mandelbrot fractal
+    call main
+    halt
+    
+main:
+    ld $cRe, $fragCoord[0]
+    ld $cIm, $fragCoord[1]
+    
+    # Convert pixel to complex number (centered on screen, zoomed out)
+    ld $scale, 2.5
+    div $cRe, $iResolution[0]
+    mul $cRe, $scale
+    sub $cRe, 1.75              # pan X
+    
+    div $cIm, $iResolution[1]
+    mul $cIm, $scale
+    sub $cIm, 1.25              # pan Y
+    
+    # Initialize z = 0 + 0i
+    ld $zRe, 0
+    ld $zIm, 0
+    
+    ld $i, 0
+    ld $maxIter, 100.0
+
+loop:
+    # z = z² + c
+    # zRe² - zIm² + cRe
+    ld $zr2, $zRe
+    mul $zr2, $zRe
+
+    ld $zi2, $zIm
+    mul $zi2, $zIm
+
+    ld $zNewRe, $zr2
+    sub $zNewRe, $zi2
+    add $zNewRe, $cRe
+
+    # 2 * zRe * zIm + cIm
+    ld $zNewIm, $zRe
+    mul $zNewIm, $zIm
+    mul $zNewIm, 2
+    add $zNewIm, $cIm
+
+    # Update z
+    ld $zRe, $zNewRe
+    ld $zIm, $zNewIm
+
+    # if (zRe² + zIm² > 4) break;
+    ld $mag2, $zr2
+    add $mag2, $zi2
+    jmp_gt $mag2, 4, end
+
+    # i++
+    inc $i
+    jmp_lt $i, $maxIter, loop
+
+end:
+    # Color based on iterations.
+    ld $color, $i
+    div $color, $maxIter     # normalize 0..1
+    
+    # t = normalized iteration count
+    ld $t, $i
+    div $t, $maxIter         # normalize 0..1
+
+    # Constants: a = 0.5, b = 0.5, c = 1.0, d = [0.20, 0.45, 0.75]
+    ld $pi2, 6.28318         # 2π
+
+    # Create vector of t repeated for RGB
+    ld $rgb, $t, $t, $t
+
+    # Add phase offsets
+    add $rgb, 0.20, 0.25, 0.35
+
+    # Multiply by 2π
+    mul $rgb, 6.28318
+
+    # Apply cosine
+    cos $rgb, $rgb
+
+    # Scale and shift to 0..1
+    mul $rgb, 0.5
+    add $rgb, 0.5
+
+    # Extract RGB
+    ret $rgb[0], $rgb[1], $rgb[2]
