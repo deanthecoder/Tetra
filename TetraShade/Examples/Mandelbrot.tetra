@@ -1,4 +1,8 @@
+#
 # Mandelbrot fractal
+#
+# RGB formula by Inigo Quilez (https://iquilezles.org/articles/palettes/)
+#
     call main
     halt
     
@@ -6,15 +10,31 @@ main:
     ld $cRe, $fragCoord[0]
     ld $cIm, $fragCoord[1]
     
+    # scale = initialScale * exp(-rate * iTime)
+    ld $t, $iTime
+    div $t, 30.0
+    mul $t, 6.28318
+    cos $t, $t
+    mul $t, -0.5
+    add $t, 0.5
+    mul $t, 30.0
+    mul $t, 0.2             # rate = 0.2
+    neg $t                  # negative time for decay
+    exp $scale, $t
+    mul $scale, 2.5         # initial zoom (starting from scale 2.5)
+    
     # Convert pixel to complex number (centered on screen, zoomed out)
-    ld $scale, 2.5
     div $cRe, $iResolution[0]
+    sub $cRe, 0.5
     mul $cRe, $scale
-    sub $cRe, 1.75              # pan X
+    add $cRe, 0.5
+    sub $cRe, 1.245              # pan X
     
     div $cIm, $iResolution[1]
+    sub $cIm, 0.5
     mul $cIm, $scale
-    sub $cIm, 1.25              # pan Y
+    add $cIm, 0.5
+    sub $cIm, 0.395              # pan Y
     
     # Initialize z = 0 + 0i
     ld $zRe, 0
@@ -56,32 +76,39 @@ loop:
     jmp_lt $i, $maxIter, loop
 
 end:
-    # Color based on iterations.
-    ld $color, $i
-    div $color, $maxIter     # normalize 0..1
+    ld $arg0, $i
+    call calc_rgb
+    ret $retval
     
+calc_rgb:
     # t = normalized iteration count
-    ld $t, $i
+    ld $t, $arg0
     div $t, $maxIter         # normalize 0..1
-
-    # Constants: a = 0.5, b = 0.5, c = 1.0, d = [0.20, 0.45, 0.75]
-    ld $pi2, 6.28318         # 2π
-
-    # Create vector of t repeated for RGB
-    ld $rgb, $t, $t, $t
-
-    # Add phase offsets
-    add $rgb, 0.20, 0.25, 0.35
-
+    pow $t, 0.45             # gamma
+    
+    # Color Constants
+    ld $a, 0.5
+    ld $b, 0.5
+    ld $c, 1.0
+    ld $d, 0.00, 0.10, 0.20
+    
+    # Create vec3 of t repeated for RGB
+    ld $rgb, $t
+    
+    # Apply c * t
+    mul $rgb, $c
+    
+    # Add phase offsets d
+    add $rgb, $d
+    
     # Multiply by 2π
-    mul $rgb, 6.28318
-
+    mul $rgb, 6.28318         # 2π
+    
     # Apply cosine
     cos $rgb, $rgb
-
-    # Scale and shift to 0..1
-    mul $rgb, 0.5
-    add $rgb, 0.5
-
-    # Extract RGB
-    ret $rgb[0], $rgb[1], $rgb[2]
+    
+    # Apply a, b
+    mul $rgb, $b
+    add $rgb, $a
+    
+    ret $rgb
