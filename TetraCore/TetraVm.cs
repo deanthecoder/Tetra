@@ -25,8 +25,8 @@ namespace TetraCore;
 public class TetraVm
 {
     private readonly Program m_program;
-    private readonly Stack<ScopeFrame> m_frames = [];
-    private readonly Stack<(int functionLabel, int returnIp)> m_callStack = [];
+    private readonly Stack<ScopeFrame> m_frames = new Stack<ScopeFrame>(4);
+    private readonly Stack<(int functionLabel, int returnIp)> m_callStack = new Stack<(int functionLabel, int returnIp)>(4);
     private readonly List<string> m_uniforms = ["retval"];
     private int m_ip;
 
@@ -880,12 +880,11 @@ public class TetraVm
         Operand result;
         if (instr.Operands.Length == 1)
         {
-            result = new Operand(new float[a.Length]);
+            var floats = new float[a.Length];
             for (var i = 0; i < a.Length; i++)
-                result.Floats[i] = op(a.Floats[i], float.NaN);
+                floats[i] = op(a.Floats[i], float.NaN);
 
-            if (a.Type == OperandType.Int)
-                result = result.WithType(OperandType.Int);
+            result = a.Type == OperandType.Int ? new Operand(floats) { Type = OperandType.Int } : new Operand(floats);
         }
         else
         {
@@ -897,23 +896,26 @@ public class TetraVm
             if (b.Type is OperandType.Label or OperandType.Variable)
                 throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {b.Type}.");
 
+            float[] floats;
             if (CurrentFrame.IsDefined(aName))
             {
                 EnsureArrayDimensionsMatch(instr, ref a, ref b);
 
-                result = new Operand(new float[a.Length]);
+                floats = new float[a.Length];
                 for (var i = 0; i < a.Length; i++)
-                    result.Floats[i] = op(a.Floats[i], b.Floats[i]);
+                    floats[i] = op(a.Floats[i], b.Floats[i]);
             }
             else
             {
-                result = new Operand(new float[b.Length]);
+                floats = new float[b.Length];
                 for (var i = 0; i < b.Length; i++)
-                    result.Floats[i] = op(float.NaN, b.Floats[i]);
+                    floats[i] = op(float.NaN, b.Floats[i]);
             }
 
             if (a.Type == OperandType.Int && b.Type == OperandType.Int)
-                result = result.WithType(OperandType.Int);
+                result = new Operand(floats) { Type = OperandType.Int };
+            else
+                result = new Operand(floats);
         }
 
         // Store the result.

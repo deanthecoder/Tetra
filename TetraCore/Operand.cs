@@ -36,7 +36,7 @@ public sealed class Operand
         Floats = v;
     }
 
-    public Operand(OperandType type, VarName name, string label, float[] floats)
+    private Operand(OperandType type, VarName name, string label, float[] floats)
     {
         Type = type;
         Name = name;
@@ -134,8 +134,7 @@ public sealed class Operand
             return this; // No change.
         
         var floats = new float[length];
-        for (var i = 0; i < length; i++)
-            floats[i] = Float;
+        Array.Fill(floats, Float);
         return new Operand(floats);
     }
 
