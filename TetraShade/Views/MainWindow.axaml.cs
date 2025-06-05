@@ -31,9 +31,9 @@ public partial class MainWindow : Window
         
         image.Width = MainViewModel.PixelWidth;
         image.Height = MainViewModel.PixelHeight;
-        
+
         // Force the image control to redraw.
         ViewModel.RefreshPreview += (_, _) => Dispatcher.UIThread.InvokeAsync(() => image.InvalidateVisual());
-        ViewModel.UpdatePreview();
+        ViewModel.RefreshPreviewAsync();
     }
 }

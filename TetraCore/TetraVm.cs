@@ -27,7 +27,7 @@ public class TetraVm
     private readonly Program m_program;
     private readonly Stack<ScopeFrame> m_frames = new Stack<ScopeFrame>(4);
     private readonly Stack<(int functionLabel, int returnIp)> m_callStack = new Stack<(int functionLabel, int returnIp)>(4);
-    private readonly List<string> m_uniforms = ["retval"];
+    private List<string> m_uniforms;
     private int m_ip;
 
     public ScopeFrame CurrentFrame => m_frames.Peek();
@@ -123,6 +123,10 @@ public class TetraVm
         m_frames.Push(new ScopeFrame()); // Global scope
         m_callStack.Clear();
         m_ip = 0;
+        m_uniforms = new List<string>(4)
+        {
+            "retval"
+        };
     }
 
     private bool Execute(Instruction instr)

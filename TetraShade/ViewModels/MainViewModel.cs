@@ -10,12 +10,15 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using DTC.Core;
 using DTC.Core.ViewModels;
 using TetraCore;
@@ -24,12 +27,17 @@ using Vector = Avalonia.Vector;
 
 namespace TetraShade.ViewModels;
 
-public class MainViewModel : ViewModelBase
+public class MainViewModel : ViewModelBase, IDisposable
 {
     public const int PixelWidth = 320;
     public const int PixelHeight = 180;
 
-    private readonly Vector3[] m_rawPixels = new Vector3[PixelWidth * PixelHeight];
+    private readonly Vector3[,] m_rawPixels = new Vector3[PixelHeight, PixelWidth];
+    private readonly bool[,] m_computed = new bool[PixelHeight, PixelWidth];
+    private readonly Stopwatch m_frameTimer = new Stopwatch();
+    private readonly BlockingCollection<RenderTask> m_renderQueue = new BlockingCollection<RenderTask>();
+    private readonly AutoResetEvent m_queueClearedEvent = new AutoResetEvent(false);
+    private CancellationTokenSource m_renderCts = new();
     private readonly string[] m_uniforms =
     [
         "fragCoord",
@@ -38,13 +46,13 @@ public class MainViewModel : ViewModelBase
     ];
 
     private TetraCore.Program m_program;
-    private bool m_refreshTaskRunning;
     private WriteableBitmap m_previewImage;
     private double m_time;
     private double m_fps;
     private bool m_isPaused = true;
     private double m_playStartTime;
     private Stopwatch m_playStopwatch;
+    private Task m_renderLoopTask;
 
     /// <summary>
     /// Raised when the preview image needs to be updated in the UI.
@@ -90,7 +98,7 @@ public class MainViewModel : ViewModelBase
             // Record when playing started.
             m_playStartTime = Time;
             
-            // Allow us to keep track of elapsed time.
+            // Allow us to keep track of elapsed time.§
             m_playStopwatch = Stopwatch.StartNew();
             
             // Start frame updates.
@@ -101,41 +109,6 @@ public class MainViewModel : ViewModelBase
     public MainViewModel()
     {
         GenerateShaderCode();
-    }
-
-    private void RefreshPreviewAsync()
-    {
-        if (m_refreshTaskRunning)
-            return;
-
-        Task.Run(async () =>
-        {
-            m_refreshTaskRunning = true;
-            try
-            {
-                long elapsedMs = 0;
-                await Task.Run(() =>
-                {
-                    var s = Stopwatch.StartNew();
-                    UpdatePreview();
-                    elapsedMs = s.ElapsedMilliseconds;
-                });
-                    
-                Fps = 1000.0 / elapsedMs;
-            }
-            finally
-            {
-                m_refreshTaskRunning = false;
-                OnFrameCompleted();
-            }
-        });
-    }
-
-    private void OnFrameCompleted()
-    {
-        if (IsPaused)
-            return;
-        Time = m_playStartTime + m_playStopwatch.Elapsed.TotalSeconds;
     }
 
     private void GenerateShaderCode()
@@ -179,40 +152,125 @@ public class MainViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Updates the preview image by executing the shader instructions for each pixel.
+    /// Starts or restarts the progressive rendering workflow.
+    /// Queues up render tasks at different block sizes for the preview image.
     /// </summary>
-    /// <remarks>
-    /// This method:
-    /// - Processes each pixel in parallel using the current shader instructions
-    /// - Updates the internal pixel buffer with computed color values
-    /// - Copies the processed pixels to the preview bitmap
-    /// - Triggers a UI refresh via the RefreshPreview event
-    /// </remarks>
-    public void UpdatePreview()
+    public void RefreshPreviewAsync()
     {
+        m_renderLoopTask ??= Task.Run(RenderLoop);
+
+        // Cancel any current rendering.
+        m_renderCts.Cancel();
+
+        // Remove any queued rendering requests.
+        m_renderQueue.Add(RenderTask.QueueClearer);
+        m_queueClearedEvent.WaitOne();
+
+        m_renderCts.Dispose();
+        m_renderCts = new CancellationTokenSource();
+
+        // Queue new renders.
         var iTime = new Operand((float)Time);
         var iResolution = new Operand(PixelWidth, PixelHeight);
-
-        // Compute single pixel to catch obvious errors.
-        ComputePixelColor(new Operand(0, PixelHeight - 0), iResolution, iTime, out var didError);
-        if (didError)
-            return;
-        
-        // Process each pixel in parallel.
-        Parallel.For(0, PixelWidth * PixelHeight, i =>
-        {
-            var x = i % PixelWidth;
-            var y = i / PixelWidth;
-
-            var fragCoord = new Operand(x, PixelHeight - y);
-            m_rawPixels[y * PixelWidth + x] = ComputePixelColor(fragCoord, iResolution, iTime, out _);
-        });
-        
-        BlitPixelsToPreviewImage(m_rawPixels);
-
-        RefreshPreview?.Invoke(this, EventArgs.Empty);
+        m_renderQueue.Add(new RenderTask(16, iTime, iResolution));
+        m_renderQueue.Add(new RenderTask(8, iTime, iResolution));
+        m_renderQueue.Add(new RenderTask(4, iTime, iResolution));
+        m_renderQueue.Add(new RenderTask(2, iTime, iResolution));
+        m_renderQueue.Add(new RenderTask(1, iTime, iResolution));
     }
 
+    /// <summary>
+    /// Worker loop that processes render tasks from the queue.
+    /// Handles queue clearing, quitting, and invokes rendering passes as needed.
+    /// </summary>
+    private void RenderLoop()
+    {
+        foreach (var renderTask in m_renderQueue.GetConsumingEnumerable())
+        {
+            if (renderTask.IsQuitter)
+            {
+                m_renderQueue.CompleteAdding();
+                return;
+            }
+            if (renderTask.IsQueueClearer)
+            {
+                while (m_renderQueue.TryTake(out _))
+                {
+                    // Drain remaining items
+                }
+
+                m_queueClearedEvent.Set();
+                continue;
+            }
+
+            // Compute single pixel to catch obvious errors.
+            ComputePixelColor(new Operand(0, 0), renderTask.Resolution, renderTask.Time, out var didError);
+
+            if (renderTask.IsLargest || didError)
+            {
+                m_frameTimer.Restart();
+
+                // Reset computed flags.
+                Array.Clear(m_computed, 0, m_computed.Length);
+                Array.Clear(m_rawPixels, 0, m_rawPixels.Length);
+            }
+
+            if (!didError)
+                RenderPass(renderTask);
+            
+            if (m_renderCts.IsCancellationRequested && renderTask.CanCancel)
+                continue;
+            
+            BlitPixelsToPreviewImage(m_rawPixels, renderTask.BlockSize);
+            RefreshPreview?.Invoke(this, EventArgs.Empty);
+
+            if (renderTask.BlockSize == 1)
+            {
+                // Frame rendering complete (at highest resolution).
+                Fps = 1000.0 / Math.Max(1, m_frameTimer.ElapsedMilliseconds);
+
+                if (!IsPaused)
+                {
+                    Dispatcher.UIThread.InvokeAsync(() => Time = m_playStartTime + m_playStopwatch.Elapsed.TotalSeconds);
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Executes rendering of a pixel grid at the given block size.
+    /// Each block is rendered in parallel, computing pixel colors as needed.
+    /// </summary>
+    private void RenderPass(RenderTask renderTask)
+    {
+        var blockSize = renderTask.BlockSize;
+        var blocksWide = (PixelWidth + blockSize - 1) / blockSize;
+        var blocksHigh = (PixelHeight + blockSize - 1) / blockSize;
+
+        Parallel.For(0, blocksWide * blocksHigh, i =>
+        {
+            var x = (i % blocksWide) * blockSize;
+            var y = (i / blocksWide) * blockSize;
+
+            if (x >= PixelWidth || y >= PixelHeight || m_computed[y, x])
+                return;
+
+            m_computed[y, x] = true;
+
+            if (renderTask.CanCancel && m_renderCts.IsCancellationRequested)
+            {
+                m_rawPixels[y, x] = Vector3.One;
+                return;
+            }
+
+            m_rawPixels[y, x] = ComputePixelColor(new Operand(x, PixelHeight - y), renderTask.Resolution, renderTask.Time, out _);
+        });
+    }
+    
+    /// <summary>
+    /// Executes the Tetra VM to compute the color of a single pixel.
+    /// Returns the color as a Vector3, and sets didError if computation fails.
+    /// </summary>
     private Vector3 ComputePixelColor(Operand fragCoord, Operand iResolution, Operand iTime, out bool didError)
     {
         didError = false;
@@ -232,7 +290,10 @@ public class MainViewModel : ViewModelBase
             else if (vm.CurrentFrame.Retval.Length < 3)
                 Logger.Instance.Error($"Shader returned unexpected value ({vm.CurrentFrame.Retval}).");
             else
-                return new Vector3(vm.CurrentFrame.Retval?.Floats);
+            {
+                var rgba = new Vector3(vm.CurrentFrame.Retval?.Floats);
+                return Vector3.Clamp(rgba, Vector3.Zero, Vector3.One) * 255.0f;
+            }
         }
         catch
         {
@@ -243,20 +304,55 @@ public class MainViewModel : ViewModelBase
         return Vector3.Zero;
     }
 
-    private unsafe void BlitPixelsToPreviewImage(Vector3[] rawPixels)
+    /// <summary>
+    /// Writes rendered pixel data into the preview bitmap.
+    /// Updates the preview image by copying colors from the raw pixel array.
+    /// </summary>
+    private unsafe void BlitPixelsToPreviewImage(Vector3[,] rawPixels, int blockSize)
     {
         using var frameBuffer = PreviewImage.Lock();
         var ptr = new Span<byte>((byte*)frameBuffer.Address, frameBuffer.RowBytes * frameBuffer.Size.Height);
-        for (var i = 0; i < rawPixels.Length; i++)
+        
+        for (var y = 0; y < PixelHeight; y += blockSize)
         {
-            var v = Vector3.Clamp(rawPixels[i], Vector3.Zero, Vector3.One) * 255.0f;
-            ptr[i * 4 + 0] = (byte)v.X;
-            ptr[i * 4 + 1] = (byte)v.Y;
-            ptr[i * 4 + 2] = (byte)v.Z;
-            ptr[i * 4 + 3] = 255;
+            for (var x = 0; x < PixelWidth; x += blockSize)
+            {
+                // Clamp block in case width/height not divisible by blockSize
+                var blockWidth = Math.Min(blockSize, PixelWidth - x);
+                var blockHeight = Math.Min(blockSize, PixelHeight - y);
+
+                var color = rawPixels[y, x];
+
+                for (var dy = 0; dy < blockHeight; dy++)
+                {
+                    for (var dx = 0; dx < blockWidth; dx++)
+                    {
+                        var px = x + dx;
+                        var py = y + dy;
+                        var offset = (py * PixelWidth + px) * 4;
+
+                        ptr[offset + 0] = (byte)color.X;
+                        ptr[offset + 1] = (byte)color.Y;
+                        ptr[offset + 2] = (byte)color.Z;
+                        ptr[offset + 3] = 255;
+                    }
+                }
+            }
         }
     }
     
     internal void TogglePause() =>
         IsPaused = !IsPaused;
+
+    public void Dispose()
+    {
+        m_renderCts.Cancel();
+        m_renderQueue.Add(RenderTask.Quitter);
+        m_renderQueue.CompleteAdding();
+        m_renderLoopTask?.Wait();
+        m_renderLoopTask?.Dispose();
+        m_renderQueue.Dispose();
+        m_queueClearedEvent.Dispose();
+        m_renderCts.Dispose();
+    }
 }
