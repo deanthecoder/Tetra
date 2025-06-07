@@ -13,6 +13,12 @@ using System.Collections.Generic;
 
 namespace DTC.GLSLLexer;
 
+
+/// <summary>
+/// A lexical analyzer for GLSL (OpenGL Shading Language) source code.
+/// Breaks down source code into a linear sequence of tokens, identifying keywords, operators,
+/// literals, identifiers, and comments while maintaining line number information.
+/// </summary>
 public class Lexer
 {
     private static readonly HashSet<string> Keywords = [
@@ -258,85 +264,4 @@ public class Lexer
         AppendToken(TokenType.Comment, code, startIndex, i);
         m_line += lineSpan;
     }
-}
-
-public enum TokenType
-{
-    Unknown,
-    
-    // Literals
-    IntLiteral,
-    FloatLiteral,
-    TrueLiteral,
-    FalseLiteral,
-
-    // Keywords
-    Keyword,
-
-    // Identifiers
-    Identifier,
-
-    // Operators
-    Plus,
-    Minus,
-    Asterisk,
-    Slash,
-    Equals,
-    EqualsEquals,
-    NotEquals,
-    LessThan,
-    GreaterThan,
-    Ampersand,
-    AndAnd,
-    OrOr,
-    Increment,
-    Decrement,
-    PlusEquals,
-    MinusEquals,
-    AsteriskEquals,
-    SlashEquals,
-    LessThanEquals,
-    GreaterThanEquals,
-    ShiftLeft,
-    ShiftRight,
-    Exclamation,
-    Percent,
-    PercentEquals,
-    Caret,
-    CaretEquals,
-    Tilde,
-    Question,
-    Colon,
-
-    // Punctuation
-    LeftParen,
-    RightParen,
-    LeftBracket,
-    RightBracket,
-    LeftBrace,
-    RightBrace,
-    Semicolon,
-    Comma,
-    Dot,
-
-    // Misc
-    Comment
-}
-
-public class Token
-{
-    private readonly int m_line;
-    
-    public TokenType Type { get; }
-    public string Value { get; }
-
-    public Token(TokenType type, int line, string code, int startIndex, int endIndex)
-    {
-        Type = type;
-        m_line = line;
-        Value = code.Substring(startIndex, endIndex - startIndex);
-    }
-
-    public override string ToString() =>
-        $"[Line {m_line}] '{Value}' ({Type})";
 }
