@@ -1,0 +1,57 @@
+// Code authored by Dean Edis (DeanTheCoder).
+// Anyone is free to copy, modify, use, compile, or distribute this software,
+// either in source code form or as a compiled binary, for any non-commercial
+// purpose.
+// 
+// If you modify the code, please retain this copyright header,
+// and consider contributing back to the repository or letting us know
+// about your modifications. Your contributions are valued!
+// 
+// THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+using DTC.GLSLLexer;
+using DTC.GLSLParser;
+
+namespace UnitTests.ParserTests;
+
+[TestFixture]
+public class ParserTests
+{
+    private Lexer m_lexer;
+    private Parser m_parser;
+
+    [SetUp]
+    public void Setup()
+    {
+        m_lexer = new Lexer();
+        m_parser = new Parser();
+    }
+    
+    [Test]
+    public void CheckValidConstruction()
+    {
+        Assert.That(() => new Parser(), Throws.Nothing);
+    }
+
+    [Test]
+    public void GivenNullInputCheckParsingThrows()
+    {
+        Assert.That(() => m_parser.Parse(null), Throws.ArgumentNullException);   
+    }
+    
+    [Test]
+    public void GivenEmptyInputCheckParsingThrows()
+    {
+        Assert.That(() => m_parser.Parse([]), Throws.ArgumentException);   
+    }
+
+    [Test]
+    public void ParseFloatAssignment()
+    {
+        var tokens = m_lexer.Tokenize("float a = 23.4f;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+}

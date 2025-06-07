@@ -25,6 +25,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DTC.GLSLLexer\DTC.GLSLLexer.csproj" />
+      <ProjectReference Include="..\DTC.GLSLParser\DTC.GLSLParser.csproj" />
       <ProjectReference Include="..\TetraCore\TetraCore.csproj" />
     </ItemGroup>
 

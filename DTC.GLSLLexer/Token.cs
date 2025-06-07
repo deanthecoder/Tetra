@@ -16,18 +16,17 @@ namespace DTC.GLSLLexer;
 /// </summary>
 public class Token
 {
-    private readonly int m_line;
-    
+    public int Line { get; }
     public TokenType Type { get; }
     public string Value { get; }
 
     public Token(TokenType type, int line, string code, int startIndex, int endIndex)
     {
         Type = type;
-        m_line = line;
+        Line = line;
         Value = code.Substring(startIndex, endIndex - startIndex);
     }
 
     public override string ToString() =>
-        $"[Line {m_line}] '{Value}' ({Type})";
+        $"[Line {Line}] '{Value}' ({Type})";
 }

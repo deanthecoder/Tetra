@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>disable</Nullable>
+        <Company>Dean Edis (DeanTheCoder)</Company>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\DTC.GLSLLexer\DTC.GLSLLexer.csproj" />
+    </ItemGroup>
+</Project>
