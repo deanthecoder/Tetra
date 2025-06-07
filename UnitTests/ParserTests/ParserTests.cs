@@ -98,4 +98,15 @@ public class ParserTests
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
+    
+    [Test]
+    public void ParseVariableDeclaration()
+    {
+        var tokens = m_lexer.Tokenize("int a;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
 }

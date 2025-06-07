@@ -134,11 +134,22 @@ public class Parser
     {
         var typeToken = Consume(TokenType.Keyword);
         var nameToken = Consume(TokenType.Identifier, "Expected variable name");
-        Consume(TokenType.Equals, "Expected '=' after variable name");
-        var expr = ParseExpression();
+
+        AssignmentNode node;
+        if (CurrentToken.Type != TokenType.Equals)
+        {
+            node = new AssignmentNode(typeToken, nameToken, null);
+        }
+        else
+        {
+            Consume(TokenType.Equals, "Expected '=' after variable name");
+            var expr = ParseExpression();
+            node = new AssignmentNode(typeToken, nameToken, expr);
+        }
+        
         Consume(TokenType.Semicolon, "Expected ';' after variable declaration");
         
-        return new AssignmentNode(typeToken, nameToken, expr);
+        return node;
     }
     
     private ExprStatementNode ParseParenthesizedExpression()
@@ -233,7 +244,7 @@ public class AssignmentNode : AstNode
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
         Name = name ?? throw new ArgumentNullException(nameof(name));
-        Value = expr ?? throw new ArgumentNullException(nameof(expr));
+        Value = expr;
     }
     
     public override string ToString() =>
