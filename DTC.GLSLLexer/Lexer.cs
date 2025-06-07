@@ -79,6 +79,7 @@ public class Lexer
     
     private readonly List<Token> m_tokens = [];
     private int m_line;
+    private string m_code;
 
     public Token[] Tokenize(string code)
     {
@@ -91,6 +92,7 @@ public class Lexer
         // Normalize different line endings to \n.
         code = code.Replace("\r\n", "\n");
         code = code.Replace("\r", "\n");
+        m_code = code;
 
         var i = 0;
         while (i < code.Length)
@@ -109,127 +111,127 @@ public class Lexer
                 continue; // Skip whitespace
             }
             
-            if (ConsumeBoolean(code, ref i))
+            if (ConsumeBoolean(ref i))
                 continue;
 
             if (char.IsLetter(ch) || ch == '_')
             {
-                ConsumeIdentifierOrKeyword(code, ref i);
+                ConsumeIdentifierOrKeyword(ref i);
                 continue;
             }
             
             if (char.IsDigit(ch) || ch == '.')
             {
-                ConsumeNumber(code, ref i);
+                ConsumeNumber(ref i);
                 continue;
             }
 
-            if (ch == '/' && Peek(code, i + 1, out var nextCh))
+            if (ch == '/' && Peek(i + 1, out var nextCh))
             {
                 switch (nextCh)
                 {
                     case '/':
-                        ConsumeComment(code, ref i, multiLine: false);
+                        ConsumeComment(ref i, multiLine: false);
                         continue;
                     case '*':
-                        ConsumeComment(code, ref i, multiLine: true);
+                        ConsumeComment(ref i, multiLine: true);
                         continue;
                 }
             }
             
-            if (ConsumeOperator(code, ref i))
+            if (ConsumeOperator(ref i))
                 continue;
 
-            AppendToken(TokenType.Unknown, code, i, i + 1);
+            AppendToken(TokenType.Unknown, i, i + 1);
             i++;
         }
         
         return m_tokens.ToArray();
     }
     
-    private void AppendToken(TokenType tokenType, string code, int startIndex, int endIndex) =>
-        m_tokens.Add(new Token(tokenType, m_line, code, startIndex, endIndex));
+    private void AppendToken(TokenType tokenType, int startIndex, int endIndex) =>
+        m_tokens.Add(new Token(tokenType, m_line, m_code, startIndex, endIndex));
 
-    private static bool Peek(string code, int i, out char ch)
+    private bool Peek(int i, out char ch)
     {
-        ch = i < code.Length ? code[i] : '\0';
+        ch = i < m_code.Length ? m_code[i] : '\0';
         return ch != '\0';
     }
 
-    private void ConsumeNumber(string code, ref int i)
+    private void ConsumeNumber(ref int i)
     {
         var startIndex = i;
         var isFloat = false;
         char ch;
-        while (Peek(code, i, out ch) && (ch == '.' || char.IsDigit(ch) || ch == 'e' || ch == 'E'))
+        while (Peek(i, out ch) && (ch == '.' || char.IsDigit(ch) || ch == 'e' || ch == 'E'))
         {
             isFloat |= ch == '.';
             i++;
 
-            if (ch is 'e' or 'E' && Peek(code, i, out ch) && (ch == '+' || ch == '-'))
+            if (ch is 'e' or 'E' && Peek(i, out ch) && (ch == '+' || ch == '-'))
                 i++;
         }
 
         if (!isFloat)
         {
-            AppendToken(TokenType.IntLiteral, code, startIndex, i);
+            AppendToken(TokenType.IntLiteral, startIndex, i);
             return;
         }
 
-        AppendToken(TokenType.FloatLiteral, code, startIndex, i);
+        AppendToken(TokenType.FloatLiteral, startIndex, i);
 
-        if (Peek(code, i, out ch) && ch == 'f')
+        if (Peek(i, out ch) && ch == 'f')
             i++;
     }
 
-    private bool ConsumeBoolean(string code, ref int i)
+    private bool ConsumeBoolean(ref int i)
     {
         var startIndex = i;
-        if (startIndex + 4 <= code.Length && code.Substring(startIndex, 4) == "true")
+        if (startIndex + 4 <= m_code.Length && m_code.Substring(startIndex, 4) == "true")
         {
-            AppendToken(TokenType.TrueLiteral, code, startIndex, startIndex + 4);
+            AppendToken(TokenType.TrueLiteral, startIndex, startIndex + 4);
             i += 4;
             return true;
         }
-        if (startIndex + 5 <= code.Length && code.Substring(startIndex, 5) == "false")
+        if (startIndex + 5 <= m_code.Length && m_code.Substring(startIndex, 5) == "false")
         {
-            AppendToken(TokenType.FalseLiteral, code, startIndex, startIndex + 5);
+            AppendToken(TokenType.FalseLiteral, startIndex, startIndex + 5);
             i += 5;
             return true;
         }
         return false;
     }
 
-    private void ConsumeIdentifierOrKeyword(string code, ref int i)
+    private void ConsumeIdentifierOrKeyword(ref int i)
     {
         var startIndex = i;
-        while (Peek(code, i, out var ch) && (char.IsLetterOrDigit(ch) || ch == '_'))
+        while (Peek(i, out var ch) && (char.IsLetterOrDigit(ch) || ch == '_'))
             i++;
 
-        var value = code.Substring(startIndex, i - startIndex);
+        var value = m_code.Substring(startIndex, i - startIndex);
         var tokenType = Keywords.Contains(value) ? TokenType.Keyword : TokenType.Identifier;
-        AppendToken(tokenType, code, startIndex, i);
+        AppendToken(tokenType, startIndex, i);
     }
 
-    private bool ConsumeOperator(string code, ref int i)
+    private bool ConsumeOperator(ref int i)
     {
         // Try two-character operators first.
-        if (i + 1 < code.Length)
+        if (i + 1 < m_code.Length)
         {
-            var twoCharOp = code.Substring(i, 2);
+            var twoCharOp = m_code.Substring(i, 2);
             if (Operators.TryGetValue(twoCharOp, out var tokenType))
             {
-                AppendToken(tokenType, code, i, i + 2);
+                AppendToken(tokenType, i, i + 2);
                 i += 2;
                 return true;
             }
         }
 
         // Try single-character operators.
-        var oneCharOp = code[i].ToString();
+        var oneCharOp = m_code[i].ToString();
         if (Operators.TryGetValue(oneCharOp, out var singleTokenType))
         {
-            AppendToken(singleTokenType, code, i, i + 1);
+            AppendToken(singleTokenType, i, i + 1);
             i++;
             return true;
         }
@@ -237,13 +239,13 @@ public class Lexer
         return false;
     }
     
-    private void ConsumeComment(string code, ref int i, bool multiLine)
+    private void ConsumeComment(ref int i, bool multiLine)
     {
         var lineSpan = 0;
         var startIndex = i;
         if (multiLine)
         {
-            while (Peek(code, i, out var ch1) && Peek(code, i + 1, out var ch2))
+            while (Peek(i, out var ch1) && Peek(i + 1, out var ch2))
             {
                 if (ch1 == '*' && ch2 == '/')
                 {
@@ -258,10 +260,10 @@ public class Lexer
         }
         else
         {
-            while (Peek(code, i, out var ch) && ch != '\n')
+            while (Peek(i, out var ch) && ch != '\n')
                 i++;
         }
-        AppendToken(TokenType.Comment, code, startIndex, i);
+        AppendToken(TokenType.Comment, startIndex, i);
         m_line += lineSpan;
     }
 }
