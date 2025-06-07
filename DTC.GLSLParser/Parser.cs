@@ -93,8 +93,24 @@ public class Parser
             if (CurrentToken.Value is "float" or "int")
                 return ParseVariableDeclaration();
         }
+        
+        if (CurrentToken.Type == TokenType.LeftBrace)
+            return ParseBlock();
 
         throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
+    }
+    
+    private AstNode ParseBlock()
+    {
+        Consume(TokenType.LeftBrace, "Expected '{' at start of block");
+        
+        var statements = new List<AstNode>();
+        while (CurrentToken.Type != TokenType.RightBrace)
+            statements.Add(ParseStatement());
+        
+        Consume(TokenType.RightBrace, "Expected '}' at end of block");
+        
+        return new BlockNode(statements.ToArray());
     }
     
     private ExprStatementNode ParseExpression(int parentPrecedence = 0)
@@ -232,7 +248,7 @@ public abstract class ExprStatementNode : AstNode
 
 /// <summary>
 /// Represents a variable declaration with an initializer.
-/// Does not produce a value at runtime, but assigns a computed expression to a named variable.
+/// Does not produce a value at runtime but assigns a computed expression to a named variable.
 /// </summary>
 public class AssignmentNode : AstNode
 {
@@ -252,7 +268,7 @@ public class AssignmentNode : AstNode
 }
 
 /// <summary>
-/// Represents a literal constant (23, 69.2, etc) in the AST.
+/// Represents a literal constant (23, 69.2, etc.) in the AST.
 /// Produces a value at runtime and is used in expressions.
 /// </summary>
 public class LiteralNode : ExprStatementNode
@@ -300,4 +316,20 @@ public class BinaryExprNode : ExprStatementNode
     }
 
     public override string ToString() => $"({Left} {Operator.Value} {Right})";
+}
+
+/// <summary>
+/// Represents a block of statements enclosed in `{...}`.
+/// Does not return a value; just groups statements together.
+/// </summary>
+public class BlockNode : AstNode
+{
+    public AstNode[] Statements { get; }
+
+    public BlockNode(AstNode[] statements)
+    {
+        Statements = statements ?? throw new ArgumentNullException(nameof(statements));
+    }
+
+    public override string ToString() => "{ ... }";
 }
