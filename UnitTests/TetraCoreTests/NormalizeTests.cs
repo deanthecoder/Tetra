@@ -11,19 +11,30 @@
 using TetraCore;
 using TetraCore.Exceptions;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
-public class CrossTests
+public class NormalizeTests
 {
     [Test]
-    public void CheckCrossProduct()
+    public void CheckNormalizeVector()
+    {
+        const string code = "normalize $a, 3.0, 4.0";
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Length, Is.EqualTo(2));
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.6f).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.8f).Within(0.001));
+    }
+
+    [Test]
+    public void CheckNormalizeZeroVector()
     {
         const string code =
             """
-            ld $a, 1.0, 0.0, 0.0
-            ld $b, 0.0, 1.0, 0.0
-            cross $a, $b
+            ld $b, 0.0, 0.0, 0.0
+            normalize $a, $b
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
@@ -31,37 +42,22 @@ public class CrossTests
         Assert.That(vm["a"].Length, Is.EqualTo(3));
         Assert.That(vm["a"].Floats[0], Is.EqualTo(0.0f).Within(0.001));
         Assert.That(vm["a"].Floats[1], Is.EqualTo(0.0f).Within(0.001));
-        Assert.That(vm["a"].Floats[2], Is.EqualTo(1.0f).Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(0.0f).Within(0.001));
     }
     
     [Test]
-    public void CheckCrossProduct3DWithValues()
+    public void CheckNormalizeFloatThrows()
     {
-        const string code =
-            """
-            ld $a, 0.0, 0.0, 1.0
-            cross $a, 0.0, 1.0, 0.0
-            """;
+        const string code = "normalize $a, 2.3";
         var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Length, Is.EqualTo(3));
-        Assert.That(vm["a"].Floats[0], Is.EqualTo(-1.0f).Within(0.001));
-        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.0f).Within(0.001));
-        Assert.That(vm["a"].Floats[2], Is.EqualTo(0.0f).Within(0.001));
-    }
-
-    [Test]
-    public void CheckCrossProductNon3DThrows()
-    {
-        const string code =
-            """
-            ld $a, 1.0, 0.0, 0.0
-            ld $b, 0.0, 1.0
-            cross $a, $b
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-
+        
         Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+    
+    [Test]
+    public void CheckNormalizeConstantThrows()
+    {
+        Assert.That(() => Assembler.Assemble("normalize 2.3"), Throws.TypeOf<SyntaxErrorException>());
+        Assert.That(() => Assembler.Assemble("normalize 2.3, 4.5"), Throws.TypeOf<SyntaxErrorException>());
     }
 }

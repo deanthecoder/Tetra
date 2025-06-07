@@ -10,7 +10,7 @@
 // // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 using TetraCore;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
 public class NegTests

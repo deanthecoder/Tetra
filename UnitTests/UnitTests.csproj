@@ -8,14 +8,7 @@
         <IsPackable>false</IsPackable>
         <OutputType>Library</OutputType>
         <Company>Dean Edis (DeanTheCoder)</Company>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,6 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DTC.GLSLLexer\DTC.GLSLLexer.csproj" />
       <ProjectReference Include="..\TetraCore\TetraCore.csproj" />
     </ItemGroup>
 

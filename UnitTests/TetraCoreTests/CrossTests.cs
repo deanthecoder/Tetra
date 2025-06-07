@@ -11,51 +11,54 @@
 using TetraCore;
 using TetraCore.Exceptions;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
-public class DotTests
+public class CrossTests
 {
     [Test]
-    public void CheckDotProduct3D()
+    public void CheckCrossProduct()
     {
         const string code =
             """
-            ld $a, 1.0, 2.0, 3.0
-            ld $b, 4.0, 5.0, 6.0
-            dot $a, $b
+            ld $a, 1.0, 0.0, 0.0
+            ld $b, 0.0, 1.0, 0.0
+            cross $a, $b
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].Length, Is.EqualTo(1));
-        Assert.That(vm["a"].Float, Is.EqualTo(32.0f).Within(0.001)); // 1*4 + 2*5 + 3*6
+        Assert.That(vm["a"].Length, Is.EqualTo(3));
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.0f).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.0f).Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(1.0f).Within(0.001));
     }
-
+    
     [Test]
-    public void CheckDotProduct2D()
+    public void CheckCrossProduct3DWithValues()
     {
         const string code =
             """
-            ld $a, 1.0, 3.0
-            dot $a, 4.0, -2.0
+            ld $a, 0.0, 0.0, 1.0
+            cross $a, 0.0, 1.0, 0.0
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
-        Assert.That(vm["a"].Length, Is.EqualTo(1));
-        Assert.That(vm["a"].Float, Is.EqualTo(-2.0f).Within(0.001));
+        Assert.That(vm["a"].Length, Is.EqualTo(3));
+        Assert.That(vm["a"].Floats[0], Is.EqualTo(-1.0f).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.0f).Within(0.001));
+        Assert.That(vm["a"].Floats[2], Is.EqualTo(0.0f).Within(0.001));
     }
 
     [Test]
-    public void CheckDotMismatchedLengthsThrow()
+    public void CheckCrossProductNon3DThrows()
     {
         const string code =
             """
-            ld $a, 1.0, 2.0, 3.0
-            ld $b, 4.0, 5.0
-            dot $a, $b
+            ld $a, 1.0, 0.0, 0.0
+            ld $b, 0.0, 1.0
+            cross $a, $b
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
 

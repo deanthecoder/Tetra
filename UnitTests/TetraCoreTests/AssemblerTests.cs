@@ -13,7 +13,7 @@ using TetraCore;
 using TetraCore.Exceptions;
 using OpCode = TetraCore.OpCode;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
 public class AssemblerTests

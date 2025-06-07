@@ -11,53 +11,55 @@
 using TetraCore;
 using TetraCore.Exceptions;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
-public class NormalizeTests
+public class RefractTests
 {
     [Test]
-    public void CheckNormalizeVector()
-    {
-        const string code = "normalize $a, 3.0, 4.0";
-        var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Length, Is.EqualTo(2));
-        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.6f).Within(0.001));
-        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.8f).Within(0.001));
-    }
-
-    [Test]
-    public void CheckNormalizeZeroVector()
+    public void CheckRefractVector()
     {
         const string code =
             """
-            ld $b, 0.0, 0.0, 0.0
-            normalize $a, $b
+            ld $a, 0.0, -1.0, 0.0       # Incident vector
+            ld $n, 0.0, 1.0, 0.0        # Surface normal
+            ld $eta, 0.5                # Refraction index ratio
+            refract $a, $n, $eta
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
         Assert.That(vm["a"].Length, Is.EqualTo(3));
         Assert.That(vm["a"].Floats[0], Is.EqualTo(0.0f).Within(0.001));
-        Assert.That(vm["a"].Floats[1], Is.EqualTo(0.0f).Within(0.001));
+        Assert.That(vm["a"].Floats[1], Is.EqualTo(-1.0f).Within(0.001));
         Assert.That(vm["a"].Floats[2], Is.EqualTo(0.0f).Within(0.001));
     }
-    
+
     [Test]
-    public void CheckNormalizeFloatThrows()
+    public void CheckRefractFloatThrows()
     {
-        const string code = "normalize $a, 2.3";
+        const string code =
+            """
+            ld $a, 1.0
+            ld $n, 0.0, 1.0, 0.0
+            ld $eta, 0.5
+            refract $a, $n, $eta
+            """;
         var vm = new TetraVm(Assembler.Assemble(code));
-        
         Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
     }
-    
+
     [Test]
-    public void CheckNormalizeConstantThrows()
+    public void CheckRefractInvalidNormalThrows()
     {
-        Assert.That(() => Assembler.Assemble("normalize 2.3"), Throws.TypeOf<SyntaxErrorException>());
-        Assert.That(() => Assembler.Assemble("normalize 2.3, 4.5"), Throws.TypeOf<SyntaxErrorException>());
+        const string code =
+            """
+            ld $a, 0.0, -1.0, 0.0
+            ld $n, 0.0, 1.0             # Invalid: only 2D
+            ld $eta, 0.5
+            refract $a, $n, $eta
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
     }
 }

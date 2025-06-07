@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTC.Core", "DTC.Core\DTC.Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TetraShade", "TetraShade\TetraShade.csproj", "{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTC.GLSLLexer", "DTC.GLSLLexer\DTC.GLSLLexer.csproj", "{520BA4C9-1C51-4BE4-BF99-9E498D9B6B54}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8FF6BBE7-CAD4-4F86-8CDB-2964210DBF25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{520BA4C9-1C51-4BE4-BF99-9E498D9B6B54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{520BA4C9-1C51-4BE4-BF99-9E498D9B6B54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{520BA4C9-1C51-4BE4-BF99-9E498D9B6B54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{520BA4C9-1C51-4BE4-BF99-9E498D9B6B54}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

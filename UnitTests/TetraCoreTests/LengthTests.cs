@@ -11,7 +11,7 @@
 using TetraCore;
 using TetraCore.Exceptions;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
 public class LengthTests

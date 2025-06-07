@@ -11,55 +11,54 @@
 using TetraCore;
 using TetraCore.Exceptions;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
-public class RefractTests
+public class DotTests
 {
     [Test]
-    public void CheckRefractVector()
+    public void CheckDotProduct3D()
     {
         const string code =
             """
-            ld $a, 0.0, -1.0, 0.0       # Incident vector
-            ld $n, 0.0, 1.0, 0.0        # Surface normal
-            ld $eta, 0.5                # Refraction index ratio
-            refract $a, $n, $eta
+            ld $a, 1.0, 2.0, 3.0
+            ld $b, 4.0, 5.0, 6.0
+            dot $a, $b
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
         vm.Run();
 
-        Assert.That(vm["a"].Length, Is.EqualTo(3));
-        Assert.That(vm["a"].Floats[0], Is.EqualTo(0.0f).Within(0.001));
-        Assert.That(vm["a"].Floats[1], Is.EqualTo(-1.0f).Within(0.001));
-        Assert.That(vm["a"].Floats[2], Is.EqualTo(0.0f).Within(0.001));
+        Assert.That(vm["a"].Length, Is.EqualTo(1));
+        Assert.That(vm["a"].Float, Is.EqualTo(32.0f).Within(0.001)); // 1*4 + 2*5 + 3*6
     }
 
     [Test]
-    public void CheckRefractFloatThrows()
+    public void CheckDotProduct2D()
     {
         const string code =
             """
-            ld $a, 1.0
-            ld $n, 0.0, 1.0, 0.0
-            ld $eta, 0.5
-            refract $a, $n, $eta
+            ld $a, 1.0, 3.0
+            dot $a, 4.0, -2.0
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
-        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
+        Assert.That(vm["a"].Length, Is.EqualTo(1));
+        Assert.That(vm["a"].Float, Is.EqualTo(-2.0f).Within(0.001));
     }
 
     [Test]
-    public void CheckRefractInvalidNormalThrows()
+    public void CheckDotMismatchedLengthsThrow()
     {
         const string code =
             """
-            ld $a, 0.0, -1.0, 0.0
-            ld $n, 0.0, 1.0             # Invalid: only 2D
-            ld $eta, 0.5
-            refract $a, $n, $eta
+            ld $a, 1.0, 2.0, 3.0
+            ld $b, 4.0, 5.0
+            dot $a, $b
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
+
         Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
     }
 }

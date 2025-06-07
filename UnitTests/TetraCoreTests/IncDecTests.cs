@@ -11,7 +11,7 @@
 
 using TetraCore;
 
-namespace UnitTests;
+namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
 public class IncDecTests
