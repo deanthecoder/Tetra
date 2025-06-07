@@ -22,6 +22,16 @@ namespace DTC.GLSLParser;
 /// </summary>
 public class Parser
 {
+    private readonly Dictionary<TokenType, int> m_precedence = new()
+    {
+        [TokenType.Asterisk] = 3,
+        [TokenType.Slash] = 3,
+        [TokenType.Plus] = 2,
+        [TokenType.Minus] = 2,
+        [TokenType.EqualsEquals] = 1,
+        [TokenType.NotEquals] = 1
+    };
+    
     private Token[] m_tokens;
     private int m_tokenIndex;
     
@@ -84,21 +94,39 @@ public class Parser
                 return ParseVariableDeclaration();
         }
 
-        throw new ParseException($"Unexpected token '{CurrentToken}' at start of statement.");
+        throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
     }
     
-    private ExprStatementNode ParseExpression()
+    private ExprStatementNode ParseExpression(int parentPrecedence = 0)
+    {
+        var left = ParsePrimaryExpression();
+
+        while (true)
+        {
+            var op = CurrentToken;
+            if (!m_precedence.TryGetValue(op.Type, out var precedence) || precedence <= parentPrecedence)
+                break; // No operator, or operator precedence is lower than or equal to the current.
+
+            Consume(); // Consume the operator
+            
+            var right = ParseExpression(precedence);
+            
+            // Replace 'left' with a BinaryExprNode representing the operator and its operands.
+            left = new BinaryExprNode(left, op, right);
+        }
+        
+        return left;
+    }
+
+    private ExprStatementNode ParsePrimaryExpression()
     {
         var token = Consume();
-        switch (token.Type)
+        return token.Type switch
         {
-            case TokenType.IntLiteral:
-            case TokenType.FloatLiteral:
-                return new LiteralNode(token);
-            
-            default:
-                throw new ParseException($"Unexpected token '{token}' in expression.");
-        }
+            TokenType.IntLiteral or TokenType.FloatLiteral => new LiteralNode(token),
+            TokenType.Identifier => new VariableNode(token),
+            _ => throw new ParseException($"Unexpected token '{token.Value}' in expression.")
+        };
     }
 
     private AssignmentNode ParseVariableDeclaration()
@@ -196,7 +224,7 @@ public class AssignmentNode : AstNode
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
         Name = name ?? throw new ArgumentNullException(nameof(name));
-        Value = expr;
+        Value = expr ?? throw new ArgumentNullException(nameof(expr));
     }
     
     public override string ToString() =>
@@ -217,4 +245,39 @@ public class LiteralNode : ExprStatementNode
     }
     
     public override string ToString() => Value.Value;
+}
+
+/// <summary>
+/// Represents a variable reference in an expression.
+/// </summary>
+public class VariableNode : ExprStatementNode
+{
+    public Token Name { get; }
+    
+    public VariableNode(Token token)
+    {
+        Name = token;
+    }
+
+    public override string ToString() => Name.Value;
+}
+
+/// <summary>
+/// Represents a binary expression like a + b or x * 2.
+/// Produces a value at runtime.
+/// </summary>
+public class BinaryExprNode : ExprStatementNode
+{
+    public ExprStatementNode Left { get; }
+    public Token Operator { get; }
+    public ExprStatementNode Right { get; }
+
+    public BinaryExprNode(ExprStatementNode left, Token op, ExprStatementNode right)
+    {
+        Left = left ?? throw new ArgumentNullException(nameof(left));
+        Operator = op ?? throw new ArgumentNullException(nameof(op));
+        Right = right ?? throw new ArgumentNullException(nameof(right));
+    }
+
+    public override string ToString() => $"({Left} {Operator.Value} {Right})";
 }

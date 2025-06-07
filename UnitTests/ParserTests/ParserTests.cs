@@ -45,9 +45,42 @@ public class ParserTests
     }
 
     [Test]
-    public void ParseFloatAssignment()
+    public void ParseSimpleAssignment()
     {
         var tokens = m_lexer.Tokenize("float a = 23.4f;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseAssignmentWithAddition()
+    {
+        var tokens = m_lexer.Tokenize("float b = a + 1.0;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseAssignmentWithAdditionAndMultiplication()
+    {
+        var tokens = m_lexer.Tokenize("float c = a + 1.0 * b;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseAssignmentWithMultiplicationAndAddition()
+    {
+        var tokens = m_lexer.Tokenize("float c = a * 2.0 + b;");
         var program = m_parser.Parse(tokens);
         Console.WriteLine(program.AsTree());
         
