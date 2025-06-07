@@ -87,4 +87,15 @@ public class ParserTests
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
+    
+    [Test]
+    public void ParseAssignmentWithBracketedMath()
+    {
+        var tokens = m_lexer.Tokenize("float a = (1.0 + 2.0) * 3.0;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
 }

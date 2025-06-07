@@ -125,6 +125,7 @@ public class Parser
         {
             TokenType.IntLiteral or TokenType.FloatLiteral => new LiteralNode(token),
             TokenType.Identifier => new VariableNode(token),
+            TokenType.LeftParen => ParseParenthesizedExpression(),
             _ => throw new ParseException($"Unexpected token '{token.Value}' in expression.")
         };
     }
@@ -138,6 +139,14 @@ public class Parser
         Consume(TokenType.Semicolon, "Expected ';' after variable declaration");
         
         return new AssignmentNode(typeToken, nameToken, expr);
+    }
+    
+    private ExprStatementNode ParseParenthesizedExpression()
+    {
+        var expr = ParseExpression();
+        
+        Consume(TokenType.RightParen, "Expected ')' after expression");
+        return expr;
     }
 }
 
