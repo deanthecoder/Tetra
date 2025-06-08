@@ -296,4 +296,38 @@ public class ParserTests
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
+    
+    [Test]
+    public void ParseForLoopWithVariableDeclaration()
+    {
+        const string code =
+            """
+            for (int i = 0; i < 10; i = i + 1)
+                a = a + 1.0;
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseForLoopWithoutVariableDeclaration()
+    {
+        const string code =
+            """
+            int i;
+            for (i = 0; i < 10; i = i + 1) {
+                a = a + 1.0;
+            }
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(2));
+    }
 }

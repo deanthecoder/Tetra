@@ -30,6 +30,10 @@ public class Parser
         [TokenType.Minus] = 3,
         [TokenType.EqualsEquals] = 2,
         [TokenType.NotEquals] = 2,
+        [TokenType.LessThan] = 2,
+        [TokenType.GreaterThan] = 2,
+        [TokenType.LessThanOrEqual] = 2,
+        [TokenType.GreaterThanOrEqual] = 2,
         [TokenType.Equals] = 1
     };
     
@@ -113,10 +117,12 @@ public class Parser
 
             switch (CurrentToken.Value)
             {
-                case "return":
-                    return ProcessReturnStatement();
+                case "for":
+                    return ParseForStatement();
                 case "if":
                     return ParseIfStatement();
+                case "return":
+                    return ProcessReturnStatement();
                 case "while":
                     return ParseWhileStatement();
             }
@@ -178,6 +184,37 @@ public class Parser
         return new WhileNode(condition, loopStmt);
     }
 
+    private ForNode ParseForStatement()
+    {
+        Consume(TokenType.Keyword, "Expected 'for'");
+        Consume(TokenType.LeftParen, "Expected '(' after 'for'");
+
+        // Init: either a declaration or an expression statement
+        AstNode init;
+        if (CurrentToken.Type == TokenType.Keyword && IsTypeKeyword(CurrentToken.Value))
+        {
+            init = ParseVariableDeclaration();
+        }
+        else
+        {
+            init = new ExpressionStatementNode(ParseExpression());
+            Consume(TokenType.Semicolon);
+        }
+
+        // Condition
+        var condition = ParseExpression();
+        Consume(TokenType.Semicolon, "Expected ';' after 'for' loop condition");
+
+        // Step
+        var step = ParseExpression();
+        Consume(TokenType.RightParen, "Expected ')' after 'for' loop clause");
+
+        // Body
+        var body = ParseStatement();
+
+        return new ForNode(init, condition, step, body);
+    }
+    
     private static bool IsTypeKeyword(string token) =>
         token is "float" or "int" or "void" or "bool" or "vec2" or "vec3" or "vec4" or "mat2" or "mat3" or "mat4";
 
@@ -260,17 +297,18 @@ public class Parser
         var nameToken = Consume(TokenType.Identifier, "Expected variable name");
 
         AssignmentNode node;
-        if (CurrentToken.Type != TokenType.Equals)
-        {
-            node = new AssignmentNode(typeToken, nameToken, null);
-        }
-        else
+        if (CurrentToken.Type == TokenType.Equals)
         {
             Consume(TokenType.Equals, "Expected '=' after variable name");
             var expr = ParseExpression();
             node = new AssignmentNode(typeToken, nameToken, expr);
         }
-        
+        else
+        {
+            // Declaration without an initializer.
+            node = new AssignmentNode(typeToken, nameToken, null);
+        }
+
         Consume(TokenType.Semicolon, "Expected ';' after variable declaration");
         
         return node;
@@ -615,4 +653,26 @@ public class WhileNode : AstNode
 
     public override string ToString() =>
         $"while ({Condition}) {LoopBlock}";
+}
+
+/// <summary>
+/// Represents a `for` loop, including init, condition, step, and body.
+/// </summary>
+public class ForNode : AstNode
+{
+    public AstNode Init { get; }
+    public ExprStatementNode Condition { get; }
+    public ExprStatementNode Step { get; }
+    public AstNode Body { get; }
+
+    public ForNode(AstNode init, ExprStatementNode condition, ExprStatementNode step, AstNode body)
+    {
+        Init = init ?? throw new ArgumentNullException(nameof(init));
+        Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+        Step = step ?? throw new ArgumentNullException(nameof(step));
+        Body = body ?? throw new ArgumentNullException(nameof(body));
+    }
+
+    public override string ToString() =>
+        $"for ({Init} {Condition}; {Step}) {Body}";
 }
