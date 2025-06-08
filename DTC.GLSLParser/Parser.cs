@@ -128,7 +128,7 @@ public class Parser
             }
         }
 
-        if (Peek(TokenType.Identifier))
+        if (IsExpressionStart(CurrentToken.Type))
         {
             // Parse as expression (e.g. assignment 'a = a + b')
             var expr = ParseExpression();
@@ -141,6 +141,18 @@ public class Parser
         
         throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
     }
+
+    private static bool IsExpressionStart(TokenType type) =>
+        type == TokenType.Identifier ||
+        type == TokenType.IntLiteral ||
+        type == TokenType.FloatLiteral ||
+        type == TokenType.TrueLiteral ||
+        type == TokenType.FalseLiteral ||
+        type == TokenType.LeftParen ||
+        type == TokenType.Minus ||
+        type == TokenType.Exclamation ||
+        type == TokenType.Increment ||
+        type == TokenType.Decrement;
 
     private ReturnNode ProcessReturnStatement()
     {
@@ -262,13 +274,40 @@ public class Parser
     private ExprStatementNode ParsePrimaryExpression()
     {
         var token = Consume();
-        return token.Type switch
+        switch (token.Type)
         {
-            TokenType.IntLiteral or TokenType.FloatLiteral or TokenType.TrueLiteral or TokenType.FalseLiteral => new LiteralNode(token),
-            TokenType.Identifier => Peek(TokenType.LeftParen) ? ParseFunctionCall(token) : new VariableNode(token),
-            TokenType.LeftParen => ParseParenthesizedExpression(),
-            _ => throw new ParseException($"Unexpected token '{token.Value}' in expression.")
-        };
+            case TokenType.IntLiteral or TokenType.FloatLiteral or TokenType.TrueLiteral or TokenType.FalseLiteral:
+                return new LiteralNode(token);
+            case TokenType.Identifier:
+                {
+                    if (Peek(TokenType.LeftParen))
+                    {
+                        // We have a function call.
+                        return ParseFunctionCall(token);
+                    }
+                    
+                    var variableNode = new VariableNode(token);
+
+                    // Support postfix ++/-- operators.
+                    if (Peek(TokenType.Increment) || Peek(TokenType.Decrement))
+                    {
+                        var op = Consume();
+                        return new UnaryExprNode(op, variableNode, isPostfix: true);
+                    }
+
+                    // Variable reference.
+                    return variableNode;
+                }
+            case TokenType.LeftParen:
+                return ParseParenthesizedExpression();
+            case TokenType.Decrement or TokenType.Increment or TokenType.Minus or TokenType.Exclamation:
+            {
+                var operand = ParsePrimaryExpression();
+                return new UnaryExprNode(token, operand, isPostfix: false);
+            }
+            default:
+                throw new ParseException($"Unexpected token '{token.Value}' in expression.");
+        }
     }
 
     private CallExprNode ParseFunctionCall(Token nameToken)
@@ -675,4 +714,24 @@ public class ForNode : AstNode
 
     public override string ToString() =>
         $"for ({Init} {Condition}; {Step}) {Body}";
+}
+
+/// <summary>
+/// Represents a unary expression like ++x, x--, !x, etc.
+/// </summary>
+public class UnaryExprNode : ExprStatementNode
+{
+    public Token Operator { get; }
+    public ExprStatementNode Operand { get; }
+    public bool IsPostfix { get; }
+
+    public UnaryExprNode(Token op, ExprStatementNode operand, bool isPostfix = false)
+    {
+        Operator = op ?? throw new ArgumentNullException(nameof(op));
+        Operand = operand ?? throw new ArgumentNullException(nameof(operand));
+        IsPostfix = isPostfix;
+    }
+
+    public override string ToString() =>
+        IsPostfix ? $"{Operand}{Operator.Value}" : $"{Operator.Value}{Operand}";
 }

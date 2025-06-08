@@ -330,4 +330,51 @@ public class ParserTests
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(2));
     }
+
+    [Test]
+    public void ParsePostIncrementOperator()
+    {
+        const string code = "int a = 1; a++;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(2));
+    }
+    
+    [Test]
+    public void ParsePostDecrementOperator()
+    {
+        const string code = "int a = 1; a--;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(2));   
+    }
+    
+    [Test]
+    public void ParsePreIncrementOperator()
+    {
+        const string code = "int a = 1; ++a;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(2));
+    }
+    
+    [Test]
+    public void ParsePreDecrementOperator()
+    {
+        const string code = "int a = 1; --a;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(2));
+    }
 }
