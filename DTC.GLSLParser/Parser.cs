@@ -55,7 +55,6 @@ public class Parser
             while (m_tokenIndex < m_tokens.Length)
             {
                 startLine = CurrentToken.Line;
-
                 var stmt = ParseStatement();
                 statements.Add(stmt);
             }
@@ -112,13 +111,12 @@ public class Parser
                 return ParseVariableDeclaration();
             }
 
-            if (CurrentToken.Value == "return")
+            switch (CurrentToken.Value)
             {
-                // Parse as return statement.
-                Consume(); // Consume 'return'
-                var expr = Peek(TokenType.Semicolon) ? null : ParseExpression();
-                Consume(TokenType.Semicolon, "Expected ';' after return statement.");
-                return new ReturnNode(expr);
+                case "return":
+                    return ProcessReturnStatement();
+                case "if":
+                    return ParseIfStatement();
             }
         }
 
@@ -134,6 +132,36 @@ public class Parser
             return ParseBlock();
         
         throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
+    }
+
+    private ReturnNode ProcessReturnStatement()
+    {
+        Consume(TokenType.Keyword, "Expected 'return'");
+        
+        var expr = Peek(TokenType.Semicolon) ? null : ParseExpression();
+        Consume(TokenType.Semicolon, "Expected ';' after return statement.");
+        
+        return new ReturnNode(expr);
+    }
+
+    private IfNode ParseIfStatement()
+    {
+        Consume(TokenType.Keyword, "Expected 'if'");
+        Consume(TokenType.LeftParen, "Expected '(' after 'if'");
+        var condition = ParseExpression();
+        Consume(TokenType.RightParen, "Expected ')' after 'if' condition");
+
+        var thenStmt = ParseStatement(); // block or single statement
+        
+        // See if there's an 'else'...
+        AstNode elseStmt = null;
+        if (Peek(TokenType.Keyword) && CurrentToken.Value == "else")
+        {
+            Consume(); // Consume 'else'
+            elseStmt = ParseStatement(); // block or single statement
+        }
+
+        return new IfNode(condition, thenStmt, elseStmt);
     }
 
     private static bool IsTypeKeyword(string token) =>
@@ -185,7 +213,7 @@ public class Parser
         var token = Consume();
         return token.Type switch
         {
-            TokenType.IntLiteral or TokenType.FloatLiteral => new LiteralNode(token),
+            TokenType.IntLiteral or TokenType.FloatLiteral or TokenType.TrueLiteral or TokenType.FalseLiteral => new LiteralNode(token),
             TokenType.Identifier => Peek(TokenType.LeftParen) ? ParseFunctionCall(token) : new VariableNode(token),
             TokenType.LeftParen => ParseParenthesizedExpression(),
             _ => throw new ParseException($"Unexpected token '{token.Value}' in expression.")
@@ -535,4 +563,24 @@ public class CallExprNode : ExprStatementNode
 
     public override string ToString() =>
         $"{FunctionName.Value}({string.Join(", ", Arguments.Select(o => o.ToString()))})";
+}
+
+/// <summary>
+/// Represents an `if` or `if-else` statement.
+/// </summary>
+public class IfNode : AstNode
+{
+    public ExprStatementNode Condition { get; }
+    public AstNode ThenBlock { get; }
+    public AstNode ElseBlock { get; }
+
+    public IfNode(ExprStatementNode condition, AstNode thenBlock, AstNode elseBlock)
+    {
+        Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+        ThenBlock = thenBlock ?? throw new ArgumentNullException(nameof(thenBlock));
+        ElseBlock = elseBlock; // null if no else
+    }
+
+    public override string ToString() =>
+        ElseBlock == null ? $"if ({Condition}) {ThenBlock}" : $"if ({Condition}) {ThenBlock} else {ElseBlock}";
 }
