@@ -87,13 +87,42 @@ public class Parser
         throw new ParseException(message);
     }
 
+    private bool Peek(TokenType checkType, int offset = 0)
+    {
+        if (m_tokenIndex + offset >= m_tokens.Length)
+            return false;
+        return m_tokens[m_tokenIndex + offset].Type == checkType;
+    }
+
     private AstNode ParseStatement()
     {
-        // float a = ...
-        if (CurrentToken.Type == TokenType.Keyword && IsTypeKeyword(CurrentToken.Value))
-            return ParseVariableDeclaration();
+        if (Peek(TokenType.Keyword))
+        {
+            if (IsTypeKeyword(CurrentToken.Value))
+            {
+                // Peek ahead — function or variable?
+                var isFunction = Peek(TokenType.LeftParen, 2);
+                if (isFunction)
+                {
+                    // Parse as function declaration.
+                    return ParseFunctionDeclaration();
+                }
+                
+                // Parse as variable declaration (float a = ...)
+                return ParseVariableDeclaration();
+            }
 
-        if (CurrentToken.Type == TokenType.Identifier)
+            if (CurrentToken.Value == "return")
+            {
+                // Parse as return statement.
+                Consume(); // Consume 'return'
+                var expr = Peek(TokenType.Semicolon) ? null : ParseExpression();
+                Consume(TokenType.Semicolon, "Expected ';' after return statement.");
+                return new ReturnNode(expr);
+            }
+        }
+
+        if (Peek(TokenType.Identifier))
         {
             // Parse as expression (e.g. assignment 'a = a + b')
             var expr = ParseExpression();
@@ -101,18 +130,16 @@ public class Parser
             return new ExpressionStatementNode(expr);
         }
 
-        if (CurrentToken.Type == TokenType.LeftBrace)
+        if (Peek(TokenType.LeftBrace))
             return ParseBlock();
         
         throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
     }
 
-    private bool IsTypeKeyword(string token)
-    {
-        return token is "float" or "int";
-    }
+    private static bool IsTypeKeyword(string token) =>
+        token is "float" or "int" or "void" or "bool" or "vec2" or "vec3" or "vec4" or "mat2" or "mat3" or "mat4";
 
-    private AstNode ParseBlock()
+    private BlockNode ParseBlock()
     {
         Consume(TokenType.LeftBrace, "Expected '{' at start of block");
         
@@ -186,7 +213,19 @@ public class Parser
         
         return node;
     }
-    
+
+    private FunctionNode ParseFunctionDeclaration()
+    {
+        var returnType = Consume(TokenType.Keyword, "Expected return type");
+        var name = Consume(TokenType.Identifier, "Expected function name");
+
+        Consume(TokenType.LeftParen, "Expected '(' after function name");
+        Consume(TokenType.RightParen, "Expected ')' after parameter list");
+
+        var body = ParseBlock();
+
+        return new FunctionNode(returnType, name, body);
+    }    
     private ExprStatementNode ParseParenthesizedExpression()
     {
         var expr = ParseExpression();
@@ -385,4 +424,41 @@ public class ExpressionStatementNode : AstNode
     }
 
     public override string ToString() => Expression.ToString();
+}
+
+
+/// <summary>
+/// Represents a function declaration in the AST.
+/// Contains the function's return type, name, and body block of statements.
+/// Example: float main() { ... }
+/// </summary>
+public class FunctionNode : AstNode
+{
+    public Token ReturnType { get; }
+    public Token Name { get; }
+    public BlockNode Body { get; }
+
+    public FunctionNode(Token returnType, Token name, BlockNode body)
+    {
+        ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType));
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        Body = body ?? throw new ArgumentNullException(nameof(body));
+    }
+
+    public override string ToString() => $"{ReturnType.Value} {Name.Value}() {{ ... }}";
+}
+
+/// <summary>
+/// Represents a return statement, optionally with a return expression.
+/// </summary>
+public class ReturnNode : AstNode
+{
+    public ExprStatementNode Value { get; }
+
+    public ReturnNode(ExprStatementNode value)
+    {
+        Value = value;
+    }
+
+    public override string ToString() => Value == null ? "return;" : $"return {Value};";
 }

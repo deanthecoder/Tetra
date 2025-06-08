@@ -144,4 +144,74 @@ public class ParserTests
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(3));
     }
+    
+    [Test]
+    public void ParseParameterlessFunctionReturningVoid()
+    {
+        const string code =
+            """
+            void main() {
+            }
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseParameterlessFunctionReturningVoidStatement()
+    {
+        const string code =
+            """
+            void main() {
+                return;
+            }
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseParameterlessFunctionReturningFloatLiteral()
+    {
+        const string code =
+            """
+            float main() {
+                return 2.3;
+            }
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseParameterlessFunctionReturningFloatVariable()
+    {
+        const string code =
+            """
+            float main() {
+                float a = 1.0;
+                return a;
+            }
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    // todo - ParseFunctionWithParameters
 }
