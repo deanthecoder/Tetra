@@ -40,7 +40,15 @@ public class Parser
     private Token[] m_tokens;
     private int m_tokenIndex;
     
-    private Token CurrentToken => m_tokens[m_tokenIndex];
+    private Token CurrentToken
+    {
+        get
+        {
+            if (m_tokenIndex >= m_tokens.Length)
+                throw new ParseException("Unexpected end of token stream reached.");
+            return m_tokens[m_tokenIndex];
+        }
+    }
 
     public ProgramNode Parse(Token[] tokens)
     {
@@ -245,7 +253,7 @@ public class Parser
     
     private ExprStatementNode ParseExpression(int parentPrecedence = 0)
     {
-        var left = ParsePrimaryExpression();
+        var left = ParseUnaryExpression();
 
         while (true)
         {
@@ -269,6 +277,24 @@ public class Parser
         }
         
         return left;
+    }
+    
+    /// <summary>
+    /// Parses a unary expression such as -x, !x, ++x, or --x.
+    /// Supports chaining (e.g., -- -x) by recursively parsing the operand.
+    /// </summary>
+    private ExprStatementNode ParseUnaryExpression()
+    {
+        var token = CurrentToken;
+
+        if (token.Type is TokenType.Minus or TokenType.Exclamation or TokenType.Increment or TokenType.Decrement)
+        {
+            Consume();
+            var operand = ParseUnaryExpression(); // allow chaining: `-- -x`
+            return new UnaryExprNode(token, operand, isPostfix: false);
+        }
+
+        return ParsePrimaryExpression();
     }
 
     private ExprStatementNode ParsePrimaryExpression()
