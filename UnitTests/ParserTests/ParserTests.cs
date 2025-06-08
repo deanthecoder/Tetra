@@ -273,5 +273,27 @@ public class ParserTests
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
     
+    [Test]
+    public void ParseWhileLoopWithBraces()
+    {
+        const string code = "while (a == 2) { a = a + 1; }";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
     
+    [Test]
+    public void ParseWhileLoopWithoutBraces()
+    {
+        const string code = "while (a == 2) a = a - 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
 }

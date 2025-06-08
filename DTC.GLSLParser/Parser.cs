@@ -117,6 +117,8 @@ public class Parser
                     return ProcessReturnStatement();
                 case "if":
                     return ParseIfStatement();
+                case "while":
+                    return ParseWhileStatement();
             }
         }
 
@@ -162,6 +164,18 @@ public class Parser
         }
 
         return new IfNode(condition, thenStmt, elseStmt);
+    }
+    
+    private WhileNode ParseWhileStatement()
+    {
+        Consume(TokenType.Keyword, "Expected 'while'");
+        Consume(TokenType.LeftParen, "Expected '(' after 'while'");
+        var condition = ParseExpression();
+        Consume(TokenType.RightParen, "Expected ')' after 'while' condition");
+
+        var loopStmt = ParseStatement(); // block or single statement
+        
+        return new WhileNode(condition, loopStmt);
     }
 
     private static bool IsTypeKeyword(string token) =>
@@ -583,4 +597,22 @@ public class IfNode : AstNode
 
     public override string ToString() =>
         ElseBlock == null ? $"if ({Condition}) {ThenBlock}" : $"if ({Condition}) {ThenBlock} else {ElseBlock}";
+}
+
+/// <summary>
+/// Represents a `while` statement.
+/// </summary>
+public class WhileNode : AstNode
+{
+    public ExprStatementNode Condition { get; }
+    public AstNode LoopBlock { get; }
+
+    public WhileNode(ExprStatementNode condition, AstNode loopBlock)
+    {
+        Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+        LoopBlock = loopBlock ?? throw new ArgumentNullException(nameof(loopBlock));
+    }
+
+    public override string ToString() =>
+        $"while ({Condition}) {LoopBlock}";
 }
