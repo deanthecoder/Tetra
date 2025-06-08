@@ -218,13 +218,26 @@ public class Parser
     {
         var returnType = Consume(TokenType.Keyword, "Expected return type");
         var name = Consume(TokenType.Identifier, "Expected function name");
+        var parameters = new List<ParameterNode>();
 
         Consume(TokenType.LeftParen, "Expected '(' after function name");
+        var hasParams = !Peek(TokenType.RightParen);
+        if (hasParams)
+        {
+            do
+            {
+                var type = Consume(TokenType.Keyword, "Expected parameter type");
+                var ident = Consume(TokenType.Identifier, "Expected parameter name");
+                parameters.Add(new ParameterNode(type, ident));
+            }
+            while (Peek(TokenType.Comma) && Consume() != null);
+        }
+
         Consume(TokenType.RightParen, "Expected ')' after parameter list");
 
         var body = ParseBlock();
 
-        return new FunctionNode(returnType, name, body);
+        return new FunctionNode(returnType, name, parameters.ToArray(), body);
     }    
     private ExprStatementNode ParseParenthesizedExpression()
     {
@@ -436,16 +449,39 @@ public class FunctionNode : AstNode
 {
     public Token ReturnType { get; }
     public Token Name { get; }
+    public ParameterNode[] Parameters { get; }
     public BlockNode Body { get; }
 
-    public FunctionNode(Token returnType, Token name, BlockNode body)
+    public FunctionNode(Token returnType, Token name, ParameterNode[] parameters, BlockNode body)
     {
         ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType));
         Name = name ?? throw new ArgumentNullException(nameof(name));
+        Parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
         Body = body ?? throw new ArgumentNullException(nameof(body));
     }
 
-    public override string ToString() => $"{ReturnType.Value} {Name.Value}() {{ ... }}";
+    public override string ToString()
+    {
+        var paramList = string.Join(", ", Parameters.Select(o => o.ToString()));
+        return $"{ReturnType.Value} {Name.Value}({paramList}) {{ ... }}";
+    }
+}
+
+/// <summary>
+/// Represents a single function parameter (e.g., float x)
+/// </summary>
+public class ParameterNode : AstNode
+{
+    public Token Type { get; }
+    public Token Name { get; }
+
+    public ParameterNode(Token type, Token name)
+    {
+        Type = type ?? throw new ArgumentNullException(nameof(type));
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+    }
+
+    public override string ToString() => $"{Type.Value} {Name.Value}";
 }
 
 /// <summary>

@@ -213,5 +213,15 @@ public class ParserTests
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
 
-    // todo - ParseFunctionWithParameters
+    [Test]
+    public void ParseFunctionWithParameters()
+    {
+        const string code = "float sum(int a, float b) { return a + b; }";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
 }
