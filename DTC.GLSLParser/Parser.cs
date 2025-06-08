@@ -186,10 +186,30 @@ public class Parser
         return token.Type switch
         {
             TokenType.IntLiteral or TokenType.FloatLiteral => new LiteralNode(token),
-            TokenType.Identifier => new VariableNode(token),
+            TokenType.Identifier => Peek(TokenType.LeftParen) ? ParseFunctionCall(token) : new VariableNode(token),
             TokenType.LeftParen => ParseParenthesizedExpression(),
             _ => throw new ParseException($"Unexpected token '{token.Value}' in expression.")
         };
+    }
+
+    private CallExprNode ParseFunctionCall(Token nameToken)
+    {
+        Consume(TokenType.LeftParen, "Expected '(' after function name");
+
+        var args = new List<ExprStatementNode>();
+        if (!Peek(TokenType.RightParen))
+        {
+            do
+            {
+                var arg = ParseExpression();
+                args.Add(arg);
+            }
+            while (Peek(TokenType.Comma) && Consume() != null);
+        }
+
+        Consume(TokenType.RightParen, "Expected ')' after argument list");
+
+        return new CallExprNode(nameToken, args.ToArray());
     }
 
     private AssignmentNode ParseVariableDeclaration()
@@ -497,4 +517,22 @@ public class ReturnNode : AstNode
     }
 
     public override string ToString() => Value == null ? "return;" : $"return {Value};";
+}
+
+/// <summary>
+/// Represents a function call expression, e.g., add(x, y)
+/// </summary>
+public class CallExprNode : ExprStatementNode
+{
+    public Token FunctionName { get; }
+    public ExprStatementNode[] Arguments { get; }
+
+    public CallExprNode(Token name, ExprStatementNode[] args)
+    {
+        FunctionName = name ?? throw new ArgumentNullException(nameof(name));
+        Arguments = args ?? throw new ArgumentNullException(nameof(args));
+    }
+
+    public override string ToString() =>
+        $"{FunctionName.Value}({string.Join(", ", Arguments.Select(o => o.ToString()))})";
 }
