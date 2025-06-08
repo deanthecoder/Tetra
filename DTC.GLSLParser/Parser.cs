@@ -24,12 +24,13 @@ public class Parser
 {
     private readonly Dictionary<TokenType, int> m_precedence = new()
     {
-        [TokenType.Asterisk] = 3,
-        [TokenType.Slash] = 3,
-        [TokenType.Plus] = 2,
-        [TokenType.Minus] = 2,
-        [TokenType.EqualsEquals] = 1,
-        [TokenType.NotEquals] = 1
+        [TokenType.Asterisk] = 4,
+        [TokenType.Slash] = 4,
+        [TokenType.Plus] = 3,
+        [TokenType.Minus] = 3,
+        [TokenType.EqualsEquals] = 2,
+        [TokenType.NotEquals] = 2,
+        [TokenType.Equals] = 1
     };
     
     private Token[] m_tokens;
@@ -88,18 +89,29 @@ public class Parser
 
     private AstNode ParseStatement()
     {
-        if (CurrentToken.Type == TokenType.Keyword)
+        // float a = ...
+        if (CurrentToken.Type == TokenType.Keyword && IsTypeKeyword(CurrentToken.Value))
+            return ParseVariableDeclaration();
+
+        if (CurrentToken.Type == TokenType.Identifier)
         {
-            if (CurrentToken.Value is "float" or "int")
-                return ParseVariableDeclaration();
+            // Parse as expression (e.g. assignment 'a = a + b')
+            var expr = ParseExpression();
+            Consume(TokenType.Semicolon, "Expected ';' after expression.");
+            return new ExpressionStatementNode(expr);
         }
-        
+
         if (CurrentToken.Type == TokenType.LeftBrace)
             return ParseBlock();
-
+        
         throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
     }
-    
+
+    private bool IsTypeKeyword(string token)
+    {
+        return token is "float" or "int";
+    }
+
     private AstNode ParseBlock()
     {
         Consume(TokenType.LeftBrace, "Expected '{' at start of block");
@@ -126,6 +138,13 @@ public class Parser
             Consume(); // Consume the operator
             
             var right = ParseExpression(precedence);
+
+            if (op.Type == TokenType.Equals)
+            {
+                // Replace 'left' with a AssignmentNode representing the variable name and its initializer.
+                left = new AssignmentExprNode((VariableNode)left, op, right);
+                break;
+            }
             
             // Replace 'left' with a BinaryExprNode representing the operator and its operands.
             left = new BinaryExprNode(left, op, right);
@@ -268,6 +287,25 @@ public class AssignmentNode : AstNode
 }
 
 /// <summary>
+/// Represents an assignment expression like `a = b + 1`.
+/// </summary>
+public class AssignmentExprNode : ExprStatementNode
+{
+    public VariableNode Target { get; }
+    public Token Operator { get; } // Should always be '=' for now
+    public ExprStatementNode Value { get; }
+
+    public AssignmentExprNode(VariableNode target, Token op, ExprStatementNode value)
+    {
+        Target = target ?? throw new ArgumentNullException(nameof(target));
+        Operator = op ?? throw new ArgumentNullException(nameof(op));
+        Value = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    public override string ToString() => $"{Target} = {Value}";
+}
+
+/// <summary>
 /// Represents a literal constant (23, 69.2, etc.) in the AST.
 /// Produces a value at runtime and is used in expressions.
 /// </summary>
@@ -332,4 +370,19 @@ public class BlockNode : AstNode
     }
 
     public override string ToString() => "{ ... }";
+}
+
+/// <summary>
+/// Wraps an expression when it appears as a standalone statement.
+/// </summary>
+public class ExpressionStatementNode : AstNode
+{
+    public ExprStatementNode Expression { get; }
+    
+    public ExpressionStatementNode(ExprStatementNode expr)
+    {
+        Expression = expr ?? throw new ArgumentNullException(nameof(expr));
+    }
+
+    public override string ToString() => Expression.ToString();
 }

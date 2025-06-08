@@ -127,4 +127,21 @@ public class ParserTests
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
+    
+    [Test]
+    public void ParseAssignmentWithBinaryExpression()
+    {
+        const string code =
+            """
+            float a = 1.0;
+            float b = 2.0;
+            a = a + b;
+            """;
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(3));
+    }
 }
