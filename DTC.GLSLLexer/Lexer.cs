@@ -21,16 +21,20 @@ namespace DTC.GLSLLexer;
 /// </summary>
 public class Lexer
 {
-    private static readonly HashSet<string> Keywords = [
+    public static readonly HashSet<string> TypeNames =
+    [
         "float", "int", "uint", "bool", "void",
-        "return", "if", "else", "for", "while", "uniform",
-        "const", "in", "out", "inout",
         "vec2", "vec3", "vec4",
         "ivec2", "ivec3", "ivec4",
         "mat2", "mat3", "mat4",
         "mat2x2", "mat2x3", "mat2x4",
         "mat3x2", "mat3x3", "mat3x4",
-        "mat4x2", "mat4x3", "mat4x4",
+        "mat4x2", "mat4x3", "mat4x4"
+    ];
+    private static readonly HashSet<string> Keywords =
+    [
+        "return", "if", "else", "for", "while", "uniform",
+        "const", "in", "out", "inout",
         "break", "continue", "switch", "case",
         "struct"
     ];
@@ -42,7 +46,7 @@ public class Lexer
         { "/", TokenType.Slash },
         { "=", TokenType.Equals },
         { "==", TokenType.EqualsEquals },
-        { "!=", TokenType.NotEquals },
+        { "!=", TokenType.NotEqual },
         { "<", TokenType.LessThan },
         { ">", TokenType.GreaterThan },
         { "&", TokenType.Ampersand },
@@ -59,17 +63,17 @@ public class Lexer
         { ".", TokenType.Dot },
         { "++", TokenType.Increment },
         { "--", TokenType.Decrement },
-        { "+=", TokenType.PlusEquals },
-        { "-=", TokenType.MinusEquals },
-        { "*=", TokenType.AsteriskEquals },
-        { "/=", TokenType.SlashEquals },
+        { "+=", TokenType.PlusEqual },
+        { "-=", TokenType.MinusEqual },
+        { "*=", TokenType.AsteriskEqual },
+        { "/=", TokenType.SlashEqual },
         { "<=", TokenType.LessThanOrEqual },
         { ">=", TokenType.GreaterThanOrEqual },
         { "<<", TokenType.ShiftLeft },
         { ">>", TokenType.ShiftRight },
         { "!", TokenType.Exclamation },
         { "%", TokenType.Percent },
-        { "%=", TokenType.PercentEquals },
+        { "%=", TokenType.PercentEqual },
         { "^", TokenType.Caret },
         { "^=", TokenType.CaretEquals },
         { "~", TokenType.Tilde },
@@ -122,6 +126,17 @@ public class Lexer
             
             if (char.IsDigit(ch) || ch == '.')
             {
+                if (ch == '.')
+                {
+                    var nxtCh = i + 1 < code.Length ? code[i + 1] : '\0';
+                    if (nxtCh == '\0' || !char.IsDigit(nxtCh))
+                    {
+                        // Process swizzle '.'.
+                        ConsumeDot(ref i);
+                        continue;
+                    }
+                }
+                
                 ConsumeNumber(ref i);
                 continue;
             }
@@ -209,8 +224,14 @@ public class Lexer
             i++;
 
         var value = m_code.Substring(startIndex, i - startIndex);
-        var tokenType = Keywords.Contains(value) ? TokenType.Keyword : TokenType.Identifier;
+        var tokenType = Keywords.Contains(value) || TypeNames.Contains(value) ? TokenType.Keyword : TokenType.Identifier;
         AppendToken(tokenType, startIndex, i);
+    }
+    
+    private void ConsumeDot(ref int i)
+    {
+        AppendToken(TokenType.Dot, i, i);
+        i++;
     }
 
     private bool ConsumeOperator(ref int i)

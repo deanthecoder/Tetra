@@ -39,6 +39,7 @@ public class LexerTests : TestsBase
     [TestCase("2369", TokenType.IntLiteral)]
     [TestCase("123.456", TokenType.FloatLiteral)]
     [TestCase(".456", TokenType.FloatLiteral)]
+    [TestCase("2.", TokenType.FloatLiteral)]
     [TestCase("123.456e-12", TokenType.FloatLiteral)]
     [TestCase("123.456e+12", TokenType.FloatLiteral)]
     [TestCase("123.456e12", TokenType.FloatLiteral)]
@@ -54,12 +55,61 @@ public class LexerTests : TestsBase
     }
 
     [Test]
+    public void CheckTokenizingSwizzleAfterVariable()
+    {
+        const string code = "a.stpq";
+        var tokens = m_lexer.Tokenize(code);
+
+        Assert.That(tokens, Has.Length.EqualTo(3));
+        Assert.That(tokens[0].Type, Is.EqualTo(TokenType.Identifier));
+        Assert.That(tokens[1].Type, Is.EqualTo(TokenType.Dot));
+        Assert.That(tokens[2].Type, Is.EqualTo(TokenType.Identifier));
+    }
+
+    [Test]
+    public void CheckTokenizingSwizzleAfterCall()
+    {
+        const string code = "vec3(1).stpq";
+        var tokens = m_lexer.Tokenize(code);
+
+        Assert.That(tokens, Has.Length.EqualTo(6));
+        Assert.That(tokens[0].Type, Is.EqualTo(TokenType.Keyword));
+        Assert.That(tokens[1].Type, Is.EqualTo(TokenType.LeftParen));
+        Assert.That(tokens[2].Type, Is.EqualTo(TokenType.IntLiteral));
+        Assert.That(tokens[3].Type, Is.EqualTo(TokenType.RightParen));
+        Assert.That(tokens[4].Type, Is.EqualTo(TokenType.Dot));
+        Assert.That(tokens[5].Type, Is.EqualTo(TokenType.Identifier));
+    }
+
+    [Test]
     public void CheckTokenizingNumberWithFloatSuffix()
     {
         var token = m_lexer.Tokenize("123.456f").Single();
         
         Assert.That(token.Type, Is.EqualTo(TokenType.FloatLiteral));
         Assert.That(token.Value, Is.EqualTo("123.456"));
+    }
+    
+    [Test]
+    public void CheckTokenizingBracketedFloat()
+    {
+        var tokens = m_lexer.Tokenize("(1.2)");
+        
+        Assert.That(tokens, Has.Length.EqualTo(3));
+        Assert.That(tokens[0].Type, Is.EqualTo(TokenType.LeftParen));
+        Assert.That(tokens[1].Type, Is.EqualTo(TokenType.FloatLiteral));
+        Assert.That(tokens[2].Type, Is.EqualTo(TokenType.RightParen));
+    }
+    
+    [Test]
+    public void CheckTokenizingBracketedDotFloat()
+    {
+        var tokens = m_lexer.Tokenize("(.2)");
+        
+        Assert.That(tokens, Has.Length.EqualTo(3));
+        Assert.That(tokens[0].Type, Is.EqualTo(TokenType.LeftParen));
+        Assert.That(tokens[1].Type, Is.EqualTo(TokenType.FloatLiteral));
+        Assert.That(tokens[2].Type, Is.EqualTo(TokenType.RightParen));
     }
 
     [Test]
@@ -94,14 +144,14 @@ public class LexerTests : TestsBase
     [Test]
     [TestCase("++", TokenType.Increment)]
     [TestCase("--", TokenType.Decrement)]
-    [TestCase("+=", TokenType.PlusEquals)]
-    [TestCase("-=", TokenType.MinusEquals)]
-    [TestCase("*=", TokenType.AsteriskEquals)]
-    [TestCase("/=", TokenType.SlashEquals)]
+    [TestCase("+=", TokenType.PlusEqual)]
+    [TestCase("-=", TokenType.MinusEqual)]
+    [TestCase("*=", TokenType.AsteriskEqual)]
+    [TestCase("/=", TokenType.SlashEqual)]
     [TestCase("<=", TokenType.LessThanOrEqual)]
     [TestCase(">=", TokenType.GreaterThanOrEqual)]
     [TestCase("%", TokenType.Percent)]
-    [TestCase("%=", TokenType.PercentEquals)]
+    [TestCase("%=", TokenType.PercentEqual)]
     [TestCase("^", TokenType.Caret)]
     [TestCase("^=", TokenType.CaretEquals)]
     [TestCase("!", TokenType.Exclamation)]
@@ -131,7 +181,7 @@ public class LexerTests : TestsBase
     [Test]
     public void CheckMultiLineCode()
     {
-        var code =
+        const string code =
             """
             123
             45.6

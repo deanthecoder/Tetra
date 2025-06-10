@@ -24,17 +24,29 @@ public class Parser
 {
     private readonly Dictionary<TokenType, int> m_precedence = new()
     {
-        [TokenType.Asterisk] = 4,
-        [TokenType.Slash] = 4,
-        [TokenType.Plus] = 3,
-        [TokenType.Minus] = 3,
-        [TokenType.EqualsEquals] = 2,
-        [TokenType.NotEquals] = 2,
-        [TokenType.LessThan] = 2,
-        [TokenType.GreaterThan] = 2,
-        [TokenType.LessThanOrEqual] = 2,
-        [TokenType.GreaterThanOrEqual] = 2,
-        [TokenType.Equals] = 1
+        [TokenType.Asterisk] = 5,
+        [TokenType.Slash] = 5,
+
+        [TokenType.Plus] = 4,
+        [TokenType.Minus] = 4,
+
+        [TokenType.EqualsEquals] = 3,
+        [TokenType.NotEqual] = 3,
+        [TokenType.LessThan] = 3,
+        [TokenType.GreaterThan] = 3,
+        [TokenType.LessThanOrEqual] = 3,
+        [TokenType.GreaterThanOrEqual] = 3,
+
+        [TokenType.AndAnd] = 2,
+        [TokenType.OrOr] = 2,
+
+        [TokenType.Equals] = 1,
+        [TokenType.PlusEqual] = 1,
+        [TokenType.MinusEqual] = 1,
+        [TokenType.AsteriskEqual] = 1,
+        [TokenType.SlashEqual] = 1,
+        [TokenType.PercentEqual] = 1,
+        [TokenType.CaretEquals] =10
     };
     
     private Token[] m_tokens;
@@ -57,7 +69,7 @@ public class Parser
         if (tokens.Length == 0)
             throw new ArgumentException("Tokens array cannot be empty.", nameof(tokens));
         
-        m_tokens = tokens;
+        m_tokens = tokens.Where(o => o.Type != TokenType.Comment).ToArray();
         m_tokenIndex = 0;
 
         var statements = new List<AstNode>();
@@ -262,23 +274,48 @@ public class Parser
                 break; // No operator, or operator precedence is lower than or equal to the current.
 
             Consume(); // Consume the operator
-            
+
             var right = ParseExpression(precedence);
 
-            if (op.Type == TokenType.Equals)
+            left = op.Type switch
             {
-                // Replace 'left' with a AssignmentNode representing the variable name and its initializer.
-                left = new AssignmentExprNode((VariableNode)left, op, right);
-                break;
-            }
+                // Convert += (and friends) into a regular assignment.
+                TokenType.PlusEqual or TokenType.MinusEqual or TokenType.AsteriskEqual or TokenType.SlashEqual or TokenType.PercentEqual or TokenType.CaretEquals =>
+                    new AssignmentExprNode(left, ConvertCompoundToBinary(op), new BinaryExprNode(left, ConvertCompoundToBinary(op), right)),
+
+                TokenType.Equals =>
+                    new AssignmentExprNode(left, op, right),
+
+                _ => new BinaryExprNode(left, op, right)
+            };
+
+            // Handle ternary after combining binary.
+            if (!Peek(TokenType.Question))
+                continue;
             
-            // Replace 'left' with a BinaryExprNode representing the operator and its operands.
-            left = new BinaryExprNode(left, op, right);
+            Consume(); // consume '?'
+            var thenExpr = ParseExpression();
+            Consume(TokenType.Colon, "Expected ':' in ternary expression");
+            var elseExpr = ParseExpression();
+            left = new TernaryNode(left, thenExpr, elseExpr);
         }
-        
+
         return left;
     }
-    
+
+
+    private static Token ConvertCompoundToBinary(Token token) =>
+        token.Type switch
+        {
+            TokenType.PlusEqual => new Token(TokenType.Plus, token.Line, "+"),
+            TokenType.MinusEqual => new Token(TokenType.Minus, token.Line, "-"),
+            TokenType.AsteriskEqual => new Token(TokenType.Asterisk, token.Line, "*"),
+            TokenType.SlashEqual => new Token(TokenType.Slash, token.Line, "/"),
+            TokenType.PercentEqual => new Token(TokenType.Percent, token.Line, "%"),
+            TokenType.CaretEquals => new Token(TokenType.Caret, token.Line, "^"),
+            _ => throw new InvalidOperationException($"Unexpected compound token: {token}")
+        };
+
     /// <summary>
     /// Parses a unary expression such as -x, !x, ++x, or --x.
     /// Supports chaining (e.g., -- -x) by recursively parsing the operand.
@@ -297,13 +334,14 @@ public class Parser
         return ParsePrimaryExpression();
     }
 
-    private ExprStatementNode ParsePrimaryExpression()
+    private ExprStatementNode ParseBasePrimaryExpression()
     {
         var token = Consume();
         switch (token.Type)
         {
             case TokenType.IntLiteral or TokenType.FloatLiteral or TokenType.TrueLiteral or TokenType.FalseLiteral:
                 return new LiteralNode(token);
+            
             case TokenType.Identifier:
                 {
                     if (Peek(TokenType.LeftParen))
@@ -312,7 +350,7 @@ public class Parser
                         return ParseFunctionCall(token);
                     }
                     
-                    var variableNode = new VariableNode(token);
+                    ExprStatementNode variableNode = new VariableNode(token);
 
                     // Support postfix ++/-- operators.
                     if (Peek(TokenType.Increment) || Peek(TokenType.Decrement))
@@ -320,20 +358,83 @@ public class Parser
                         var op = Consume();
                         return new UnaryExprNode(op, variableNode, isPostfix: true);
                     }
+                    
+                    // Support array access.
+                    while (Peek(TokenType.LeftBracket))
+                    {
+                        Consume(TokenType.LeftBracket);
+                        var indexExpr = ParseExpression();
+                        Consume(TokenType.RightBracket, "Expected ']' after array size expression");
+                        variableNode = new IndexExprNode(variableNode, indexExpr);
+                    }
 
                     // Variable reference.
                     return variableNode;
                 }
+            
+            case TokenType.Keyword:
+                // Support type constructors or array (E.g. vec3(...), or float[3])
+                if (Lexer.TypeNames.Contains(token.Value))
+                {
+                    if (Peek(TokenType.LeftParen))
+                    {
+                        // We have a constructor call.
+                        return ParseFunctionCall(token);
+                    }
+
+                    if (Peek(TokenType.LeftBracket))
+                    {
+                        // We have an array of an integrated type. (float[3]).
+                        Consume(TokenType.LeftBracket);
+                        var sizeExpr = Peek(TokenType.RightBracket) ? null : ParseExpression();
+                        Consume(TokenType.RightBracket, "Expected ']' after array type size");
+
+                        // Expect a constructor call after the type.
+                        Consume(TokenType.LeftParen, "Expected '(' after sized array type");
+
+                        var args = new List<ExprStatementNode>();
+                        if (!Peek(TokenType.RightParen))
+                        {
+                            do
+                            {
+                                args.Add(ParseExpression());
+                            } while (Peek(TokenType.Comma) && Consume() != null);
+                        }
+
+                        Consume(TokenType.RightParen, "Expected ')' to close constructor arguments");
+
+                        return new ArrayConstructorCallNode(token, sizeExpr, args.ToArray());
+                    }
+                }
+
+                break;
+            
             case TokenType.LeftParen:
                 return ParseParenthesizedExpression();
+            
             case TokenType.Decrement or TokenType.Increment or TokenType.Minus or TokenType.Exclamation:
             {
                 var operand = ParsePrimaryExpression();
                 return new UnaryExprNode(token, operand, isPostfix: false);
             }
-            default:
-                throw new ParseException($"Unexpected token '{token.Value}' in expression.");
         }
+        
+        throw new ParseException($"Unexpected token '{token.Value}' in expression.");
+    }
+    
+    private ExprStatementNode ParsePrimaryExpression()
+    {
+        var expr = ParseBasePrimaryExpression();
+        
+        // Support swizzle access on a variable (e.g. .xy, .rgba)
+        while (Peek(TokenType.Dot) && Peek(TokenType.Identifier, 1))
+        {
+            Consume(TokenType.Dot);
+            var swizzleToken = Consume(TokenType.Identifier, "Expected swizzle name after '.'");
+            expr = new SwizzleExprNode(expr, swizzleToken);
+        }
+        
+        return expr;
     }
 
     private CallExprNode ParseFunctionCall(Token nameToken)
@@ -353,30 +454,56 @@ public class Parser
 
         Consume(TokenType.RightParen, "Expected ')' after argument list");
 
-        return new CallExprNode(nameToken, args.ToArray());
+        var isTypeConstructor = Lexer.TypeNames.Contains(nameToken.Value);
+        return isTypeConstructor ? new ConstructorCallNode(nameToken, args.ToArray()) : new CallExprNode(nameToken, args.ToArray());
     }
 
-    private AssignmentNode ParseVariableDeclaration()
+    private AstNode ParseVariableDeclaration()
     {
         var typeToken = Consume(TokenType.Keyword);
-        var nameToken = Consume(TokenType.Identifier, "Expected variable name");
-
-        AssignmentNode node;
-        if (CurrentToken.Type == TokenType.Equals)
-        {
-            Consume(TokenType.Equals, "Expected '=' after variable name");
-            var expr = ParseExpression();
-            node = new AssignmentNode(typeToken, nameToken, expr);
-        }
-        else
-        {
-            // Declaration without an initializer.
-            node = new AssignmentNode(typeToken, nameToken, null);
-        }
-
-        Consume(TokenType.Semicolon, "Expected ';' after variable declaration");
         
-        return node;
+        // Squash any array brackets directly after the variable type (E.g. float[] a = ...)
+        // Tetra won't care about them.
+        if (Peek(TokenType.LeftBracket))
+        {
+            Consume(TokenType.LeftBracket);
+            while (!Peek(TokenType.RightBracket))
+                Consume();
+            Consume(TokenType.RightBracket);
+        }
+
+        var assignments = new List<VariableDeclarationNode>();
+        do
+        {
+            var nameToken = Consume(TokenType.Identifier, "Expected variable name");
+
+            // Support array declarations.
+            ExprStatementNode arraySize = null;
+            if (Peek(TokenType.LeftBracket))
+            {
+                Consume(TokenType.LeftBracket);
+                arraySize = ParseExpression();
+                Consume(TokenType.RightBracket, "Expected ']' after array size expression");
+            }
+
+            VariableDeclarationNode node;
+            if (CurrentToken.Type == TokenType.Equals)
+            {
+                Consume(TokenType.Equals, "Expected '=' after variable name");
+                var expr = ParseExpression();
+                node = new VariableDeclarationNode(typeToken, nameToken, expr);
+            }
+            else
+            {
+                // Declaration without an initializer.
+                node = new VariableDeclarationNode(typeToken, nameToken, arraySize: arraySize);
+            }
+            assignments.Add(node);
+        } while (Peek(TokenType.Comma) && Consume() != null);
+
+        Consume(TokenType.Semicolon, "Expected ';' after variable declaration(s)");
+        
+        return assignments.Count == 1 ? assignments[0] : new MultiVariableDeclarationNode(assignments.ToArray());
     }
 
     private FunctionNode ParseFunctionDeclaration()
@@ -404,6 +531,7 @@ public class Parser
 
         return new FunctionNode(returnType, name, parameters.ToArray(), body);
     }    
+    
     private ExprStatementNode ParseParenthesizedExpression()
     {
         var expr = ParseExpression();
@@ -483,24 +611,46 @@ public abstract class ExprStatementNode : AstNode
 }
 
 /// <summary>
-/// Represents a variable declaration with an initializer.
+/// Represents a variable declaration with or without an initializer.
 /// Does not produce a value at runtime but assigns a computed expression to a named variable.
 /// </summary>
-public class AssignmentNode : AstNode
+public class VariableDeclarationNode : AstNode
 {
     public Token Type { get; }
     public Token Name { get; }
     public ExprStatementNode Value { get; }
+    public ExprStatementNode ArraySize { get; }
 
-    public AssignmentNode(Token type, Token name, ExprStatementNode expr)
+    public VariableDeclarationNode(Token type, Token name, ExprStatementNode expr = null, ExprStatementNode arraySize = null)
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Value = expr;
+        ArraySize = arraySize;
     }
     
+    public override string ToString()
+    {
+        var arrayPart = ArraySize != null ? $"[{ArraySize}]" : string.Empty;
+        return Value == null ? $"{Type.Value} {Name.Value}{arrayPart}" : $"{Type.Value} {Name.Value}{arrayPart} = {Value}";
+    }
+}
+
+/// <summary>
+/// A multi-declaration version of VariableDeclarationNode.
+/// </summary>
+public class MultiVariableDeclarationNode : AstNode
+{
+    public Token Type => Declarations[0].Type;
+    public VariableDeclarationNode[] Declarations { get; }
+
+    public MultiVariableDeclarationNode(VariableDeclarationNode[] declarations)
+    {
+        Declarations = declarations;
+    }
+
     public override string ToString() =>
-        Value == null ? $"{Type.Value} {Name.Value};" : $"{Type.Value} {Name.Value} = {Value}";
+        $"{Type.Value} {string.Join(", ", Declarations.Select(d => d.ToString())).Replace($"{Type.Value} ", string.Empty)};";
 }
 
 /// <summary>
@@ -508,11 +658,11 @@ public class AssignmentNode : AstNode
 /// </summary>
 public class AssignmentExprNode : ExprStatementNode
 {
-    public VariableNode Target { get; }
-    public Token Operator { get; } // Should always be '=' for now
+    public ExprStatementNode Target { get; }
+    public Token Operator { get; }
     public ExprStatementNode Value { get; }
 
-    public AssignmentExprNode(VariableNode target, Token op, ExprStatementNode value)
+    public AssignmentExprNode(ExprStatementNode target, Token op, ExprStatementNode value)
     {
         Target = target ?? throw new ArgumentNullException(nameof(target));
         Operator = op ?? throw new ArgumentNullException(nameof(op));
@@ -661,7 +811,7 @@ public class ReturnNode : AstNode
         Value = value;
     }
 
-    public override string ToString() => Value == null ? "return;" : $"return {Value};";
+    public override string ToString() => Value == null ? "return" : $"return {Value}";
 }
 
 /// <summary>
@@ -683,6 +833,16 @@ public class CallExprNode : ExprStatementNode
 }
 
 /// <summary>
+/// A special case of a function call node, specifically for calling a type constructor (E.g. vec3(1, 2, 3))
+/// </summary>
+public class ConstructorCallNode : CallExprNode
+{
+    public ConstructorCallNode(Token name, ExprStatementNode[] args) : base(name, args)
+    {
+    }
+}
+
+/// <summary>
 /// Represents an `if` or `if-else` statement.
 /// </summary>
 public class IfNode : AstNode
@@ -700,6 +860,26 @@ public class IfNode : AstNode
 
     public override string ToString() =>
         ElseBlock == null ? $"if ({Condition}) {ThenBlock}" : $"if ({Condition}) {ThenBlock} else {ElseBlock}";
+}
+
+/// <summary>
+/// Represents a conditional (ternary) expression in the form 'condition ? thenExpr : elseExpr'.
+/// Returns one of two expressions based on a condition's evaluation.
+/// </summary>
+public class TernaryNode : ExprStatementNode
+{
+    public ExprStatementNode Condition { get; }
+    public ExprStatementNode ThenExpr { get; }
+    public ExprStatementNode ElseExpr { get; }
+
+    public TernaryNode(ExprStatementNode condition, ExprStatementNode thenExpr, ExprStatementNode elseExpr)
+    {
+        Condition = condition;
+        ThenExpr = thenExpr;
+        ElseExpr = elseExpr;
+    }
+
+    public override string ToString() => $"{Condition} ? {ThenExpr} : {ElseExpr}";
 }
 
 /// <summary>
@@ -739,7 +919,7 @@ public class ForNode : AstNode
     }
 
     public override string ToString() =>
-        $"for ({Init} {Condition}; {Step}) {Body}";
+        $"for ({Init}; {Condition}; {Step}) {Body}";
 }
 
 /// <summary>
@@ -761,3 +941,60 @@ public class UnaryExprNode : ExprStatementNode
     public override string ToString() =>
         IsPostfix ? $"{Operand}{Operator.Value}" : $"{Operator.Value}{Operand}";
 }
+
+
+/// <summary>
+/// Represents an array index expression like arr[i].
+/// Used for accessing array elements by their index.
+/// </summary>
+public class IndexExprNode : ExprStatementNode
+{
+    public ExprStatementNode Target { get; }
+    public ExprStatementNode Index { get; }
+
+    public IndexExprNode(ExprStatementNode target, ExprStatementNode index)
+    {
+        Target = target;
+        Index = index;
+    }
+
+    public override string ToString() => $"{Target}[{Index}]";
+}
+
+/// <summary>
+/// Represents a swizzle expression like vec.xy or color.rgba
+/// </summary>
+public class SwizzleExprNode : ExprStatementNode
+{
+    public ExprStatementNode Target { get; }
+    public Token Swizzle { get; }
+
+    public SwizzleExprNode(ExprStatementNode target, Token swizzle)
+    {
+        Target = target ?? throw new ArgumentNullException(nameof(target));
+        Swizzle = swizzle ?? throw new ArgumentNullException(nameof(swizzle));
+    }
+
+    public override string ToString() => $"{Target}.{Swizzle.Value}";
+}
+
+/// <summary>
+/// Represents a constructor call for a fixed-size array, like float[3](1.0, 2.0, 3.0)
+/// </summary>
+public class ArrayConstructorCallNode : ExprStatementNode
+{
+    public Token ElementType { get; }
+    public ExprStatementNode Size { get; }
+    public ExprStatementNode[] Arguments { get; }
+
+    public ArrayConstructorCallNode(Token elementType, ExprStatementNode size, ExprStatementNode[] args)
+    {
+        ElementType = elementType ?? throw new ArgumentNullException(nameof(elementType));
+        Size = size;
+        Arguments = args;
+    }
+
+    public override string ToString() =>
+        $"{ElementType.Value}[{Size}]({string.Join(", ", Arguments.Select(a => a.ToString()))})";
+}
+

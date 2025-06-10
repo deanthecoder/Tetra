@@ -8,6 +8,9 @@
 // about your modifications. Your contributions are valued!
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+
+using System;
+
 namespace DTC.GLSLLexer;
 
 /// <summary>
@@ -20,11 +23,15 @@ public class Token
     public TokenType Type { get; }
     public string Value { get; }
 
-    public Token(TokenType type, int line, string code, int startIndex, int endIndex)
+    public Token(TokenType type, int line, string code, int startIndex, int endIndex) : this(type, line, code.Substring(startIndex, endIndex - startIndex))
+    {
+    }
+
+    public Token(TokenType type, int line, string value)
     {
         Type = type;
         Line = line;
-        Value = code.Substring(startIndex, endIndex - startIndex);
+        Value = value ?? throw new ArgumentNullException(nameof(value));
     }
 
     public override string ToString() =>

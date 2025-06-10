@@ -8,13 +8,16 @@
 // about your modifications. Your contributions are valued!
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+
+using DTC.Core.Extensions;
+using DTC.Core.UnitTesting;
 using DTC.GLSLLexer;
 using DTC.GLSLParser;
 
 namespace UnitTests.ParserTests;
 
 [TestFixture]
-public class ParserTests
+public class ParserTests : TestsBase
 {
     private Lexer m_lexer;
     private Parser m_parser;
@@ -103,6 +106,17 @@ public class ParserTests
     public void ParseVariableDeclaration()
     {
         var tokens = m_lexer.Tokenize("int a;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseMultipleVariableDeclarations()
+    {
+        var tokens = m_lexer.Tokenize("int a, b = 2, c;");
         var program = m_parser.Parse(tokens);
         Console.WriteLine(program.AsTree());
         
@@ -391,9 +405,325 @@ public class ParserTests
     }
     
     [Test]
+    public void ParseNotOperator()
+    {
+        const string code = "a = !b;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
     public void ParseUnaryOperatorChaining()
     {
         const string code = "a = -- -b;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParsePlusEqualsOperator()
+    {
+        const string code = "a += 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseMinusEqualsOperator()
+    {
+        const string code = "a -= 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseMultiplyEqualsOperator()
+    {
+        const string code = "a *= 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseDivideEqualsOperator()
+    {
+        const string code = "a /= 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseModuloEqualsOperator()
+    {
+        const string code = "a %= 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseXorEqualsOperator()
+    {
+        const string code = "a ^= 1;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseLogicalAnd()
+    {
+        const string code = "a > 0 && a <= 100;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseLogicalOr()
+    {
+        const string code = "a <= 0 || a > 100;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseArrayIndexWithVariable()
+    {
+        const string code = "a = b[12];";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseArray2DIndexWithVariable()
+    {
+        const string code = "a = b[12][2];";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseArrayIndexWithExpression()
+    {
+        const string code = "a = b[3 + 4];";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseArrayDeclaration()
+    {
+        const string code = "float a[4];";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test, Sequential]
+    [TestCase("float[] x = float[] (.1, 0.2, 0.3);")]
+    [TestCase("float[] x = float[3] (.1, .2, .3);")]
+    [TestCase("float[3] x = float[] (.1, 0.2, 0.3);")]
+    [TestCase("float[3] x = float[3] (0.1, 0.2, 0.3);")]
+    public void ParseArrayConstruction(string code)
+    {
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseCastingIntToFloat()
+    {
+        const string code = "a = float(69);";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseCastingFloatToInt()
+    {
+        const string code = "a = int(2.3);";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test, Sequential]
+    public void ParseVectorCreation([Values("vec2", "vec3", "vec4", "mat2", "mat3", "mat4", "mat2x2")] string type)
+    {
+        var code = $"a = {type}(2.3);";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseVectorCreationWithSubVector()
+    {
+        const string code = "vec4 b = vec4(vec2(1.0), 2.0, 3.0);";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckAccessingRgbVectorComponents()
+    {
+        const string code = "a = vec3(1.2).rggab;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void CheckAccessingXyzVectorComponents()
+    {
+        const string code = "a = vec2(1.2).xyyx;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void CheckAccessingStpqVectorComponents()
+    {
+        const string code = "a = vec2(1.2).stpq;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void CheckAccessingRgbVectorComponentsOnVariable()
+    {
+        const string code = "a = b.abgr;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckAssigningToSwizzle()
+    {
+        const string code = "a.xy = vec2(1, 2);";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void ParseComment()
+    {
+        const string code = "// comment";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Is.Empty);
+    }
+
+    [Test]
+    public void ParsePiApproximation()
+    {
+        var directoryInfo = ProjectDir.GetDir("Examples");
+        var code = directoryInfo.GetFile("PiApproximation.c").ReadAllText();
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
+    public void ParseTernary()
+    {
+        const string code = "float a = b > 0 ? 1 : -1;";
         var tokens = m_lexer.Tokenize(code);
         var program = m_parser.Parse(tokens);
         Console.WriteLine(program.AsTree());
