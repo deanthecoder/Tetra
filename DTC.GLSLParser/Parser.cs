@@ -518,9 +518,13 @@ public class Parser
         {
             do
             {
+                Token modifier = null;
+                if (Peek(TokenType.Keyword) && CurrentToken.Value is "in" or "out" or "inout")
+                    modifier = Consume(TokenType.Keyword);
+                
                 var type = Consume(TokenType.Keyword, "Expected parameter type");
                 var ident = Consume(TokenType.Identifier, "Expected parameter name");
-                parameters.Add(new ParameterNode(type, ident));
+                parameters.Add(new ParameterNode(modifier, type, ident));
             }
             while (Peek(TokenType.Comma) && Consume() != null);
         }
@@ -787,16 +791,19 @@ public class FunctionNode : AstNode
 /// </summary>
 public class ParameterNode : AstNode
 {
+    public Token Modifier { get; }
     public Token Type { get; }
     public Token Name { get; }
 
-    public ParameterNode(Token type, Token name)
+    public ParameterNode(Token modifier, Token type, Token name)
     {
+        Modifier = modifier;
         Type = type ?? throw new ArgumentNullException(nameof(type));
         Name = name ?? throw new ArgumentNullException(nameof(name));
     }
 
-    public override string ToString() => $"{Type.Value} {Name.Value}";
+    public override string ToString() =>
+        Modifier != null ? $"{Modifier.Value} {Type.Value} {Name.Value}" : $"{Type.Value} {Name.Value}";
 }
 
 /// <summary>

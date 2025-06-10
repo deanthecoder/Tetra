@@ -731,4 +731,19 @@ public class ParserTests : TestsBase
         Assert.That(program, Is.Not.Null);
         Assert.That(program.Statements, Has.Length.EqualTo(1));
     }
+
+    [Test]
+    [TestCase("in")]
+    [TestCase("out")]
+    [TestCase("inout")]
+    public void ParseInOutParams(string modifier)
+    {
+        var code = $"void f({modifier} vec3 v) {{ }}";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
 }
