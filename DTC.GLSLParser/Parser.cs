@@ -285,10 +285,10 @@ public class Parser
             {
                 // Convert += (and friends) into a regular assignment.
                 TokenType.PlusEqual or TokenType.MinusEqual or TokenType.AsteriskEqual or TokenType.SlashEqual or TokenType.PercentEqual or TokenType.CaretEquals =>
-                    new AssignmentExprNode(left, ConvertCompoundToBinary(op), new BinaryExprNode(left, ConvertCompoundToBinary(op), right)),
+                    new AssignmentNode(left, ConvertCompoundToBinary(op), new BinaryExprNode(left, ConvertCompoundToBinary(op), right)),
 
                 TokenType.Equals =>
-                    new AssignmentExprNode(left, op, right),
+                    new AssignmentNode(left, op, right),
 
                 _ => new BinaryExprNode(left, op, right)
             };
@@ -667,13 +667,13 @@ public class MultiVariableDeclarationNode : AstNode
 /// <summary>
 /// Represents an assignment expression like `a = b + 1`.
 /// </summary>
-public class AssignmentExprNode : ExprStatementNode
+public class AssignmentNode : ExprStatementNode
 {
     public ExprStatementNode Target { get; }
     public Token Operator { get; }
     public ExprStatementNode Value { get; }
 
-    public AssignmentExprNode(ExprStatementNode target, Token op, ExprStatementNode value)
+    public AssignmentNode(ExprStatementNode target, Token op, ExprStatementNode value)
     {
         Target = target ?? throw new ArgumentNullException(nameof(target));
         Operator = op ?? throw new ArgumentNullException(nameof(op));

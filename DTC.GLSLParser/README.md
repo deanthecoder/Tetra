@@ -30,8 +30,10 @@ The parser is a **recursive descent parser** that supports a subset of C-style G
 |---------------------|----------------------------------------|---------------------------------------------|
 | `ProgramNode`       | Entire file — a list of `FunctionNode` | Root node of the tree                        |
 | `FunctionNode`      | `float main() { ... }`                 | Represents a function declaration            |
-| `AssignmentNode`    | `float a = 1.0;`, `a = b + 1.0;`       | Variable assignment                          |
-| `IfStatementNode`   | `if (x > 0) { ... } else { ... }`      | Conditional branch                           |
+| `VariableDeclarationNode` | `float a = 1.0;`                 | Declares a variable, optionally with value   |
+| `AssignmentNode`      | `a = b + 1.0;`                   | Updates a variable's value                   |
+| `MultiVariableDeclarationNode` | `int a, b = 2, c;`          | Grouped declarations with shared type        |
+| `IfNode`            | `if (x > 0) { ... } else { ... }`      | Conditional branch                           |
 | `WhileStatementNode`| `while (i < 10) { ... }`               | Looping construct                            |
 | `ReturnNode`        | `return result;`                       | Return statement                             |
 | `ExprStatementNode` | `sin(x);`                              | Expression used as a statement               |
@@ -40,6 +42,7 @@ The parser is a **recursive descent parser** that supports a subset of C-style G
 | `CallExprNode`      | `sin(x)`                               | Function call                                |
 | `LiteralNode`       | `3.14`, `true`                         | Literal constant                             |
 | `VariableNode`      | `a`, `uv0`                             | Variable reference                           |
+| `TernaryNode`       | `x > 0 ? 1 : -1`                       | Ternary conditional expression               |
 
 ## Expression Precedence (High → Low)
 
@@ -52,6 +55,7 @@ The parser is a **recursive descent parser** that supports a subset of C-style G
 | Comparison `< > <= >=`| Left               |
 | Equality `== !=`      | Left               |
 | Logical AND `&&`      | Left               |
+| Ternary `? :`        | Right              |
 | Assignment `=`        | Right              |
 
 ## Parser Design Goals
