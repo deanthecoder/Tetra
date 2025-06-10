@@ -121,6 +121,10 @@ public class Parser
     {
         if (Peek(TokenType.Keyword))
         {
+            var isConst = Peek(TokenType.Keyword) && CurrentToken.Value == "const";
+            if (isConst)
+                Consume(); // skip 'const'
+
             if (IsTypeKeyword(CurrentToken.Value))
             {
                 // Peek ahead — function or variable?
@@ -132,7 +136,7 @@ public class Parser
                 }
                 
                 // Parse as variable declaration (float a = ...)
-                return ParseVariableDeclaration();
+                return ParseVariableDeclaration(isConst);
             }
 
             switch (CurrentToken.Value)
@@ -458,7 +462,7 @@ public class Parser
         return isTypeConstructor ? new ConstructorCallNode(nameToken, args.ToArray()) : new CallExprNode(nameToken, args.ToArray());
     }
 
-    private AstNode ParseVariableDeclaration()
+    private AstNode ParseVariableDeclaration(bool isConst = false)
     {
         var typeToken = Consume(TokenType.Keyword);
         
@@ -491,12 +495,12 @@ public class Parser
             {
                 Consume(TokenType.Equals, "Expected '=' after variable name");
                 var expr = ParseExpression();
-                node = new VariableDeclarationNode(typeToken, nameToken, expr);
+                node = new VariableDeclarationNode(typeToken, nameToken, expr, isConst: isConst);
             }
             else
             {
                 // Declaration without an initializer.
-                node = new VariableDeclarationNode(typeToken, nameToken, arraySize: arraySize);
+                node = new VariableDeclarationNode(typeToken, nameToken, arraySize: arraySize, isConst: isConst);
             }
             assignments.Add(node);
         } while (Peek(TokenType.Comma) && Consume() != null);
@@ -620,23 +624,26 @@ public abstract class ExprStatementNode : AstNode
 /// </summary>
 public class VariableDeclarationNode : AstNode
 {
+    public bool IsConst { get; }
     public Token Type { get; }
     public Token Name { get; }
     public ExprStatementNode Value { get; }
     public ExprStatementNode ArraySize { get; }
 
-    public VariableDeclarationNode(Token type, Token name, ExprStatementNode expr = null, ExprStatementNode arraySize = null)
+    public VariableDeclarationNode(Token type, Token name, ExprStatementNode expr = null, ExprStatementNode arraySize = null, bool isConst = false)
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Value = expr;
         ArraySize = arraySize;
+        IsConst = isConst;
     }
     
     public override string ToString()
     {
         var arrayPart = ArraySize != null ? $"[{ArraySize}]" : string.Empty;
-        return Value == null ? $"{Type.Value} {Name.Value}{arrayPart}" : $"{Type.Value} {Name.Value}{arrayPart} = {Value}";
+        var constPrefix = IsConst ? "const " : string.Empty;
+        return Value == null ? $"{constPrefix}{Type.Value} {Name.Value}{arrayPart}" : $"{constPrefix}{Type.Value} {Name.Value}{arrayPart} = {Value}";
     }
 }
 

@@ -114,6 +114,17 @@ public class ParserTests : TestsBase
     }
     
     [Test]
+    public void ParseConstVariableDeclaration()
+    {
+        var tokens = m_lexer.Tokenize("const float pi = 3.14159;");
+        var program = m_parser.Parse(tokens);
+        Console.WriteLine(program.AsTree());
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(1));
+    }
+    
+    [Test]
     public void ParseMultipleVariableDeclarations()
     {
         var tokens = m_lexer.Tokenize("int a, b = 2, c;");
