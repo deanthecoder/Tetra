@@ -721,8 +721,7 @@ public class ParserTests : TestsBase
     [Test]
     public void ParsePiApproximation()
     {
-        var directoryInfo = ProjectDir.GetDir("Examples");
-        var code = directoryInfo.GetFile("PiApproximation.c").ReadAllText();
+        var code = ProjectDir.GetDir("Examples").GetFile("PiApproximation.c").ReadAllText();
         var tokens = m_lexer.Tokenize(code);
         var program = m_parser.Parse(tokens);
         Console.WriteLine(program.AsTree());

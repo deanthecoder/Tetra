@@ -20,12 +20,8 @@ public static class OpCodeToStringMap
         // Special case names (Cannot be based on enum name).
         var manualEntries = new[]
         {
-            ("jmp_eq", OpCode.JmpEq),
-            ("jmp_ne", OpCode.JmpNe),
-            ("jmp_lt", OpCode.JmpLt),
-            ("jmp_le", OpCode.JmpLe),
-            ("jmp_gt", OpCode.JmpGt),
-            ("jmp_ge", OpCode.JmpGe),
+            ("jmp_z", OpCode.JmpZ),
+            ("jmp_nz", OpCode.JmpNz),
             ("push_frame", OpCode.PushFrame),
             ("pop_frame", OpCode.PopFrame)
         };

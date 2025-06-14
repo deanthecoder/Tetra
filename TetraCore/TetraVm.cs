@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using DTC.Core;
 using DTC.Core.Extensions;
 using TetraCore.Exceptions;
+// ReSharper disable InvalidXmlDocComment
 
 namespace TetraCore;
 
@@ -58,7 +59,7 @@ public class TetraVm
 
     public void Run()
     {
-        const int maxInstructionExecutions = 10_000;
+        const int maxInstructionExecutions = 50_000;
 
         // Execute the instructions.
         var instructionExecutions = 0;
@@ -143,13 +144,18 @@ public class TetraVm
             case OpCode.Mul: ExecuteMul(instr); break;
             case OpCode.Div: ExecuteDiv(instr); break;
             case OpCode.Halt: return false;
+            case OpCode.Lt: ExecuteLt(instr); break;
+            case OpCode.Le: ExecuteLe(instr); break;
+            case OpCode.Gt: ExecuteGt(instr); break;
+            case OpCode.Ge: ExecuteGe(instr); break;
+            case OpCode.Eq: ExecuteEq(instr); break;
+            case OpCode.Ne: ExecuteNe(instr); break;
+            case OpCode.And: ExecuteAnd(instr); break;
+            case OpCode.Or: ExecuteOr(instr); break;
+            case OpCode.Not: ExecuteNot(instr); break;
             case OpCode.Jmp: ExecuteJmp(instr); break;
-            case OpCode.JmpEq: ExecuteJmpEq(instr); break;
-            case OpCode.JmpNe: ExecuteJmpNe(instr); break;
-            case OpCode.JmpLt: ExecuteJmpLt(instr); break;
-            case OpCode.JmpGt: ExecuteJmpGt(instr); break;
-            case OpCode.JmpLe: ExecuteJmpLe(instr); break;
-            case OpCode.JmpGe: ExecuteJmpGe(instr); break;
+            case OpCode.JmpZ: ExecuteJmpZ(instr); break;
+            case OpCode.JmpNz: ExecuteJmpNz(instr); break;
             case OpCode.Print: ExecutePrint(instr); break;
             case OpCode.PushFrame: ExecutePushFrame(); break;
             case OpCode.PopFrame: ExecutePopFrame(); break;
@@ -261,163 +267,43 @@ public class TetraVm
     }
 
     /// <summary>
-    /// E.g. jmp_eq $a, $b, label
-    /// E.g. jmp_eq $a, 2, label
-    /// E.g. jmp_eq $a, 2.3, label
+    /// Jump if zero.
+    /// E.g. jmp_z $a, label
     /// </summary>
-    private void ExecuteJmpEq(Instruction instr)
+    private void ExecuteJmpZ(Instruction instr)
     {
         var a = instr.Operands[0];
         var aValue = CurrentFrame.GetVariable(a.Name);
-        var b = GetOperandValue(instr.Operands[1]);
-        var label = instr.Operands[2];
 
-        bool jump;
-        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
-            jump = aValue.AsFloat().IsApproximately(b.AsFloat());
-        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.Int == b.Int;
-        else
-            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
-
-        if (jump)
-            m_ip = label.Int;
-        else
+        var jump = aValue.AsFloat().IsApproximately(0.0f);
+        if (!jump)
+        {
             m_ip++;
+            return;
+        }
+        
+        var label = instr.Operands[1];
+        m_ip = label.Int;
     }
 
     /// <summary>
-    /// E.g. jmp_ne $a, $b, label
-    /// E.g. jmp_ne $a, 2, label
-    /// E.g. jmp_ne $a, 2.3, label
+    /// Jump if not zero.
+    /// E.g. jmp_nz $a, label
     /// </summary>
-    private void ExecuteJmpNe(Instruction instr)
+    private void ExecuteJmpNz(Instruction instr)
     {
         var a = instr.Operands[0];
         var aValue = CurrentFrame.GetVariable(a.Name);
-        var b = GetOperandValue(instr.Operands[1]);
-        var label = instr.Operands[2];
 
-        bool jump;
-        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
-            jump = !aValue.AsFloat().IsApproximately(b.AsFloat());
-        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.Int != b.Int;
-        else
-            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
-
-        if (jump)
-            m_ip = label.Int;
-        else
+        var jump = !aValue.AsFloat().IsApproximately(0.0f);
+        if (!jump)
+        {
             m_ip++;
-    }
-
-    /// <summary>
-    /// Jump if a is less than b.
-    /// E.g. jmp_lt $a, $b, label
-    /// E.g. jmp_lt $a, 2, label
-    /// E.g. jmp_lt $a, 2.3, label
-    /// </summary>
-    private void ExecuteJmpLt(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aValue = CurrentFrame.GetVariable(a.Name);
-        var b = GetOperandValue(instr.Operands[1]);
-        var label = instr.Operands[2];
-
-        bool jump;
-        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
-            jump = aValue.AsFloat() < b.AsFloat();
-        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.Int < b.Int;
-        else
-            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
-
-        if (jump)
-            m_ip = label.Int;
-        else
-            m_ip++;
-    }
-
-    /// <summary>
-    /// Jump if a is less than or equal to b.
-    /// E.g. jmp_le $a, $b, label
-    /// E.g. jmp_le $a, 2, label
-    /// E.g. jmp_le $a, 2.3, label
-    /// </summary>
-    private void ExecuteJmpLe(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aValue = CurrentFrame.GetVariable(a.Name);
-        var b = GetOperandValue(instr.Operands[1]);
-        var label = instr.Operands[2];
-
-        bool jump;
-        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
-            jump = aValue.AsFloat() <= b.AsFloat();
-        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.Int <= b.Int;
-        else
-            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
-
-        if (jump)
-            m_ip = label.Int;
-        else
-            m_ip++;
-    }
-
-    /// <summary>
-    /// Jump if a is greater than b.
-    /// E.g. jmp_gt $a, $b, label
-    /// E.g. jmp_gt $a, 2, label
-    /// E.g. jmp_gt $a, 2.3, label
-    /// </summary>
-    private void ExecuteJmpGt(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aValue = CurrentFrame.GetVariable(a.Name);
-        var b = GetOperandValue(instr.Operands[1]);
-        var label = instr.Operands[2];
-
-        bool jump;
-        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
-            jump = aValue.AsFloat() > b.AsFloat();
-        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.Int > b.Int;
-        else
-            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
-
-        if (jump)
-            m_ip = label.Int;
-        else
-            m_ip++;
-    }
-
-    /// <summary>
-    /// Jump if a is greater than or equal to b.
-    /// E.g. jmp_ge $a, $b, label
-    /// E.g. jmp_ge $a, 2, label
-    /// E.g. jmp_ge $a, 2.3, label
-    /// </summary>
-    private void ExecuteJmpGe(Instruction instr)
-    {
-        var a = instr.Operands[0];
-        var aValue = CurrentFrame.GetVariable(a.Name);
-        var b = GetOperandValue(instr.Operands[1]);
-        var label = instr.Operands[2];
-
-        bool jump;
-        if (aValue.Type == OperandType.Float || b.Type == OperandType.Float)
-            jump = aValue.AsFloat() >= b.AsFloat();
-        else if (aValue.Type == OperandType.Int && b.Type == OperandType.Int)
-            jump = aValue.Int >= b.Int;
-        else
-            throw new RuntimeException($"Cannot compare {a.Type} and {b.Type}.");
-
-        if (jump)
-            m_ip = label.Int;
-        else
-            m_ip++;
+            return;
+        }
+        
+        var label = instr.Operands[1];
+        m_ip = label.Int;
     }
 
     /// <summary>
@@ -433,6 +319,60 @@ public class TetraVm
     /// </summary>
     private void ExecuteDiv(Instruction instr) =>
         DoMathOp(instr, (a, b) => b == 0.0f ? throw new RuntimeException("Division by zero.") : a / b);
+
+    /// <summary>
+    /// E.g. lt $a, $b    (a = a < b)
+    /// </summary>
+    private void ExecuteLt(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a < b ? 1.0f : 0.0f);
+
+    /// <summary>
+    /// E.g. le $a, $b    (a = a <= b)
+    /// </summary>
+    private void ExecuteLe(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a <= b ? 1.0f : 0.0f);
+
+    /// <summary>
+    /// E.g. gt $a, $b    (a = a > b)
+    /// </summary>
+    private void ExecuteGt(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a > b ? 1.0f : 0.0f);
+
+    /// <summary>
+    /// E.g. ge $a, $b    (a = a >= b)
+    /// </summary>
+    private void ExecuteGe(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a >= b ? 1.0f : 0.0f);
+
+    /// <summary>
+    /// E.g. eq $a, $b    (a = a == b)
+    /// </summary>
+    private void ExecuteEq(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a.IsApproximately(b) ? 1.0f : 0.0f, resultAsBool: true);
+
+    /// <summary>
+    /// E.g. ne $a, $b    (a = a != b)
+    /// </summary>
+    private void ExecuteNe(Instruction instr) =>
+        DoMathOp(instr, (a, b) => !a.IsApproximately(b) ? 1.0f : 0.0f, resultAsBool: true);
+
+    /// <summary>
+    /// E.g. and $a, $b    (a = a && b)
+    /// </summary>
+    private void ExecuteAnd(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a != 0.0f && b != 0.0f ? 1.0f : 0.0f);
+
+    /// <summary>
+    /// E.g. or $a, $b    (a = a || b)
+    /// </summary>
+    private void ExecuteOr(Instruction instr) =>
+        DoMathOp(instr, (a, b) => a != 0.0f || b != 0.0f ? 1.0f : 0.0f);
+
+    /// <summary>
+    /// E.g. not $a    (a = !a)
+    /// </summary>
+    private void ExecuteNot(Instruction instr) =>
+        DoMathOp(instr, (a, _) => a == 0.0f ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. print 3.141
@@ -868,7 +808,7 @@ public class TetraVm
     /// 
     /// This supports scalar or vector operands.
     /// </summary>
-    private void DoMathOp(Instruction instr, Func<float, float, float> op)
+    private void DoMathOp(Instruction instr, Func<float, float, float> op, bool resultAsBool = false)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -919,7 +859,7 @@ public class TetraVm
             if (a.Type == OperandType.Int && b.Type == OperandType.Int)
                 result = new Operand(floats) { Type = OperandType.Int };
             else
-                result = new Operand(floats);
+                result = resultAsBool ? new Operand(floats.FastAll(0.0f) ? 0.0f : 1.0f) : new Operand(floats);
         }
 
         // Store the result.

@@ -138,20 +138,4 @@ public class VectorAccessTests
         Assert.That(vm["a"].Length, Is.EqualTo(1));
         Assert.That(vm["a"].Float, Is.EqualTo(11.22).Within(0.001));
     }
-    
-    [Test]
-    public void CheckJmpEqWithVectorElement()
-    {
-        const string code =
-            """
-                ld $v, 1.1, 2.2, 3.3
-                ld $a, 3.4
-            loop:
-                jmp_eq $a, $v[2], loop
-                halt
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-
-        Assert.That(() => vm.Run(), Throws.Nothing);
-    }
 }

@@ -27,7 +27,9 @@ public class FibonacciExample
                 ld $count, 10
 
             loop:
-                jmp_ge $i, $count, done
+                ld $c, $i
+                ge $c, $count
+                jmp_nz $c, done
 
                 ld $arg0, $i
                 call fib
@@ -45,7 +47,9 @@ public class FibonacciExample
             #
             fib:
                 ld $n, $arg0
-                jmp_le $n, 1, base_case
+                ld $c, $n
+                le $c, 1
+                jmp_nz $c, base_case
 
                 # fib(n - 1)
                 ld $arg0, $n

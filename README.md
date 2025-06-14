@@ -22,7 +22,7 @@ Credit: ["Shield"](https://www.shadertoy.com/view/cltfRf) visual effect by [Xor]
   pushed/popped using `push_frame` / `pop_frame`.
 - **Named Variables**: No general-purpose registers. All values are stored and looked up by name.
 - **Conditional and Unconditional Jumps**: Support for jump labels like `mylabel:` and instructions like `jmp`,
-  `jmp_ne`, `jmp_ge`, etc.
+  `jmp_z` and `jmp_nz`.
 - **Multi-element Float Vector Support**: Support for `vec4` operations alongside scalar floats.
 - **Basic Arithmetic**: Instructions like `add`, `sub`, `inc`, `dec`.
 - **Debugging Aids**: A `print` instruction that outputs variable values along with the line number of the source
@@ -43,7 +43,9 @@ ld $i, 0
 ld $limit, 800
 
 loop:
-    jmp_ge $i, $limit, done
+    ld $c, $i
+    ge $c, $limit
+    jmp_nz $c, done
     ld $denominator, $i
     mul $denominator, 2
     add $denominator, 1
@@ -75,7 +77,9 @@ ld $i, 0
 ld $count, 10
 
 loop:
-    jmp_ge $i, $count, done
+    ld $c, $i
+    ge $c, $count
+    jmp_nz $c, done
     ld $arg0, $i
     call fib
     print $retval
@@ -87,7 +91,9 @@ done:
 
 fib:
     ld $n, $arg0
-    jmp_le $n, 1, base_case
+    ld $c, $n
+    le $c, 1
+    jmp_nz $c, base_case
     ld $arg0, $n
     dec $arg0
     call fib
@@ -172,12 +178,12 @@ ld $v, 1.1, 2.2, 3.3
 ld $v[1], 3.141   # $v = [1.1, 3.141, 3.3]
 ```
 
-Any instruction that operates on scalars (like `inc`, `mul`, `jmp_eq`, etc.) can also target a specific vector component:
+Any instruction that operates on scalars (like `inc`, `mul`, `jmp_z`, etc.) can also target a specific vector component:
 
 ```tetra
 inc $v[2]
 mul $a, $v[1]
-jmp_eq $a, $v[2], label
+jmp_z $a, $v[2], label
 ```
 
 Accessing vector elements from non-vector variables will throw a runtime error.
@@ -250,24 +256,20 @@ Accessing vector elements from non-vector variables will throw a runtime error.
 
 ### 🔄 Control Flow
 
-| Instruction              | Description |
-|--------------------------|-------------|
-| `jmp label`              | Unconditional jump |
-| `jmp_eq $a, $b, label`   | Jump if `$a == $b` |
-| `jmp_ne $a, $b, label`   | Jump if `$a != $b` |
-| `jmp_lt $a, $b, label`   | Jump if `$a < $b` |
-| `jmp_le $a, $b, label`   | Jump if `$a <= $b` |
-| `jmp_gt $a, $b, label`   | Jump if `$a > $b` |
-| `jmp_ge $a, $b, label`   | Jump if `$a >= $b` |
+| Instruction        | Description        |
+|--------------------|--------------------|
+| `jmp label`        | Unconditional jump |
+| `jmp_z $a, label`  | Jump if `$a == 0`  |
+| `jmp_nz $a, label` | Jump if `$a != 0`  |
 
 ### 📦 Variables and Frames
 
 | Instruction         | Description |
-|----------------------|-------------|
-| `ld $a, 1.0`         | Load constant into `$a` |
-| `ld $b, $a`          | Copy variable `$a` into `$b` |
-| `push_frame`         | Push a new scope frame manually (used for block scoping) |
-| `pop_frame`          | Pop the current scope frame |
+|---------------------|-------------|
+| `ld $a, 1.0`        | Load constant into `$a` |
+| `ld $b, $a`         | Copy variable `$a` into `$b` |
+| `push_frame`        | Push a new scope frame manually (used for block scoping) |
+| `pop_frame`         | Pop the current scope frame |
 
 ### 🔁 Function Calls
 

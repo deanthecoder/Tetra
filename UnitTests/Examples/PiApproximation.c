@@ -1,6 +1,10 @@
 /*
  * Example code for the Tetra parser.
  */
+float main() {
+    return pi();
+}
+
 float pi() {
     float sum = 0.0;
     int sign = 1;

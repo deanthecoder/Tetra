@@ -30,7 +30,9 @@ public class PiApproximation
                 ld $limit, 800           # Number of terms to compute
 
             loop:
-                jmp_ge $i, $limit, done  # Exit if i >= limit
+                ld $c, $i
+                ge $c, $limit
+                jmp_nz $c, done          # Exit if i >= limit
 
                 ld $denominator, $i
                 mul $denominator, 2      # denominator = 2*i

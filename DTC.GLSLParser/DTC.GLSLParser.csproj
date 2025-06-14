@@ -6,6 +6,7 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
+      <ProjectReference Include="..\DTC.Core\DTC.Core\DTC.Core.csproj" />
       <ProjectReference Include="..\DTC.GLSLLexer\DTC.GLSLLexer.csproj" />
     </ItemGroup>
 </Project>

@@ -285,10 +285,10 @@ public class Parser
             {
                 // Convert += (and friends) into a regular assignment.
                 TokenType.PlusEqual or TokenType.MinusEqual or TokenType.AsteriskEqual or TokenType.SlashEqual or TokenType.PercentEqual or TokenType.CaretEquals =>
-                    new AssignmentNode(left, ConvertCompoundToBinary(op), new BinaryExprNode(left, ConvertCompoundToBinary(op), right)),
+                    new AssignmentNode(left, new BinaryExprNode(left, ConvertCompoundToBinary(op), right)),
 
                 TokenType.Equals =>
-                    new AssignmentNode(left, op, right),
+                    new AssignmentNode(left, right),
 
                 _ => new BinaryExprNode(left, op, right)
             };
@@ -670,13 +670,11 @@ public class MultiVariableDeclarationNode : AstNode
 public class AssignmentNode : ExprStatementNode
 {
     public ExprStatementNode Target { get; }
-    public Token Operator { get; }
     public ExprStatementNode Value { get; }
 
-    public AssignmentNode(ExprStatementNode target, Token op, ExprStatementNode value)
+    public AssignmentNode(ExprStatementNode target, ExprStatementNode value)
     {
         Target = target ?? throw new ArgumentNullException(nameof(target));
-        Operator = op ?? throw new ArgumentNullException(nameof(op));
         Value = value ?? throw new ArgumentNullException(nameof(value));
     }
 
@@ -1011,4 +1009,3 @@ public class ArrayConstructorCallNode : ExprStatementNode
     public override string ToString() =>
         $"{ElementType.Value}[{Size}]({string.Join(", ", Arguments.Select(a => a.ToString()))})";
 }
-

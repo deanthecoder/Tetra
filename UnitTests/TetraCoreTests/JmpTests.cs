@@ -71,111 +71,33 @@ public class JmpTests
     }
 
     [Test]
-    public void CheckJmpEqJumpsWhenEqual()
+    public void CheckJmpZJumpsWhenZero()
+    {
+        const string code =
+            """
+                ld $x, 0
+                jmp_z $x, zero
+                ld $a, 0
+                halt
+            zero:
+                ld $a, 1
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckJmpNzJumpsWhenNotZero()
     {
         const string code =
             """
                 ld $x, 5
-                ld $y, 5
-                jmp_eq $x, $y, equal
+                jmp_nz $x, notzero
                 ld $a, 0
                 halt
-            equal:
-                ld $a, 1
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Int, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void CheckJmpNeJumpsWhenNotEqual()
-    {
-        const string code =
-            """
-                ld $x, 5
-                ld $y, 6
-                jmp_ne $x, $y, notequal
-                ld $a, 0
-                halt
-            notequal:
-                ld $a, 1
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Int, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void CheckJmpLtJumpsWhenLessThan()
-    {
-        const string code =
-            """
-                ld $x, 3
-                ld $y, 5
-                jmp_lt $x, $y, less
-                ld $a, 0
-                halt
-            less:
-                ld $a, 1
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Int, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void CheckJmpLeJumpsWhenLessThanOrEqual()
-    {
-        const string code =
-            """
-                ld $x, 5
-                ld $y, 5
-                jmp_le $x, $y, le
-                ld $a, 0
-                halt
-            le:
-                ld $a, 1
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Int, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void CheckJmpGtJumpsWhenGreaterThan()
-    {
-        const string code =
-            """
-                ld $x, 10
-                ld $y, 5
-                jmp_gt $x, $y, greater
-                ld $a, 0
-                halt
-            greater:
-                ld $a, 1
-            """;
-        var vm = new TetraVm(Assembler.Assemble(code));
-        vm.Run();
-
-        Assert.That(vm["a"].Int, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void CheckJmpGeJumpsWhenGreaterThanOrEqual()
-    {
-        const string code =
-            """
-                ld $x, 8
-                ld $y, 8
-                jmp_ge $x, $y, ge
-                ld $a, 0
-                halt
-            ge:
+            notzero:
                 ld $a, 1
             """;
         var vm = new TetraVm(Assembler.Assemble(code));

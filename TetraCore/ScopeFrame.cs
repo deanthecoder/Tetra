@@ -130,7 +130,7 @@ public class ScopeFrame
         var sb = new StringBuilder();
         if (m_parent != null)
         {
-            sb.Append(m_parent);
+            sb.Append(m_parent.ToUiString(symbolTable));
             sb.AppendLine("---");
         }
 
