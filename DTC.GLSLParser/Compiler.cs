@@ -18,12 +18,12 @@ namespace DTC.GLSLParser;
 /// </summary>
 public static class Compiler
 {
-    public static string CompileToTetraSource(string glslCode)
+    public static string CompileToTetraSource(string glslCode, string entryPoint = null)
     {
         var tokens = new Lexer().Tokenize(glslCode);
         var ast = new Parser().Parse(tokens);
         var emitter = new TetraEmitter();
-        var tetraCode = emitter.Emit(ast);
+        var tetraCode = emitter.Emit(ast, entryPoint);
         return tetraCode;
     }
 }

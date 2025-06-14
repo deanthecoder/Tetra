@@ -134,12 +134,15 @@ public class TetraEmitterTests : TestsBase
             """;
         const string expected =
             """
+            decl $i
             ld $i, 0
+            decl $denominator
             ld $tmp1, 2
             mul $tmp1, $i
             ld $tmp0, $tmp1
             add $tmp0, 1
             ld $denominator, $tmp0
+            decl $term
             ld $tmp2, 1.0
             div $tmp2, $denominator
             ld $term, $tmp2
@@ -160,7 +163,9 @@ public class TetraEmitterTests : TestsBase
         const string code = "int i = 1; int j = --i;";
         const string expected =
             """
+            decl $i
             ld $i, 1
+            decl $j
             dec $i
             ld $j, $i
             """;
@@ -175,7 +180,9 @@ public class TetraEmitterTests : TestsBase
         const string code = "int i = 1; int j = i--;";
         const string expected =
             """
+            decl $i
             ld $i, 1
+            decl $j
             ld $tmp0, $i
             dec $i
             ld $j, $tmp0
@@ -197,8 +204,10 @@ public class TetraEmitterTests : TestsBase
             """;
         const string expected =
             """
+            decl $sum
             ld $sum, 0
             push_frame
+            decl $i
             ld $i, 0
             for_start_0:
             ld $tmp0, $i
@@ -248,7 +257,7 @@ public class TetraEmitterTests : TestsBase
         var code = ProjectDir.GetDir("Examples").GetFile("PiApproximation.c").ReadAllText();
 
         string tetraCode = null;
-        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code), Throws.Nothing);
+        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code, "main"), Throws.Nothing);
 
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
@@ -256,6 +265,7 @@ public class TetraEmitterTests : TestsBase
         Program program = null;
         Assert.That(() => program = Assembler.Assemble(tetraCode), Throws.Nothing);
         var vm = new TetraVm(program);
+        vm.Debug = true;
         vm.Run();
         
         Assert.That(vm["retval"].AsFloat(), Is.EqualTo(3.141).Within(0.01));

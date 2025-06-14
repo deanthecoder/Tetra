@@ -135,6 +135,7 @@ public class TetraVm
         switch (instr.OpCode)
         {
             case OpCode.Nop: m_ip++; break;
+            case OpCode.Decl: ExecuteDecl(instr); break;
             case OpCode.Ld: ExecuteLd(instr); break;
             case OpCode.Add: ExecuteAdd(instr); break;
             case OpCode.Sub: ExecuteSub(instr); break;
@@ -209,6 +210,21 @@ public class TetraVm
     }
 
     /// <summary>
+    /// E.g. decl $a
+    /// E.g. decl $a, $b, ...
+    /// </summary>
+    private void ExecuteDecl(Instruction instr)
+    {
+        instr.Operands.ForEach(o =>
+        {
+            if (o.Type != OperandType.Variable)
+                throw new RuntimeException("Variable operand expected.");
+            CurrentFrame.DefineVariable(o.Name, new Operand(0.0f));
+        });
+        m_ip++;
+    }
+    
+    /// <summary>
     /// E.g. ld $a, 3.141           (a = 3.141)
     /// E.g. ld $a, $b              (a = b)
     /// E.g. ld $a, 1.1, 2.2, 3.3   (a = [1.1, 2.2, 3.3])
@@ -218,7 +234,7 @@ public class TetraVm
         var a = instr.Operands[0];
         var b = UnpackBPlusOperands(instr.Operands);
 
-        CurrentFrame.DefineVariable(a.Name, b);
+        CurrentFrame.SetVariable(a.Name, b, true);
         m_ip++;
     }
     

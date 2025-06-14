@@ -727,7 +727,7 @@ public class ParserTests : TestsBase
         Console.WriteLine(program.AsTree());
         
         Assert.That(program, Is.Not.Null);
-        Assert.That(program.Statements, Has.Length.EqualTo(1));
+        Assert.That(program.Statements, Has.Length.EqualTo(2));
     }
     
     [Test]

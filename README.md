@@ -264,12 +264,15 @@ Accessing vector elements from non-vector variables will throw a runtime error.
 
 ### 📦 Variables and Frames
 
-| Instruction         | Description |
-|---------------------|-------------|
-| `ld $a, 1.0`        | Load constant into `$a` |
-| `ld $b, $a`         | Copy variable `$a` into `$b` |
-| `push_frame`        | Push a new scope frame manually (used for block scoping) |
-| `pop_frame`         | Pop the current scope frame |
+| Instruction   | Description                                              |
+|---------------|----------------------------------------------------------|
+| `decl $a`     | Declare a new variable in the current scope.             |
+| `ld $a, 1.0`  | Load constant into `$a`                                  |
+| `ld $b, $a`   | Copy variable `$a` into `$b`                             |
+| `push_frame`  | Push a new scope frame manually (used for block scoping) |
+| `pop_frame`   | Pop the current scope frame                              |
+
+💡 `ld` will automatically declare the variable if not already declared.
 
 ### 🔁 Function Calls
 

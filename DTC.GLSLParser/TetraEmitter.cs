@@ -22,17 +22,20 @@ public class TetraEmitter
     private int m_tmpCounter;
     private int m_forLoopCounter;
 
-    public string Emit(ProgramNode program)
+    public string Emit(ProgramNode program, string entryPoint = "main")
     {
         m_sb.Clear();
         m_tmpCounter = 0;
         m_forLoopCounter = 0;
 
-        // Implicit call to main().
-        WriteLine("# Entry point.");
-        WriteLine("call main");
-        WriteLine("halt");
-        WriteLine();
+        if (!string.IsNullOrEmpty(entryPoint))
+        {
+            // Implicit call to entry point function.
+            WriteLine("# Entry point.");
+            WriteLine($"call {entryPoint}");
+            WriteLine("halt");
+            WriteLine();
+        }
         
         // Emit program statements.
         EmitNode(program);
@@ -143,6 +146,7 @@ public class TetraEmitter
 
     private void EmitVariableDeclaration(VariableDeclarationNode decl)
     {
+        WriteLine($"decl ${decl.Name.Value}");
         WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
     }
 
@@ -243,7 +247,7 @@ public class TetraEmitter
 
     private void EmitFor(ForNode forNode)
     {
-        //WriteLine("push_frame");
+        WriteLine("push_frame");
         
         // Setup.
         EmitNode(forNode.Init);
@@ -271,6 +275,6 @@ public class TetraEmitter
         WriteLine($"for_end_{labelSuffix}:");
         
         // Cleanup.
-        //WriteLine("pop_frame");
+        WriteLine("pop_frame");
     }
 }

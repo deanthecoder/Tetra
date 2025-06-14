@@ -34,6 +34,7 @@ public class FramePushPopTests
             ld $a, 23
             ld $result, 0
             push_frame
+            decl $a
             ld $a, 42
             add $result, $a
             pop_frame

@@ -14,6 +14,7 @@ namespace TetraCore;
 public enum OpCode
 {
     Nop,
+    Decl,
     Ld,
     Halt,
     Add,

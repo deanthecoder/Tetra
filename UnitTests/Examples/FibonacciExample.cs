@@ -46,6 +46,8 @@ public class FibonacciExample
             # else return fib(n - 1) + fib(n - 2)
             #
             fib:
+                decl $n, $a
+                
                 ld $n, $arg0
                 ld $c, $n
                 le $c, 1

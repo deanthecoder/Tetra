@@ -67,6 +67,7 @@ public class CallTests
                 print $a
                 halt
             get_value:
+                decl $a
                 ld $a, 123
                 ret $a
             """;
