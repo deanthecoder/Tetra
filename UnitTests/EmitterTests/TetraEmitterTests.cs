@@ -25,6 +25,58 @@ public class TetraEmitterTests : TestsBase
     }
 
     [Test]
+    public void CheckSingleVariableDeclaration()
+    {
+        const string code = "int a;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        
+        Assert.That(tetraCode, Does.Contain("decl $a"));
+    }
+
+    [Test]
+    public void CheckMultipleVariableDeclaration()
+    {
+        const string code = "int a, b;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        
+        Assert.That(tetraCode, Does.Contain("decl $a"));
+        Assert.That(tetraCode, Does.Contain("decl $a"));
+    }
+    
+    [Test]
+    public void CheckVariableDeclarationWithInitialValue()
+    {
+        const string code = "int a = 1;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        
+        Assert.That(tetraCode, Does.Contain("decl $a"));
+        Assert.That(tetraCode, Does.Contain("ld $a, 1"));
+    }
+    
+    [Test]
+    public void CheckMultipleVariableDeclarationsWithInitialValue()
+    {
+        const string code = "int a = 1.0, b = 2.0;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        
+        Assert.That(tetraCode, Does.Contain("decl $a"));
+        Assert.That(tetraCode, Does.Contain("ld $a, 1.0"));
+        Assert.That(tetraCode, Does.Contain("decl $b"));
+        Assert.That(tetraCode, Does.Contain("ld $b, 2.0"));
+    }
+
+    [Test]
+    public void CheckMixedVariableDeclarations()
+    {
+        const string code = "int a = 1, b;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        
+        Assert.That(tetraCode, Does.Contain("decl $a"));
+        Assert.That(tetraCode, Does.Contain("ld $a, 1"));
+        Assert.That(tetraCode, Does.Contain("decl $b"));
+    }
+
+    [Test]
     public void EmitVoidFunctionDeclaration()
     {
         const string code = "void foo() { }";

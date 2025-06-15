@@ -23,12 +23,14 @@ public class TetraEmitter
     private readonly Stack<(string continueLabel, string breakLabel)> m_loopStack = [];
     private int m_tmpCounter;
     private int m_forLoopCounter;
+    private int m_skipLabelCounter;
 
     public string Emit(ProgramNode program, string entryPoint = "main")
     {
         m_sb.Clear();
         m_tmpCounter = 0;
         m_forLoopCounter = 0;
+        m_skipLabelCounter = 0;
         m_loopStack.Clear();
         
         // Emit program statements.
@@ -79,6 +81,10 @@ public class TetraEmitter
 
             case VariableDeclarationNode decl:
                 EmitVariableDeclaration(decl);
+                break;
+            
+            case MultiVariableDeclarationNode decl:
+                EmitMultiVariableDeclaration(decl);
                 break;
             
             case AssignmentNode assign:
@@ -173,6 +179,9 @@ public class TetraEmitter
         if (decl.Value != null)
             WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
     }
+    
+    private void EmitMultiVariableDeclaration(MultiVariableDeclarationNode decl) =>
+        decl.Declarations.ForEach(EmitVariableDeclaration);
 
     private string EmitExpression(ExprStatementNode exprNode)
     {
@@ -256,7 +265,7 @@ public class TetraEmitter
                 "||" => "or",
                 _ => throw new NotImplementedException($"Unsupported operator '{binaryExpr.Operator.Value}'")
             };
-            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+                WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
             
             return $"${tmpName}";
         }
