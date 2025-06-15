@@ -208,16 +208,17 @@ public class TetraEmitterTests : TestsBase
             push_frame
             decl $i
             ld $i, 0
-            for_start_0:
+            for0_start:
             ld $tmp0, $i
             lt $tmp0, 5
-            jmp_z $tmp0, for_end_0
+            jmp_z $tmp0, for0_end
             ld $tmp1, $sum
             add $tmp1, $i
             ld $sum, $tmp1
+            for0_incr:
             inc $i
-            jmp for_start_0
-            for_end_0:
+            jmp for0_start
+            for0_end:
             pop_frame
             """;
         var tetraCode = Compiler.CompileToTetraSource(code);
@@ -259,14 +260,46 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm.CurrentFrame.IsRoot, Is.True);
     }
 
-    [Test, Ignore("Not implemented yet")]
+    [Test]
     public void CheckForLoopContainingBreak()
     {
+        const string code =
+            """
+            int a;
+            void main() {
+                for (int i = 0; i < 1; ++i) {
+                    a = 23;
+                    break;
+                    a = 32;
+                }
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(23));
     }
 
-    [Test, Ignore("Not implemented yet")]
+    [Test]
     public void CheckForLoopContainingContinue()
     {
+        const string code =
+            """
+            int a = 0;
+            void main() {
+                for (int i = 0; i < 5; ++i) {
+                    a += i;
+                    continue;
+                    a = -1000;
+                }
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(10));
     }
 
     [Test]

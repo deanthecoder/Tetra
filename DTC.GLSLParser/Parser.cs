@@ -48,10 +48,10 @@ public class Parser
         [TokenType.PercentEqual] = 1,
         [TokenType.CaretEquals] =10
     };
-    
+
     private Token[] m_tokens;
     private int m_tokenIndex;
-    
+
     private Token CurrentToken
     {
         get
@@ -149,6 +149,10 @@ public class Parser
                     return ProcessReturnStatement();
                 case "while":
                     return ParseWhileStatement();
+                case "break":
+                    return ParseBreakStatement();
+                case "continue":
+                    return ParseContinueStatement();
             }
         }
 
@@ -165,7 +169,7 @@ public class Parser
         
         throw new ParseException($"Unexpected token '{CurrentToken.Value}' at start of statement.");
     }
-
+    
     private static bool IsExpressionStart(TokenType type) =>
         type == TokenType.Identifier ||
         type == TokenType.IntLiteral ||
@@ -546,6 +550,20 @@ public class Parser
         
         Consume(TokenType.RightParen, "Expected ')' after expression");
         return expr;
+    }
+
+    private BreakNode ParseBreakStatement()
+    {
+        Consume(TokenType.Keyword, "Expected 'break'");
+        Consume(TokenType.Semicolon, "Expected ';' after 'break'");
+        return new BreakNode();
+    }
+
+    private ContinueNode ParseContinueStatement()
+    {
+        Consume(TokenType.Keyword, "Expected 'continue'");
+        Consume(TokenType.Semicolon, "Expected ';' after 'continue'");
+        return new ContinueNode();
     }
 }
 
@@ -1008,4 +1026,20 @@ public class ArrayConstructorCallNode : ExprStatementNode
 
     public override string ToString() =>
         $"{ElementType.Value}[{Size}]({string.Join(", ", Arguments.Select(a => a.ToString()))})";
+}
+
+/// <summary>
+/// Represents a 'break' statement.
+/// </summary>
+public class BreakNode : AstNode
+{
+    public override string ToString() => "break";
+}
+
+/// <summary>
+/// Represents a 'continue' statement.
+/// </summary>
+public class ContinueNode : AstNode
+{
+    public override string ToString() => "continue";
 }

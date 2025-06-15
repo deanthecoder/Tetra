@@ -10,6 +10,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DTC.Core.Extensions;
@@ -19,6 +20,7 @@ namespace DTC.GLSLParser;
 public class TetraEmitter
 {
     private readonly StringBuilder m_sb = new();
+    private readonly Stack<(string continueLabel, string breakLabel)> m_loopStack = [];
     private int m_tmpCounter;
     private int m_forLoopCounter;
 
@@ -27,20 +29,27 @@ public class TetraEmitter
         m_sb.Clear();
         m_tmpCounter = 0;
         m_forLoopCounter = 0;
-
-        if (!string.IsNullOrEmpty(entryPoint))
-        {
-            // Implicit call to entry point function.
-            WriteLine("# Entry point.");
-            WriteLine($"call {entryPoint}");
-            WriteLine("halt");
-            WriteLine();
-        }
+        m_loopStack.Clear();
         
         // Emit program statements.
         EmitNode(program);
+        
+        if (string.IsNullOrEmpty(entryPoint))
+            return m_sb.ToString(); // No entry point defined.
 
-        return m_sb.ToString();
+        // Implicit call to entry point function.
+        var codeLines = m_sb.ToString().Split('\n').ToList();
+        if (codeLines.FastFindIndexOf($"{entryPoint}:") == -1)
+            throw new EmitterException($"Entry point '{entryPoint}' not found.");
+        var firstLabel = codeLines.FindIndex(o => o.EndsWith(':'));
+        codeLines.InsertRange(firstLabel, new[]
+        {
+            "# Entry point.",
+            $"call {entryPoint}",
+            "halt",
+            string.Empty
+        });
+        return string.Join("\n", codeLines);
     }
 
     private void EmitNode(AstNode node)
@@ -79,12 +88,26 @@ public class TetraEmitter
             case ForNode forNode:
                 EmitFor(forNode);
                 break;
+            
+            case BreakNode:
+                EmitBreak();
+                break;
+            
+            case ContinueNode:
+                EmitContinue();
+                break;
 
             default:
                 throw new NotImplementedException($"Unsupported statement: '{node}' ({node.GetType().Name})");
         }
     }
-    
+
+    private void EmitBreak() =>
+        WriteLine($"jmp {m_loopStack.Peek().breakLabel}");
+
+    private void EmitContinue() =>
+        WriteLine($"jmp {m_loopStack.Peek().continueLabel}");
+
     private void WriteLine(string s = "")
     {
         m_sb.AppendLine(s);
@@ -147,7 +170,8 @@ public class TetraEmitter
     private void EmitVariableDeclaration(VariableDeclarationNode decl)
     {
         WriteLine($"decl ${decl.Name.Value}");
-        WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
+        if (decl.Value != null)
+            WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
     }
 
     private string EmitExpression(ExprStatementNode exprNode)
@@ -237,7 +261,7 @@ public class TetraEmitter
             return $"${tmpName}";
         }
 
-        throw new EmitterException($"Unexpected expression '{exprNode}' ({exprNode.GetType().Name})");
+        throw new EmitterException($"Unexpected expression '{exprNode}' ({exprNode?.GetType().Name})");
     }
     
     private void EmitAssignment(AssignmentNode assign)
@@ -254,12 +278,17 @@ public class TetraEmitter
         
         // Loop start label.
         var labelSuffix = m_forLoopCounter++;
-        var startLabel = $"for_start_{labelSuffix}";
+        var startLabel = $"for{labelSuffix}_start";
         WriteLine($"{startLabel}:");
-        
+
+        // Support break/continue.
+        var incrementLabel = $"for{labelSuffix}_incr";
+        var endLabel = $"for{labelSuffix}_end";
+        m_loopStack.Push((continueLabel: incrementLabel, breakLabel: endLabel));
+
         // Condition check.
         var repeat = EmitExpression(forNode.Condition);
-        WriteLine($"jmp_z {repeat}, for_end_{labelSuffix}");
+        WriteLine($"jmp_z {repeat}, for{labelSuffix}_end");
 
         // Loop body.
         if (forNode.Body is BlockNode blockNode)
@@ -268,13 +297,16 @@ public class TetraEmitter
             EmitNode(forNode.Body);
         
         // Loop increment.
+        WriteLine($"{incrementLabel}:");
         EmitExpression(forNode.Step);
         
         // Loop end.
         WriteLine($"jmp {startLabel}");
-        WriteLine($"for_end_{labelSuffix}:");
+        WriteLine($"{endLabel}:");
         
         // Cleanup.
         WriteLine("pop_frame");
+        
+        m_loopStack.Pop();
     }
 }
