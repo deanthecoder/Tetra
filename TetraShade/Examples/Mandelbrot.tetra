@@ -69,11 +69,15 @@ loop:
     # if (zRe² + zIm² > 4) break;
     ld $mag2, $zr2
     add $mag2, $zi2
-    jmp_gt $mag2, 4, end
+    ld $c, $mag2
+    gt $c, 4
+    jmp_nz $c, end
 
     # i++
     inc $i
-    jmp_lt $i, $maxIter, loop
+    ld $c, $i
+    lt $c, $maxIter
+    jmp_nz $c, loop
 
 end:
     ld $arg0, $i
