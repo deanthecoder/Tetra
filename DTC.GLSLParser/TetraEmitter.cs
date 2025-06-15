@@ -265,7 +265,26 @@ public class TetraEmitter
                 "||" => "or",
                 _ => throw new NotImplementedException($"Unsupported operator '{binaryExpr.Operator.Value}'")
             };
+
+            if (op == "and")
+            {
+                // Special case - The second expression should not be executed if the first is false.
+                var skipLabel = $"logic_skip{m_skipLabelCounter++}";
+                WriteLine($"jmp_z ${tmpName}, {skipLabel}");
                 WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+                WriteLine($"{skipLabel}:");
+            } else if (op == "or")
+            {
+                // Special case - The second expression should not be executed if the first is true.
+                var skipLabel = $"logic_skip{m_skipLabelCounter++}";
+                WriteLine($"jmp_nz ${tmpName}, {skipLabel}");
+                WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+                WriteLine($"{skipLabel}:");
+            }
+            else
+            {
+                WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+            }
             
             return $"${tmpName}";
         }
