@@ -84,4 +84,19 @@ public class ScopeFrameTests
         Assert.That(localScopeFrame.IsDefined("31"), Is.True);
         Assert.That(localScopeFrame.GetVariable("31").Int, Is.EqualTo(23));
     }
+
+    [Test]
+    public void GivenSoloFrameCheckIsRoot()
+    {
+        Assert.That(m_scopeFrame.IsRoot, Is.True);
+    }
+    
+    [Test]
+    public void GivenParentFrameCheckIsNotRoot()
+    {
+        var parentScopeFrame = new ScopeFrame();
+        var localScopeFrame = new ScopeFrame(parentScopeFrame);
+        
+        Assert.That(localScopeFrame.IsRoot, Is.False);
+    }
 }

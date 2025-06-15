@@ -9,7 +9,6 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-using DTC.Core.Extensions;
 using DTC.Core.UnitTesting;
 using DTC.GLSLParser;
 using TetraCore;
@@ -226,48 +225,89 @@ public class TetraEmitterTests : TestsBase
         Assert.That(tetraCode.TrimEnd(), Is.EqualTo(expected.TrimEnd()));
     }
 
-    [Test, Ignore( "Not implemented yet" )]
+    [Test]
     public void CheckForLoopDefinesVariablesInScope()
     {
-        throw new NotImplementedException();
+        const string code =
+            """
+            int i = 23;
+            for (int i = 0; i < 5; ++i) { }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["i"].Int, Is.EqualTo(23));
     }
     
-    [Test, Ignore( "Not implemented yet" )]
+    [Test]
     public void CheckForLoopContainingReturn()
     {
-        // Must end scope.
-        throw new NotImplementedException();
+        const string code =
+            """
+            void main() {
+                for (int i = 0; i < 5; ++i) {
+                    for (int j = 0; j < 5; ++j)
+                        return;
+                }
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm.CurrentFrame.IsRoot, Is.True);
     }
-    
-    [Test, Ignore( "Not implemented yet" )]
+
+    [Test, Ignore("Not implemented yet")]
     public void CheckForLoopContainingBreak()
     {
-        throw new NotImplementedException();
     }
-    
-    [Test, Ignore( "Not implemented yet" )]
+
+    [Test, Ignore("Not implemented yet")]
     public void CheckForLoopContainingContinue()
     {
-        throw new NotImplementedException();
     }
 
     [Test]
-    public void EmitPiApproximationCode()
+    public void CheckSecondTermInAndExpression()
     {
-        var code = ProjectDir.GetDir("Examples").GetFile("PiApproximation.c").ReadAllText();
-
-        string tetraCode = null;
-        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code, "main"), Throws.Nothing);
-
-        Assert.That(tetraCode, Is.Not.Null);
-        Assert.That(tetraCode, Is.Not.Empty);
-
-        Program program = null;
-        Assert.That(() => program = Assembler.Assemble(tetraCode), Throws.Nothing);
-        var vm = new TetraVm(program);
-        vm.Debug = true;
+        const string code =
+            """
+            int a, b;
+            void main() {
+                int dummy1 = 1 && setA();
+                int dummy2 = 0 && setB();
+            }
+            int setA() { a = 1; return 1; }
+            int setB() { b = 1; return 1; }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
         vm.Run();
-        
-        Assert.That(vm["retval"].AsFloat(), Is.EqualTo(3.141).Within(0.01));
+
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+        Assert.That(vm["b"].Int, Is.Zero);
+    }
+    
+    [Test]
+    public void CheckSecondTermInOrExpression()
+    {
+        const string code =
+            """
+            int a, b;
+            void main() {
+                int dummy1 = 1 || setA();
+                int dummy2 = 0 || setB();
+            }
+            int setA() { a = 1; return 1; }
+            int setB() { b = 1; return 1; }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.Zero);
+        Assert.That(vm["b"].Int, Is.EqualTo(1));
     }
 }

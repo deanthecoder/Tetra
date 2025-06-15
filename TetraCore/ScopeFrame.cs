@@ -26,6 +26,8 @@ public class ScopeFrame
 
     private readonly ScopeFrame m_parent;
     private readonly Operand[] m_slots = new Operand[MaxSlots];
+
+    public bool IsRoot => m_parent == null;
     
     public Operand Retval
     {

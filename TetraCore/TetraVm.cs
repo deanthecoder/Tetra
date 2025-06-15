@@ -27,7 +27,7 @@ public class TetraVm
 {
     private readonly Program m_program;
     private readonly Stack<ScopeFrame> m_frames = new Stack<ScopeFrame>(4);
-    private readonly Stack<(int functionLabel, int returnIp)> m_callStack = new Stack<(int functionLabel, int returnIp)>(4);
+    private readonly Stack<(int functionLabel, int returnIp, int scopeFrameDepth)> m_callStack = new Stack<(int, int, int)>(4);
     private List<string> m_uniforms;
     private int m_ip;
 
@@ -435,8 +435,8 @@ public class TetraVm
             throw new RuntimeException("Integer operand expected.");
         if (instr.Operands.Length > 1)
             throw new RuntimeException("Too many operands.");
+        m_callStack.Push((label.Int, m_ip + 1, m_frames.Count));
         m_frames.Push(new ScopeFrame(CurrentFrame));
-        m_callStack.Push((label.Int, m_ip + 1));
         m_ip = label.Int;
     }
 
@@ -455,6 +455,7 @@ public class TetraVm
         Operand a;
         if (instr.Operands.Length > 0)
         {
+            // Returning a value.
             var operands = new Operand[instr.Operands.Length];
             for (var i = 0; i < operands.Length; i++)
                 operands[i] = GetOperandValue(instr.Operands[i]);
@@ -462,17 +463,21 @@ public class TetraVm
         }
         else
         {
+            // Void function.
             a = null;
         }
-        
-        // Pop the scoped variable frame.
-        m_frames.Pop();
+
+        var preCallStackInfo = m_callStack.Pop();
+
+        // Pop the scoped variable frame(s).
+        while (m_frames.Count > preCallStackInfo.scopeFrameDepth)
+            m_frames.Pop();
 
         // Make the return value available to the caller (may be null).
         CurrentFrame.Retval = a;
 
         // Restore the IP.
-        m_ip = m_callStack.Pop().returnIp;
+        m_ip = preCallStackInfo.returnIp;
     }
 
     /// <summary>
