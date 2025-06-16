@@ -270,15 +270,19 @@ public class TetraEmitter
             {
                 // Special case - The second expression should not be executed if the first is false.
                 var skipLabel = $"logic_skip{m_skipLabelCounter++}";
+                WriteLine($"test ${tmpName}");
                 WriteLine($"jmp_z ${tmpName}, {skipLabel}");
                 WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+                WriteLine($"test ${tmpName}");
                 WriteLine($"{skipLabel}:");
             } else if (op == "or")
             {
                 // Special case - The second expression should not be executed if the first is true.
                 var skipLabel = $"logic_skip{m_skipLabelCounter++}";
+                WriteLine($"test ${tmpName}");
                 WriteLine($"jmp_nz ${tmpName}, {skipLabel}");
                 WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+                WriteLine($"test ${tmpName}");
                 WriteLine($"{skipLabel}:");
             }
             else

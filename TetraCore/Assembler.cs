@@ -216,6 +216,7 @@ public class Assembler
             new(OpCode.Or, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Or, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Not, [OperandType.Variable]),
+            new(OpCode.Test, [OperandType.Variable]),
             new(OpCode.Jmp, [OperandType.Label]),
             new(OpCode.JmpZ, [OperandType.Variable, OperandType.Label]),
             new(OpCode.JmpNz, [OperandType.Variable, OperandType.Label]),

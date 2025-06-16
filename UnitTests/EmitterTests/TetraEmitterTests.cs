@@ -359,20 +359,22 @@ public class TetraEmitterTests : TestsBase
     {
         const string code =
             """
-            int a, b;
+            int a, b, d1, d2;
             void main() {
-                int dummy1 = 1 && setA();
-                int dummy2 = 0 && setB();
+                d1 = 13 && setA();
+                d2 = 0 && setB();
             }
-            int setA() { a = 1; return 1; }
-            int setB() { b = 1; return 1; }
+            int setA() { a = 1; return 12; }
+            int setB() { b = 1; return 15; }
             """;
         var tetraCode = Compiler.CompileToTetraSource(code, "main");
         var vm = new TetraVm(Assembler.Assemble(tetraCode));
         vm.Run();
 
         Assert.That(vm["a"].Int, Is.EqualTo(1));
+        Assert.That(vm["d1"].Int, Is.EqualTo(1));
         Assert.That(vm["b"].Int, Is.Zero);
+        Assert.That(vm["d2"].Int, Is.Zero);
     }
     
     [Test]
@@ -380,19 +382,99 @@ public class TetraEmitterTests : TestsBase
     {
         const string code =
             """
-            int a, b;
+            int a, b, d1, d2;
             void main() {
-                int dummy1 = 1 || setA();
-                int dummy2 = 0 || setB();
+                d1 = 23 || setA();
+                d2 = 0 || setB();
             }
-            int setA() { a = 1; return 1; }
-            int setB() { b = 1; return 1; }
+            int setA() { a = 1; return 11; }
+            int setB() { b = 1; return 12; }
             """;
         var tetraCode = Compiler.CompileToTetraSource(code, "main");
         var vm = new TetraVm(Assembler.Assemble(tetraCode));
         vm.Run();
 
         Assert.That(vm["a"].Int, Is.Zero);
+        Assert.That(vm["d1"].Int, Is.EqualTo(1));
         Assert.That(vm["b"].Int, Is.EqualTo(1));
+        Assert.That(vm["d2"].Int, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckVectorArrayAccess()
+    {
+        const string code =
+            """
+            vec2 v = vec2(1.0, 2.0);
+            float y = v[1];
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["y"].Float, Is.EqualTo(2.0));
+    }
+    
+    [Test]
+    public void CheckVectorElementAccess()
+    {
+        const string code =
+            """
+            vec2 v = vec2(1.0, 2.0);
+            float y = v.y;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["y"].Float, Is.EqualTo(2.0));
+    }
+    
+    [Test]
+    public void CheckVectorConstructionFromSwizzle()
+    {
+        const string code =
+            """
+            vec2 v1 = vec2(1.0, 2.0);
+            vec3 v3 = v1.xyx;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["v3"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 1.0f }));
+    }
+
+    [Test, Explicit("Not implemented yet.")]
+    public void CheckBitShifting()
+    {
+        const string code = "int a = 5 >> 1;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Int, Is.EqualTo(2));
+    }
+    
+    [Test, Explicit("Not implemented yet.")]
+    public void CheckBitwiseAnd()
+    {
+        const string code = "int a = 11 & 7;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Int, Is.EqualTo(3));
+    }
+    
+    [Test, Explicit("Not implemented yet.")]
+    public void CheckBitwiseOr()
+    {
+        const string code = "int a = 9 | 2;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Int, Is.EqualTo(11));
     }
 }

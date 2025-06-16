@@ -33,6 +33,7 @@ public enum OpCode
     And,
     Or,
     Not,
+    Test,
     Jmp,
     JmpZ,
     JmpNz,

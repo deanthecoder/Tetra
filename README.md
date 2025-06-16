@@ -254,6 +254,40 @@ Accessing vector elements from non-vector variables will throw a runtime error.
 | `reflect $a, $I, $N` | `$a = reflect($I, $N)` (reflection of vector `$I` off surface normal `$N`) |
 | `refract $a, $I, $N, $eta` | `$a = refract($I, $N, $eta)` (refraction vector) |
 
+### 🤖 Logic
+
+Tetra supports a set of logical operations that work with both scalars and vectors. These instructions perform comparisons and store the result (0 or 1) in the destination variable.
+
+| Instruction     | Description       |
+|-----------------|-------------------|
+| `eq $a, $b`     | `$a = ($a == $b)` |
+| `ne $a, $b`     | `$a = ($a != $b)` |
+| `lt $a, $b`     | `$a = ($a < $b)`  |
+| `le $a, $b`     | `$a = ($a <= $b)` |
+| `gt $a, $b`     | `$a = ($a > $b)`  |
+| `ge $a, $b`     | `$a = ($a >= $b)` |
+
+These work per element when used with vectors, returning a vector of 0s and 1s.
+
+Logical conjunction and disjunction are also available:
+
+| Instruction  | Description       |
+|--------------|-------------------|
+| `and $a, $b` | `$a = $a && $b`   |
+| `or $a, $b`  | `$a = $a \|\| $b` |
+| `not $a`     | `$a = !$a`        |
+
+These also operate element-wise for vectors.
+
+For a direct boolean test of a value (e.g. to use as a condition), use the `test` instruction:
+
+```
+test $cond
+jmp_z $cond, else_label
+```
+
+The result of `test` will always be a scalar `0` or `1`, even if the input is a vector. If any element of the input is non-zero, the result is `1`; otherwise, it is `0`.
+
 ### 🔄 Control Flow
 
 | Instruction        | Description        |

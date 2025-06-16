@@ -383,4 +383,100 @@ public class LogicTests
 
         Assert.That(vm["a"].Float, Is.Zero);
     }
+
+    [Test]
+    public void CheckTestWithZeroIntIsZero()
+    {
+        const string code =
+            """
+            ld $a, 0
+            test $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.Zero);
+    }
+
+    [Test]
+    public void CheckTestWithNonZeroIntIsOne()
+    {
+        const string code =
+            """
+            ld $a, 23
+            test $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+    }
+    
+    [Test]
+    public void CheckTestWithZeroFloatIsZero()
+    {
+        const string code =
+            """
+            ld $a, 0.0
+            test $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.Zero);
+    }
+
+    [Test]
+    public void CheckTestWithNonZeroFloatIsOne()
+    {
+        const string code =
+            """
+            ld $a, 12.34
+            test $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckTestWithZeroVectorIsZero()
+    {
+        const string code =
+            """
+            ld $a, 0.0, 0.0
+            test $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.Zero);
+    }
+    
+    [Test]
+    public void CheckTestWithNonZeroVectorIsOne()
+    {
+        const string code =
+            """
+            ld $a, 0.0, 2.3
+            test $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.EqualTo(1));
+    }
 }

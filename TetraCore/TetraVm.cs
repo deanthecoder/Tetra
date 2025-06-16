@@ -154,6 +154,7 @@ public class TetraVm
             case OpCode.And: ExecuteAnd(instr); break;
             case OpCode.Or: ExecuteOr(instr); break;
             case OpCode.Not: ExecuteNot(instr); break;
+            case OpCode.Test: ExecuteTest(instr); break;
             case OpCode.Jmp: ExecuteJmp(instr); break;
             case OpCode.JmpZ: ExecuteJmpZ(instr); break;
             case OpCode.JmpNz: ExecuteJmpNz(instr); break;
@@ -389,6 +390,27 @@ public class TetraVm
     /// </summary>
     private void ExecuteNot(Instruction instr) =>
         DoMathOp(instr, (a, _) => a == 0.0f ? 1.0f : 0.0f);
+    
+    /// <summary>
+    /// E.g. test $a    (a = 1 if 'a' is non-zero)
+    /// </summary>
+    private void ExecuteTest(Instruction instr)
+    {
+        // Get target variable.
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        if (CurrentFrame.IsDefined(aName))
+        {
+            a = CurrentFrame.GetVariable(aName);
+            if (a.Type is OperandType.Label or OperandType.Variable)
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
+        }
+
+        // Store the result.
+        var result = new Operand(a.Floats.Any(o => o != 0.0) ? 1 : 0);
+        CurrentFrame.SetVariable(aName, result, true);
+        m_ip++;
+    }
 
     /// <summary>
     /// E.g. print 3.141
