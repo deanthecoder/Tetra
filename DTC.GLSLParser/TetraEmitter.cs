@@ -263,6 +263,8 @@ public class TetraEmitter
                 ">=" => "ge",
                 "&&" => "and",
                 "||" => "or",
+                "<<" => "shiftl",
+                ">>" => "shiftr",
                 _ => throw new NotImplementedException($"Unsupported operator '{binaryExpr.Operator.Value}'")
             };
 

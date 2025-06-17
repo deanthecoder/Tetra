@@ -444,6 +444,28 @@ public class TetraEmitterTests : TestsBase
         
         Assert.That(vm["v3"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 1.0f }));
     }
+    
+    [Test]
+    public void CheckShiftRightOperator()
+    {
+        const string code = "int a = 10 >> 1;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Int, Is.EqualTo(5));
+    }
+    
+    [Test]
+    public void CheckShiftLeftOperator()
+    {
+        const string code = "int a = 10 << 1;";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Int, Is.EqualTo(20));
+    }
 
     [Test, Explicit("Not implemented yet.")]
     public void CheckBitShifting()

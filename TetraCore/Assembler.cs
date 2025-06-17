@@ -199,6 +199,8 @@ public class Assembler
             new(OpCode.Inc, [OperandType.Variable]),
             new(OpCode.Dec, [OperandType.Variable]),
             new(OpCode.Neg, [OperandType.Variable]),
+            new(OpCode.Shiftl, [OperandType.Variable, OperandType.Int]),
+            new(OpCode.Shiftr, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Lt, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Lt, [OperandType.Variable, OperandType.Float]), 
             new(OpCode.Le, [OperandType.Variable, OperandType.Int]),

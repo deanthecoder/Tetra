@@ -24,6 +24,8 @@ public enum OpCode
     Neg,
     Mul,
     Div,
+    Shiftl,
+    Shiftr,
     Lt,
     Le,
     Gt,

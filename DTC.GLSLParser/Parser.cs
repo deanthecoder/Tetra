@@ -36,6 +36,8 @@ public class Parser
         [TokenType.GreaterThan] = 3,
         [TokenType.LessThanOrEqual] = 3,
         [TokenType.GreaterThanOrEqual] = 3,
+        [TokenType.ShiftLeft] = 3,
+        [TokenType.ShiftRight] = 3,
 
         [TokenType.AndAnd] = 2,
         [TokenType.OrOr] = 2,
@@ -46,7 +48,7 @@ public class Parser
         [TokenType.AsteriskEqual] = 1,
         [TokenType.SlashEqual] = 1,
         [TokenType.PercentEqual] = 1,
-        [TokenType.CaretEquals] =10
+        [TokenType.CaretEquals] = 1
     };
 
     private Token[] m_tokens;
