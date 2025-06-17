@@ -146,6 +146,8 @@ public class TetraVm
             case OpCode.Div: ExecuteDiv(instr); break;
             case OpCode.Shiftl: ExecuteShiftL(instr); break;
             case OpCode.Shiftr: ExecuteShiftR(instr); break;
+            case OpCode.BitAnd: ExecuteBitAnd(instr); break;
+            case OpCode.BitOr: ExecuteBitOr(instr); break;
             case OpCode.Halt: return false;
             case OpCode.Lt: ExecuteLt(instr); break;
             case OpCode.Le: ExecuteLe(instr); break;
@@ -454,6 +456,52 @@ public class TetraVm
 
         var b = GetOperandValue(instr.Operands[1]);
         var result = new Operand(a.Int << b.Int);
+            
+        // Store the result.
+        CurrentFrame.SetVariable(aName, result, true);
+        m_ip++;
+    }
+
+    /// <summary>
+    /// E.g. bit_and $a, 2    (a = a & 2)
+    /// </summary>
+    private void ExecuteBitAnd(Instruction instr)
+    {
+        // Get target variable.
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        if (CurrentFrame.IsDefined(aName))
+        {
+            a = CurrentFrame.GetVariable(aName);
+            if (a.Type is not OperandType.Int)
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
+        }
+
+        var b = GetOperandValue(instr.Operands[1]);
+        var result = new Operand(a.Int & b.Int);
+            
+        // Store the result.
+        CurrentFrame.SetVariable(aName, result, true);
+        m_ip++;
+    }
+    
+    /// <summary>
+    /// E.g. bit_or $a, 2    (a = a & 2)
+    /// </summary>
+    private void ExecuteBitOr(Instruction instr)
+    {
+        // Get target variable.
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        if (CurrentFrame.IsDefined(aName))
+        {
+            a = CurrentFrame.GetVariable(aName);
+            if (a.Type is not OperandType.Int)
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
+        }
+
+        var b = GetOperandValue(instr.Operands[1]);
+        var result = new Operand(a.Int | b.Int);
             
         // Store the result.
         CurrentFrame.SetVariable(aName, result, true);

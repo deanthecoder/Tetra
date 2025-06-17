@@ -52,6 +52,7 @@ public class Lexer
         { "&", TokenType.Ampersand },
         { "&&", TokenType.AndAnd },
         { "||", TokenType.OrOr },
+        { "|", TokenType.Pipe },
         { "(", TokenType.LeftParen },
         { ")", TokenType.RightParen },
         { "[", TokenType.LeftBracket },
@@ -84,7 +85,7 @@ public class Lexer
     private readonly List<Token> m_tokens = [];
     private int m_line;
     private string m_code;
-
+    
     public Token[] Tokenize(string code)
     {
         if (code == null)

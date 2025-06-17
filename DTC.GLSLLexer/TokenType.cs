@@ -41,6 +41,7 @@ public enum TokenType
     LessThan,
     GreaterThan,
     Ampersand,
+    Pipe,
     AndAnd,
     OrOr,
     Increment,

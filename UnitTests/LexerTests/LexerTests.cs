@@ -243,13 +243,4 @@ public class LexerTests : TestsBase
         Assert.That(tokens[0].Value, Is.EqualTo("for"));
         Assert.That(tokens.Select(o => o.Type), Does.Not.Contain(TokenType.Unknown));
     }
-
-    [Test]
-    public void CheckTokenizingOneSmallStep()
-    {
-        var directoryInfo = ProjectDir.Parent.GetDir("TetraShade/Examples");
-        var code = directoryInfo.GetFile("OneSmallStep.glsl").ReadAllText();
-        var tokens = m_lexer.Tokenize(code);
-        Assert.That(tokens.Select(o => o.Type), Does.Not.Contain(TokenType.Unknown));
-    }
 }

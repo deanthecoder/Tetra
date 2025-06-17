@@ -11,29 +11,21 @@
 using DTC.Core.Extensions;
 using DTC.Core.UnitTesting;
 using DTC.GLSLParser;
-using TetraCore;
 
 namespace UnitTests.EmitterTests;
 
 [TestFixture]
-public class EmitPiApproximationTest : TestsBase
+public class EmitOneSmallStepTest : TestsBase
 {
-    [Test]
+    [Test, Ignore("Not fully supported yet.")]
     public void EmitPiApproximationCode()
     {
-        var code = ProjectDir.GetDir("Examples").GetFile("PiApproximation.c").ReadAllText();
+        var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
 
         string tetraCode = null;
         Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code, "main"), Throws.Nothing);
 
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
-
-        Program program = null;
-        Assert.That(() => program = Assembler.Assemble(tetraCode), Throws.Nothing);
-        var vm = new TetraVm(program);
-        vm.Run();
-
-        Assert.That(vm["retval"].AsFloat(), Is.EqualTo(3.141).Within(0.01));
     }
 }

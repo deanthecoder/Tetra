@@ -39,6 +39,8 @@ public class Parser
         [TokenType.ShiftLeft] = 3,
         [TokenType.ShiftRight] = 3,
 
+        [TokenType.Ampersand] = 2,
+        [TokenType.Pipe] = 2,
         [TokenType.AndAnd] = 2,
         [TokenType.OrOr] = 2,
 

@@ -13,7 +13,7 @@ using TetraCore;
 namespace UnitTests.TetraCoreTests;
 
 [TestFixture]
-public class BitShiftTests
+public class BitTests
 {
     [Test]
     public void CheckShiftingIntRight()
@@ -45,5 +45,37 @@ public class BitShiftTests
 
         Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
         Assert.That(vm["a"].Int, Is.EqualTo(10));
+    }
+
+    [Test]
+    public void CheckBitwiseAnd()
+    {
+        const string code =
+            """
+            ld $a, 12
+            bit_and $a, 4
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+        
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.EqualTo(4));
+    }
+
+    [Test]
+    public void CheckBitwiseOr()
+    {
+        const string code =
+            """
+            ld $a, 12
+            bit_or $a, 2
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
+        Assert.That(vm["a"].Int, Is.EqualTo(14));
     }
 }

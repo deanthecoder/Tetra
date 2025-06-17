@@ -255,6 +255,8 @@ public class TetraEmitter
                 "*" => "mul",
                 "/" => "div",
                 "%" => "mod",
+                "&" => "bit_and",
+                "|" => "bit_or",
                 "==" => "eq",
                 "!=" => "ne",
                 "<" => "lt",

@@ -201,6 +201,8 @@ public class Assembler
             new(OpCode.Neg, [OperandType.Variable]),
             new(OpCode.Shiftl, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Shiftr, [OperandType.Variable, OperandType.Int]),
+            new(OpCode.BitAnd, [OperandType.Variable, OperandType.Int]),
+            new(OpCode.BitOr, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Lt, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Lt, [OperandType.Variable, OperandType.Float]), 
             new(OpCode.Le, [OperandType.Variable, OperandType.Int]),

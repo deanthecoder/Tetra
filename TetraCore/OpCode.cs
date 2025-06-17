@@ -26,6 +26,8 @@ public enum OpCode
     Div,
     Shiftl,
     Shiftr,
+    BitAnd,
+    BitOr,
     Lt,
     Le,
     Gt,

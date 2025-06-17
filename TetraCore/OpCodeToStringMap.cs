@@ -23,7 +23,9 @@ public static class OpCodeToStringMap
             ("jmp_z", OpCode.JmpZ),
             ("jmp_nz", OpCode.JmpNz),
             ("push_frame", OpCode.PushFrame),
-            ("pop_frame", OpCode.PopFrame)
+            ("pop_frame", OpCode.PopFrame),
+            ("bit_and", OpCode.BitAnd),
+            ("bit_or", OpCode.BitOr)
         };
 
         // Auto-populate the LUT based on the lower-case enum name.
