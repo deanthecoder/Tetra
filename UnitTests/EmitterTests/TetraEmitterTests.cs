@@ -12,6 +12,7 @@
 using DTC.Core.UnitTesting;
 using DTC.GLSLParser;
 using TetraCore;
+using TetraCore.Exceptions;
 
 namespace UnitTests.EmitterTests;
 
@@ -426,7 +427,21 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["y"].Float, Is.EqualTo(2.0));
     }
     
-    [Test, Ignore("Not implemented yet")]
+    [Test, Sequential]
+    public void CheckVectorArrayAccessWithOutOfBoundsIndex([Values(-1, 23)] int index)
+    {
+        var code =
+            $"""
+            vec2 v = vec2(1.0, 2.0);
+            float y = v[{index}];
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        
+        Assert.That(() => vm.Run(), Throws.InstanceOf<RuntimeException>());
+    }
+    
+    [Test]
     public void CheckVectorElementAccess()
     {
         const string code =
@@ -441,7 +456,7 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["y"].Float, Is.EqualTo(2.0));
     }
     
-    [Test, Ignore("Not implemented yet")]
+    [Test]
     public void CheckVectorConstructionFromSwizzle()
     {
         const string code =

@@ -115,6 +115,8 @@ public class ScopeFrame
 
                 if (variable.Type != OperandType.Vector)
                     throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName} ({variable.Type})");
+                if (variable.Floats.Length <= varName.ArrIndex.Value || varName.ArrIndex.Value < 0)
+                    throw new RuntimeException("Index was outside the bounds of the array.");
                 return new Operand(variable.Floats[varName.ArrIndex.Value]);
             }
 

@@ -212,6 +212,30 @@ public class TetraEmitter
         if (exprNode is IndexExprNode index)
             return $"{EmitExpression(index.Target)}[{index.Index}]";
 
+        if (exprNode is SwizzleExprNode swizzle)
+        {
+            var indexLookup = new Dictionary<char, int>
+            {
+                { 'x', 0 },
+                { 'y', 1 },
+                { 'z', 2 },
+                { 'w', 3 },
+                { 'r', 0 },
+                { 'g', 1 },
+                { 'b', 2 },
+                { 'a', 3 },
+                { 's', 0 },
+                { 't', 1 },
+                { 'p', 2 },
+                { 'q', 3 }
+            };
+            var indices = swizzle.Swizzle.Value.Select(o => indexLookup[o]).ToArray();
+            if (indices.Length == 1)
+                return $"{EmitExpression(swizzle.Target)}[{indices[0]}]";
+            WriteLine($"ld $_swz, {EmitExpression(swizzle.Target)}");
+            return indices.Select(o => $"$_swz[{o}]").ToCsv(addSpace: true);
+        }
+
         if (exprNode is LiteralNode literal)
             return $"{literal.Value.Value}";
 
