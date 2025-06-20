@@ -77,7 +77,7 @@ public class TetraEmitter
             case ExpressionStatementNode expr:
                 EmitNode(expr.Expression);
                 break;
-
+            
             case CallExprNode call:
                 EmitCall(call);
                 break;
@@ -167,7 +167,7 @@ public class TetraEmitter
 
         WriteLine($"ret {EmitExpression(returnNode.Value)}");
     }
-
+    
     private void EmitCall(CallExprNode call)
     {
         for (var i = 0; i < call.Arguments.Length; i++)
@@ -179,8 +179,26 @@ public class TetraEmitter
     private void EmitVariableDeclaration(VariableDeclarationNode decl)
     {
         WriteLine($"decl ${decl.Name.Value}");
-        if (decl.Value != null)
-            WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
+        if (decl.Value == null)
+            return;
+
+        // Support vector creation.
+        if (decl.Value is ConstructorCallNode ctor)
+        {
+            var tmpVars = new List<string>();
+            for (var i = 0; i < ctor.Arguments.Length; i++)
+            {
+                var v = ctor.Arguments[i];
+                var tmpName = $"$_v{i}";
+                tmpVars.Add(tmpName);
+                WriteLine($"ld {tmpName}, {EmitExpression(v)}");
+            }
+
+            WriteLine($"ld ${decl.Name.Value}, {tmpVars.ToCsv(addSpace: true)}");
+            return;
+        }
+        
+        WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
     }
     
     private void EmitMultiVariableDeclaration(MultiVariableDeclarationNode decl) =>
@@ -190,6 +208,9 @@ public class TetraEmitter
     {
         if (exprNode is VariableNode variable)
             return $"${variable.Name.Value}";
+
+        if (exprNode is IndexExprNode index)
+            return $"{EmitExpression(index.Target)}[{index.Index}]";
 
         if (exprNode is LiteralNode literal)
             return $"{literal.Value.Value}";

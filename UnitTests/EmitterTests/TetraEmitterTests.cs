@@ -400,7 +400,18 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["d2"].Int, Is.EqualTo(1));
     }
 
-    [Test, Ignore("Not implemented yet")]
+    [Test]
+    public void CheckVectorCreation()
+    {
+        const string code = "vec2 v = vec2(1.0, 2.0);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f }));
+    }
+    
+    [Test]
     public void CheckVectorArrayAccess()
     {
         const string code =
