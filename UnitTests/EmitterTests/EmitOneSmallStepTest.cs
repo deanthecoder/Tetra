@@ -18,7 +18,7 @@ namespace UnitTests.EmitterTests;
 public class EmitOneSmallStepTest : TestsBase
 {
     [Test, Ignore("Not fully supported yet.")]
-    public void EmitPiApproximationCode()
+    public void EmitOneSmallStepCode()
     {
         var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
 

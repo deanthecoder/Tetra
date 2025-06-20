@@ -54,4 +54,10 @@ public static class OpCodeToStringMap
             return null; // Instruction not found.
         return Lut.First(o => o.asString.Equals(opCode, StringComparison.OrdinalIgnoreCase)).opCode;
     }
+
+    public static OpCode? GetIntrinsic(string name)
+    {
+        var opCode = GetOpCode(name);
+        return (int)(opCode ?? 0) > (int)OpCode.Intrinsic ? opCode : null;
+    }
 }

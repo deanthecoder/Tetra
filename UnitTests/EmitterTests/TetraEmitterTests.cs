@@ -427,6 +427,17 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["y"].Float, Is.EqualTo(2.0));
     }
     
+    [Test, Ignore("Not implemented yet.")]
+    public void CheckInlineVectorArrayAccess()
+    {
+        const string code = "float y = vec2(1.0, 2.0)[1];";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["y"].Float, Is.EqualTo(2.0));
+    }
+    
     [Test, Sequential]
     public void CheckVectorArrayAccessWithOutOfBoundsIndex([Values(-1, 23)] int index)
     {
@@ -513,5 +524,27 @@ public class TetraEmitterTests : TestsBase
         vm.Run();
         
         Assert.That(vm["a"].Int, Is.EqualTo(11));
+    }
+    
+    [Test]
+    public void CheckFractFunction()
+    {
+        const string code = "float a = fract(1.23);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(0.23).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckTrigFunction()
+    {
+        const string code = "float a = sin(1.23);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(0.942).Within(0.001));
     }
 }

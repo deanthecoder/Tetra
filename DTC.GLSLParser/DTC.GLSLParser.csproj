@@ -8,5 +8,6 @@
     <ItemGroup>
       <ProjectReference Include="..\DTC.Core\DTC.Core\DTC.Core.csproj" />
       <ProjectReference Include="..\DTC.GLSLLexer\DTC.GLSLLexer.csproj" />
+      <ProjectReference Include="..\TetraCore\TetraCore.csproj" />
     </ItemGroup>
 </Project>

@@ -46,6 +46,9 @@ public enum OpCode
     PopFrame,
     Call,
     Ret,
+    
+    // Intrinsics.
+    Intrinsic,
     Sin,
     Sinh,
     Asin,

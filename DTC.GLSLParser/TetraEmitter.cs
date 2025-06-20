@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DTC.Core.Extensions;
+using TetraCore;
 
 namespace DTC.GLSLParser;
 
@@ -32,10 +33,10 @@ public class TetraEmitter
         m_forLoopCounter = 0;
         m_skipLabelCounter = 0;
         m_loopStack.Clear();
-        
+
         // Emit program statements.
         EmitNode(program);
-        
+
         if (string.IsNullOrEmpty(entryPoint))
             return m_sb.ToString(); // No entry point defined.
 
@@ -46,14 +47,14 @@ public class TetraEmitter
         var firstLabel = codeLines.FindIndex(o => o.EndsWith(':'));
         while (firstLabel > 0 && codeLines[firstLabel - 1].StartsWith('#'))
             firstLabel--;
-        
-        codeLines.InsertRange(firstLabel, new[]
-        {
+
+        codeLines.InsertRange(firstLabel,
+        [
             "# Entry point.",
             $"call {entryPoint}",
             "halt",
             string.Empty
-        });
+        ]);
         return string.Join("\n", codeLines);
     }
 
@@ -168,39 +169,60 @@ public class TetraEmitter
         WriteLine($"ret {EmitExpression(returnNode.Value)}");
     }
     
-    private void EmitCall(CallExprNode call)
+    private string EmitCall(CallExprNode call)
     {
+        var intrinsicOpCode = OpCodeToStringMap.GetIntrinsic(call.FunctionName.Value);
+        if (intrinsicOpCode.HasValue)
+        {
+            var tmpVars = AssignArgsToLocals(call.Arguments);
+            var functionName = OpCodeToStringMap.GetString(intrinsicOpCode.Value);
+            var tmpName = $"$tmp{m_tmpCounter++}";
+            WriteLine($"{functionName} {tmpName}, {tmpVars.ToCsv(addSpace: true)}");
+            return tmpName;
+        }
+        
+        // User-defined function.
         for (var i = 0; i < call.Arguments.Length; i++)
             WriteLine($"ld $arg{i}, {EmitExpression(call.Arguments[i])}");
 
         WriteLine($"call {call.FunctionName.Value}");
+        return "$retval";
     }
 
     private void EmitVariableDeclaration(VariableDeclarationNode decl)
     {
-        WriteLine($"decl ${decl.Name.Value}");
         if (decl.Value == null)
+        {
+            WriteLine($"decl ${decl.Name.Value}");
             return;
+        }
 
         // Support vector creation.
         if (decl.Value is ConstructorCallNode ctor)
         {
-            var tmpVars = new List<string>();
-            for (var i = 0; i < ctor.Arguments.Length; i++)
-            {
-                var v = ctor.Arguments[i];
-                var tmpName = $"$_v{i}";
-                tmpVars.Add(tmpName);
-                WriteLine($"ld {tmpName}, {EmitExpression(v)}");
-            }
-
+            var tmpVars = AssignArgsToLocals(ctor.Arguments);
+            WriteLine($"decl ${decl.Name.Value}");
             WriteLine($"ld ${decl.Name.Value}, {tmpVars.ToCsv(addSpace: true)}");
             return;
         }
-        
+
+        WriteLine($"decl ${decl.Name.Value}");
         WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
     }
-    
+
+    private string[] AssignArgsToLocals(ExprStatementNode[] argNodes)
+    {
+        var tmpVars = new string[argNodes.Length];
+        for (var i = 0; i < argNodes.Length; i++)
+        {
+            var v = argNodes[i];
+            var tmpName = $"$tmp{m_tmpCounter++}";
+            tmpVars[i] = tmpName;
+            WriteLine($"ld {tmpName}, {EmitExpression(v)}");
+        }
+        return tmpVars;
+    }
+
     private void EmitMultiVariableDeclaration(MultiVariableDeclarationNode decl) =>
         decl.Declarations.ForEach(EmitVariableDeclaration);
 
@@ -240,17 +262,13 @@ public class TetraEmitter
             return $"{literal.Value.Value}";
 
         if (exprNode is CallExprNode call)
-        {
-            EmitCall(call);
-            return "$retval";
-        }
+            return EmitCall(call);
 
         if (exprNode is UnaryExprNode unaryExpr)
         {
             // Check if RHS is not to be directly modified.
             if (unaryExpr.Operator.Value == "-")
             {
-                var tmpName = $"tmp{m_tmpCounter++}";
                 var rhs = unaryExpr.Operand switch
                 {
                     LiteralNode literalExpr => literalExpr.Value.Value,
@@ -258,6 +276,7 @@ public class TetraEmitter
                     _ => throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})")
                 };
 
+                var tmpName = $"tmp{m_tmpCounter++}";
                 WriteLine($"ld ${tmpName}, {rhs}");
                 WriteLine($"neg ${tmpName}");
                 return $"${tmpName}";
