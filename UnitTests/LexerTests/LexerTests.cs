@@ -8,7 +8,7 @@
 // about your modifications. Your contributions are valued!
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
-using DTC.Core.Extensions;
+
 using DTC.Core.UnitTesting;
 using DTC.GLSLLexer;
 

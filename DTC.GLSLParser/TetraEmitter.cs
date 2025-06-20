@@ -40,10 +40,13 @@ public class TetraEmitter
             return m_sb.ToString(); // No entry point defined.
 
         // Implicit call to entry point function.
-        var codeLines = m_sb.ToString().Split('\n').ToList();
+        var codeLines = m_sb.Replace("\r\n", "\n").ToString().Split('\n').ToList();
         if (codeLines.FastFindIndexOf($"{entryPoint}:") == -1)
             throw new EmitterException($"Entry point '{entryPoint}' not found.");
         var firstLabel = codeLines.FindIndex(o => o.EndsWith(':'));
+        while (firstLabel > 0 && codeLines[firstLabel - 1].StartsWith('#'))
+            firstLabel--;
+        
         codeLines.InsertRange(firstLabel, new[]
         {
             "# Entry point.",
