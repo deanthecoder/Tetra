@@ -84,4 +84,12 @@ public class VarNameTests
     {
         Assert.That(() => new VarName("foo[2]bar"), Throws.TypeOf<SyntaxErrorException>());
     }
+
+    [Test, Sequential]
+    public void CheckExtractingSwizzle([Values("10.xy", "10.xy[3]")] string name)
+    {
+        var v = new VarName(name);
+        Assert.That(v.Slot, Is.EqualTo(10));
+        Assert.That(v.Swizzle, Is.EqualTo("xy"));
+    }
 }

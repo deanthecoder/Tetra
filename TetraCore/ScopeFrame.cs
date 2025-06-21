@@ -61,17 +61,50 @@ public class ScopeFrame
 
     private void SetValue(VarName varName, Operand value)
     {
-        if (!varName.ArrIndex.HasValue)
+        var hasArrayIndex = varName.ArrIndex.HasValue;
+        var hasSwizzle = varName.Swizzle != null;
+        if (!hasArrayIndex && !hasSwizzle)
         {
+            // Straight variable assignment - Simples.
             m_slots[varName.Slot] = value;
             return;
         }
 
+        // We have to assign to a vector component.
         var v = m_slots[varName.Slot];
         if (v.Type != OperandType.Vector)
-            throw new RuntimeException($"Cannot apply subscript to non-vector type: {varName} ({v.Type})");
+            throw new RuntimeException($"Subscript/swizzles requires a vector type: {varName} ({v.Type})");
 
-        v.Floats[varName.ArrIndex.Value] = value.AsFloat();
+        if (hasArrayIndex)
+        {
+            // Assignment to an array index.
+            v.Floats[varName.ArrIndex.Value] = value.AsFloat();
+            return;
+        }
+        
+        // Assignment to swizzle.
+        var indexLookup = new Dictionary<char, int>
+        {
+            { 'x', 0 },
+            { 'y', 1 },
+            { 'z', 2 },
+            { 'w', 3 },
+            { 'r', 0 },
+            { 'g', 1 },
+            { 'b', 2 },
+            { 'a', 3 },
+            { 's', 0 },
+            { 't', 1 },
+            { 'p', 2 },
+            { 'q', 3 }
+        };
+        var indices = varName.Swizzle.Select(o => indexLookup[o]).ToArray();
+        var i = 0;
+        foreach (var targetIndex in indices)
+        {
+            v.Floats[targetIndex] = value.Floats[Math.Min(i, value.Floats.Length - 1)];
+            i++;
+        }
     }
 
     /// <summary>

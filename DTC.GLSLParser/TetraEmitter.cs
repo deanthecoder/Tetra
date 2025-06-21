@@ -235,28 +235,7 @@ public class TetraEmitter
             return $"{EmitExpression(index.Target)}[{index.Index}]";
 
         if (exprNode is SwizzleExprNode swizzle)
-        {
-            var indexLookup = new Dictionary<char, int>
-            {
-                { 'x', 0 },
-                { 'y', 1 },
-                { 'z', 2 },
-                { 'w', 3 },
-                { 'r', 0 },
-                { 'g', 1 },
-                { 'b', 2 },
-                { 'a', 3 },
-                { 's', 0 },
-                { 't', 1 },
-                { 'p', 2 },
-                { 'q', 3 }
-            };
-            var indices = swizzle.Swizzle.Value.Select(o => indexLookup[o]).ToArray();
-            if (indices.Length == 1)
-                return $"{EmitExpression(swizzle.Target)}[{indices[0]}]";
-            WriteLine($"ld $_swz, {EmitExpression(swizzle.Target)}");
-            return indices.Select(o => $"$_swz[{o}]").ToCsv(addSpace: true);
-        }
+            return EmitSwizzle(swizzle);
 
         if (exprNode is LiteralNode literal)
             return $"{literal.Value.Value}";
@@ -274,6 +253,7 @@ public class TetraEmitter
                     LiteralNode literalExpr => literalExpr.Value.Value,
                     VariableNode variableExpr => $"${variableExpr.Name.Value}",
                     CallExprNode callExpr => EmitCall(callExpr),
+                    SwizzleExprNode swizzleExpr => EmitSwizzle(swizzleExpr),
                     _ => throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})")
                 };
 
@@ -367,7 +347,36 @@ public class TetraEmitter
 
         throw new EmitterException($"Unexpected expression '{exprNode}' ({exprNode?.GetType().Name})");
     }
-    
+
+    private string EmitSwizzle(SwizzleExprNode swizzle)
+    {
+        var indexLookup = new Dictionary<char, int>
+        {
+            { 'x', 0 },
+            { 'y', 1 },
+            { 'z', 2 },
+            { 'w', 3 },
+            { 'r', 0 },
+            { 'g', 1 },
+            { 'b', 2 },
+            { 'a', 3 },
+            { 's', 0 },
+            { 't', 1 },
+            { 'p', 2 },
+            { 'q', 3 }
+        };
+        var indices = swizzle.Swizzle.Value.Select(o => indexLookup[o]).ToArray();
+        string s;
+        if (indices.Length == 1)
+            s = $"{EmitExpression(swizzle.Target)}[{indices[0]}]";
+        else
+        {
+            WriteLine($"ld $_swz, {EmitExpression(swizzle.Target)}");
+            s = indices.Select(o => $"$_swz[{o}]").ToCsv(addSpace: true);
+        }
+        return s;
+    }
+
     private void EmitAssignment(AssignmentNode assign)
     {
         WriteLine($"ld ${assign.Target}, {EmitExpression(assign.Value)}");

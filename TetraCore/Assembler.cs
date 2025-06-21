@@ -303,6 +303,14 @@ public class Assembler
             var bracketIndex = word.IndexOf('[');
             var brackets = bracketIndex >= 0 ? word[bracketIndex..] : string.Empty;
             var variableName = bracketIndex < 0 ? word[1..] : word[1..bracketIndex];
+            
+            // Support names like 'v.x' (Treat as 'v').
+            var swizzle = string.Empty;
+            if (variableName.Contains('.'))
+            {
+                swizzle = variableName[variableName.IndexOf('.')..];
+                variableName = variableName[..variableName.IndexOf('.')];
+            }
 
             if (!m_operandSlots.TryGetValue(variableName, out var opSlot))
                 opSlot = m_operandSlots[variableName] = GetNextOperandSlot();
@@ -312,7 +320,7 @@ public class Assembler
             return new Operand
             {
                 Type = OperandType.Variable,
-                Name = $"{opSlot}{brackets}"
+                Name = $"{opSlot}{swizzle}{brackets}"
             };
         }
 

@@ -240,4 +240,46 @@ public class LdTests
         Assert.That(vm["a"].Int, Is.EqualTo(1));
         Assert.That(vm["A"].Int, Is.EqualTo(-2));
     }
+
+    [Test]
+    public void CheckAssigningFloatToSingleVectorComponent()
+    {
+        const string code =
+            """
+            ld $v, 1.0, 2.0
+            ld $v.y, 3.0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.0f, 3.0f }));
+    }
+    
+    [Test]
+    public void CheckAssigningFloatToMultiVectorComponent()
+    {
+        const string code =
+            """
+            ld $v, 1.0, 2.0
+            ld $v.xy, 3.0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 3.0f, 3.0f }));
+    }
+
+    [Test]
+    public void CheckAssigningFloatsToMultiVectorComponent()
+    {
+        const string code =
+            """
+            ld $v, 1.0, 2.0
+            ld $v.yx, 3.0, 4.0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 4.0f, 3.0f }));
+    }
 }

@@ -580,4 +580,19 @@ public class TetraEmitterTests : TestsBase
         
         Assert.That(vm["a"].Float, Is.EqualTo(0.328).Within(0.001));
     }
+    
+    [Test]
+    public void CheckNegatingSwizzle()
+    {
+        const string code =
+            """
+            vec3 v = vec3(1.0, 2.0, 3.0);
+            v.yz = -v.yz;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.0, -2.0, -3.0 }));
+    }
 }

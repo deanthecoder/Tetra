@@ -20,6 +20,7 @@ public class VarName
 {
     public int Slot { get; }
     public int? ArrIndex { get; }
+    public string Swizzle { get; }
 
     public VarName(string name)
     {
@@ -27,6 +28,16 @@ public class VarName
             throw new ArgumentNullException(nameof(name));
         if (string.IsNullOrWhiteSpace(name))
             throw new SyntaxErrorException("Variable name cannot be empty.");
+        
+        // Extract any swizzle component.
+        if (name.Contains('.'))
+        {
+            var index = name.IndexOf('.');
+            Swizzle = name[(index + 1)..];
+            if (Swizzle.Contains('['))
+                Swizzle = Swizzle[..Swizzle.IndexOf('[')];
+            name = name.Replace($".{Swizzle}", string.Empty);
+        }
 
         var bracketIndex = name.IndexOf('[');
         if (bracketIndex == -1)
@@ -49,7 +60,7 @@ public class VarName
 
         ArrIndex = arrIndex;
     }
-
+    
     private static int ParseName(string name)
     {
         if (!int.TryParse(name, out var slot))
@@ -76,6 +87,6 @@ public class VarName
     public string ToUiString(SymbolTable symbolTable = null)
     {
         var varName = $"${symbolTable?[Slot] ?? Slot.ToString()}";
-        return varName + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
+        return varName + (Swizzle != null ? $".{Swizzle}" : string.Empty) + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
     }
 }
