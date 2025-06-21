@@ -273,6 +273,7 @@ public class TetraEmitter
                 {
                     LiteralNode literalExpr => literalExpr.Value.Value,
                     VariableNode variableExpr => $"${variableExpr.Name.Value}",
+                    CallExprNode callExpr => EmitCall(callExpr),
                     _ => throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})")
                 };
 

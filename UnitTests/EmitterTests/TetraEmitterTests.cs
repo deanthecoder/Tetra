@@ -547,4 +547,37 @@ public class TetraEmitterTests : TestsBase
         
         Assert.That(vm["a"].Float, Is.EqualTo(0.942).Within(0.001));
     }
+    
+    [Test]
+    public void CheckNegatingTrigFunction()
+    {
+        const string code = "float a = -sin(1.23);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(-0.942).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckSubtractingTrigFunction()
+    {
+        const string code = "float a = 1.2 - sin(1.23);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(0.258).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckNestingTrigFunctions()
+    {
+        const string code = "float a = sin(cos(1.23));";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(0.328).Within(0.001));
+    }
 }
