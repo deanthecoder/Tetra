@@ -28,6 +28,7 @@ public class TetraEmitter
     private int m_ifCounter;
     private int m_skipLabelCounter;
     private FunctionNode[] m_functionNodes;
+    private int m_emittedLines;
 
     public string Emit(ProgramNode program, string entryPoint = "main")
     {
@@ -38,6 +39,7 @@ public class TetraEmitter
         m_skipLabelCounter = 0;
         m_loopStack.Clear();
         m_functionNodes = program.Walk().OfType<FunctionNode>().ToArray();
+        m_emittedLines = 0;
 
         // Emit program statements.
         EmitNode(program);
@@ -134,7 +136,8 @@ public class TetraEmitter
     private void WriteLine(string s = "")
     {
         m_sb.AppendLine(s);
-        Console.WriteLine(s); // Useful for unit testing.
+        m_emittedLines++;
+        Console.WriteLine($"{m_emittedLines,4}: {s}"); // Useful for unit testing.
     }
 
     private void EmitProgram(ProgramNode program)

@@ -26,7 +26,6 @@ public static class Compiler
     {
         var tokens = new Lexer().Tokenize(glslCode);
         var ast = new Parser().Parse(tokens);
-        Console.WriteLine(ast.AsTree());
         CheckForUnresolvedExternals(ast);
         
         var emitter = new TetraEmitter();
