@@ -204,14 +204,35 @@ public class TetraEmitter
         // Support vector creation.
         if (decl.Value is ConstructorCallNode ctor)
         {
-            var tmpVars = AssignArgsToLocals(ctor.Arguments);
+            var result = EmitConstructorCall(ctor);
             WriteLine($"decl ${decl.Name.Value}");
-            WriteLine($"ld ${decl.Name.Value}, {tmpVars.ToCsv(addSpace: true)}");
+            WriteLine($"ld ${decl.Name.Value}, {result}");
             return;
         }
 
         WriteLine($"decl ${decl.Name.Value}");
         WriteLine($"ld ${decl.Name.Value}, {EmitExpression(decl.Value)}");
+    }
+
+    private string EmitConstructorCall(ConstructorCallNode ctor)
+    {
+        // Grab the component arguments.
+        var tmpVars = AssignArgsToLocals(ctor.Arguments).ToList();
+        
+        // Support vectors.
+        var typeName = ctor.FunctionName.Value;
+        if (typeName.Contains("vec"))
+        {
+            // Expand arg count to match dimension of the vector.
+            var dimension = int.Parse(typeName.Last().ToString());
+            while (tmpVars.Count < dimension)
+                tmpVars.Add(tmpVars[0]);
+        }
+        
+        // Construct the object.
+        var result = $"$tmp{m_tmpCounter++}";
+        WriteLine($"ld {result}, {tmpVars.ToCsv(addSpace: true)}");
+        return result;
     }
 
     private string[] AssignArgsToLocals(ExprStatementNode[] argNodes)
@@ -244,6 +265,9 @@ public class TetraEmitter
         if (exprNode is LiteralNode literal)
             return $"{literal.Value.Value}";
 
+        if (exprNode is ConstructorCallNode ctor)
+            return EmitConstructorCall(ctor);
+        
         if (exprNode is CallExprNode call)
             return EmitCall(call);
 

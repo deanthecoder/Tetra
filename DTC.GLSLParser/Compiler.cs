@@ -9,6 +9,7 @@
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System;
 using System.Linq;
 using DTC.Core.Extensions;
 using DTC.GLSLLexer;
@@ -25,7 +26,7 @@ public static class Compiler
     {
         var tokens = new Lexer().Tokenize(glslCode);
         var ast = new Parser().Parse(tokens);
-        
+        Console.WriteLine(ast.AsTree());
         CheckForUnresolvedExternals(ast);
         
         var emitter = new TetraEmitter();

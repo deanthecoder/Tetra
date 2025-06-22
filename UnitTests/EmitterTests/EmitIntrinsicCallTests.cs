@@ -89,8 +89,7 @@ public class EmitIntrinsicCallTests
     [Test]
     public void CheckFloor()
     {
-        const string code =
-            "float a = floor(8.3);";
+        const string code = "float a = floor(8.3);";
         var tetraCode = Compiler.CompileToTetraSource(code);
         var vm = new TetraVm(Assembler.Assemble(tetraCode));
         vm.Run();
@@ -101,14 +100,33 @@ public class EmitIntrinsicCallTests
     [Test]
     public void CheckMix()
     {
-        const string code =
-            """
-            float a = mix(0.3, 1.1, 7.3);
-            """;
+        const string code = "float a = mix(0.3, 1.1, 7.3);";
         var tetraCode = Compiler.CompileToTetraSource(code);
         var vm = new TetraVm(Assembler.Assemble(tetraCode));
         vm.Run();
 
         Assert.That(vm["a"].Float, Is.EqualTo(2.96).Within(0.001));
+    }
+
+    [Test]
+    public void CheckVector3Construction()
+    {
+        const string code = "vec3 v = vec3(1.23, 4.56, 7.89);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.23f, 4.56f, 7.89f }).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckVector3ConstructionFromSingleArg()
+    {
+        const string code = "vec3 v = vec3(1.23);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.23f, 1.23f, 1.23f }).Within(0.001));
     }
 }
