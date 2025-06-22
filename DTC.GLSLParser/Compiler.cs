@@ -9,8 +9,10 @@
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
-using System;
+using System.Linq;
+using DTC.Core.Extensions;
 using DTC.GLSLLexer;
+using TetraCore;
 
 namespace DTC.GLSLParser;
 
@@ -23,9 +25,31 @@ public static class Compiler
     {
         var tokens = new Lexer().Tokenize(glslCode);
         var ast = new Parser().Parse(tokens);
-        Console.WriteLine(ast.AsTree());
+        
+        CheckForUnresolvedExternals(ast);
+        
         var emitter = new TetraEmitter();
         var tetraCode = emitter.Emit(ast, entryPoint);
         return tetraCode;
+    }
+
+    private static void CheckForUnresolvedExternals(ProgramNode program)
+    {
+        var ast = program.Walk().ToArray();
+        var definedFunctions = ast.OfType<FunctionNode>().Select(o => o.Name.Value);
+        var expectedFunctions = ast.OfType<CallExprNode>().Select(o => o.FunctionName.Value).Distinct().ToArray();
+        var intrinsics = expectedFunctions.Where(o => OpCodeToStringMap.GetIntrinsic(o) != null);
+        var nativeTypeCreations = ast.OfType<ConstructorCallNode>().Select(o => o.FunctionName.Value).Distinct();
+        
+        var unresolvedFunctions =
+            expectedFunctions
+                .Except(intrinsics)
+                .Except(definedFunctions)
+                .Except(nativeTypeCreations)
+                .OrderBy(o => o)
+                .Select(o => $"{o}()")
+                .ToArray();
+        if (unresolvedFunctions.Length > 0)
+            throw new CompilerException($"Unresolved externals: {unresolvedFunctions.ToCsv(addSpace: true)}");
     }
 }

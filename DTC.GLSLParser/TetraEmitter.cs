@@ -183,7 +183,7 @@ public class TetraEmitter
     {
         var intrinsicOpCode = OpCodeToStringMap.GetIntrinsic(call.FunctionName.Value);
         if (intrinsicOpCode.HasValue)
-            return EmitIntrinsicCall(call, intrinsicOpCode);
+            return EmitIntrinsicCall(call, intrinsicOpCode.Value);
         
         // User-defined function.
         for (var i = 0; i < call.Arguments.Length; i++)
@@ -464,10 +464,10 @@ public class TetraEmitter
         WriteLine("pop_frame");
     }
 
-    private string EmitIntrinsicCall(CallExprNode call, OpCode? intrinsicOpCode)
+    private string EmitIntrinsicCall(CallExprNode call, OpCode intrinsicOpCode)
     {
         var tmpVars = AssignArgsToLocals(call.Arguments);
-        var functionName = OpCodeToStringMap.GetString(intrinsicOpCode.Value);
+        var functionName = OpCodeToStringMap.GetString(intrinsicOpCode);
         
         if (tmpVars.Length == 1)
         {
