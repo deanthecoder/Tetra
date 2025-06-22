@@ -8,6 +8,7 @@
 // about your modifications. Your contributions are valued!
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+using System.Text;
 using DTC.Core.Extensions;
 using DTC.Core.UnitTesting;
 using DTC.GLSLParser;
@@ -22,8 +23,17 @@ public class EmitOneSmallStepTest : TestsBase
     {
         var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
 
+        var codeWithHeader = new StringBuilder();
+        codeWithHeader.AppendLine("void main() {");
+        codeWithHeader.AppendLine("    vec3 rgba;");
+        codeWithHeader.AppendLine("    mainImage(rgba, vec2(0));");
+        codeWithHeader.AppendLine("    return rgba;");
+        codeWithHeader.AppendLine("}");
+        codeWithHeader.AppendLine();
+        codeWithHeader.AppendLine(code);
+
         string tetraCode = null;
-        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code), Throws.Nothing);
+        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(codeWithHeader.ToString()), Throws.Nothing);
 
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
