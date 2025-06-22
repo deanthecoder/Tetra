@@ -630,6 +630,46 @@ public class ProgramNode : AstNode
             }
         }
     }
+
+    public IEnumerable<AstNode> Walk()
+    {
+        yield return this;
+
+        foreach (var statement in Statements)
+        {
+            foreach (var child in WalkNode(statement))
+                yield return child;
+        }
+        yield break;
+
+        static IEnumerable<AstNode> WalkNode(AstNode node)
+        {
+            yield return node;
+
+            var props = node.GetType()
+                .GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
+                .Where(p => typeof(AstNode).IsAssignableFrom(p.PropertyType) ||
+                            typeof(IEnumerable<AstNode>).IsAssignableFrom(p.PropertyType));
+
+            foreach (var prop in props)
+            {
+                var val = prop.GetValue(node);
+                if (val is AstNode child)
+                {
+                    foreach (var desc in WalkNode(child))
+                        yield return desc;
+                }
+                else if (val is IEnumerable<AstNode> list)
+                {
+                    foreach (var item in list)
+                    {
+                        foreach (var desc in WalkNode(item))
+                            yield return desc;
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// <summary>
