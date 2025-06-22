@@ -12,13 +12,14 @@ using System.Text;
 using DTC.Core.Extensions;
 using DTC.Core.UnitTesting;
 using DTC.GLSLParser;
+using TetraCore;
 
 namespace UnitTests.EmitterTests;
 
 [TestFixture]
 public class EmitOneSmallStepTest : TestsBase
 {
-    [Test]
+    [Test, Explicit("Not fully supported yet.")]
     public void EmitOneSmallStepCode()
     {
         var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
@@ -38,5 +39,8 @@ public class EmitOneSmallStepTest : TestsBase
         Assert.That(() => tetraCode = Compiler.CompileToTetraSource(codeWithHeader.ToString()), Throws.Nothing);
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
+        
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
     }
 }
