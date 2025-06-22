@@ -17,7 +17,7 @@ namespace UnitTests.EmitterTests;
 [TestFixture]
 public class EmitOneSmallStepTest : TestsBase
 {
-    [Test, Explicit("Not fully supported yet.")]
+    [Test]
     public void EmitOneSmallStepCode()
     {
         var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
