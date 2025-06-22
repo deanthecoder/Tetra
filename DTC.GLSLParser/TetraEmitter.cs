@@ -22,10 +22,12 @@ public class TetraEmitter
 {
     private readonly StringBuilder m_sb = new();
     private readonly Stack<(string continueLabel, string breakLabel)> m_loopStack = [];
+    private readonly Stack<FunctionNode> m_currentFunctionStack = [];
     private int m_tmpCounter;
     private int m_forLoopCounter;
     private int m_ifCounter;
     private int m_skipLabelCounter;
+    private FunctionNode[] m_functionNodes;
 
     public string Emit(ProgramNode program, string entryPoint = "main")
     {
@@ -35,6 +37,7 @@ public class TetraEmitter
         m_ifCounter = 0;
         m_skipLabelCounter = 0;
         m_loopStack.Clear();
+        m_functionNodes = program.Walk().OfType<FunctionNode>().ToArray();
 
         // Emit program statements.
         EmitNode(program);
@@ -142,11 +145,11 @@ public class TetraEmitter
 
     private void EmitFunction(FunctionNode function)
     {
+        m_currentFunctionStack.Push(function);
         using var _ = new TempVariableBlock(ref m_tmpCounter);
         
         // Summary comment.
-        WriteLine(
-            $"# {function.ReturnType.Value} {function.Name.Value}({function.Parameters.Select(o => $"{o.Modifier?.Value ?? string.Empty} {o.Type.Value} {o.Name.Value}".Trim()).ToCsv(addSpace: true)})");
+        WriteLine($"# {function.ReturnType.Value} {function.Name.Value}({function.Parameters.Select(o => $"{o.Modifier?.Value ?? string.Empty} {o.Type.Value} {o.Name.Value}".Trim()).ToCsv(addSpace: true)})");
 
         // Label
         WriteLine($"{function.Name.Value}:");
@@ -165,11 +168,42 @@ public class TetraEmitter
         if (function.Body.Statements.LastOrDefault()?.GetType() != typeof(ReturnNode))
             EmitReturn(new ReturnNode(null));
 
+        WriteLine($"{function.Name.Value}_end:");
+
+        // Reassign 'out' param values back to $argN.
+        var outParams = GetFunctionOutParams(function).ToArray();
+        for (var i = 0; i < outParams.Length; i++)
+        {
+            var param = outParams[i];
+            if (param != null)
+                WriteLine($"ld $arg{i}, ${param}");
+        }
+
+        WriteLine(function.ReturnType.Value == "void" ? "ret" : "ret $retval");
         WriteLine();
+        
+        m_currentFunctionStack.Pop();
     }
+
+    private static string[] GetFunctionOutParams(FunctionNode function) =>
+        function
+            .Parameters
+            .Select(o => o.Modifier?.Value == "out" ? o.Name.Value : null)
+            .ToArray();
 
     private void EmitReturn(ReturnNode returnNode)
     {
+        if (m_currentFunctionStack.Count > 0 && GetFunctionOutParams(m_currentFunctionStack.Peek()).Length > 0)
+        {
+            // Support 'return' in functions with 'out' params.
+            if (returnNode.Value != null)
+                WriteLine($"ld $retval, {EmitExpression(returnNode.Value)}");
+
+            var function = m_currentFunctionStack.Peek();
+            WriteLine($"jmp {function.Name.Value}_end");
+            return;
+        }
+        
         if (returnNode.Value == null)
         {
             WriteLine("ret");
@@ -181,6 +215,7 @@ public class TetraEmitter
     
     private string EmitCall(CallExprNode call)
     {
+        // Handle intrinsic calls.
         var intrinsicOpCode = OpCodeToStringMap.GetIntrinsic(call.FunctionName.Value);
         if (intrinsicOpCode.HasValue)
             return EmitIntrinsicCall(call, intrinsicOpCode.Value);
@@ -188,8 +223,22 @@ public class TetraEmitter
         // User-defined function.
         for (var i = 0; i < call.Arguments.Length; i++)
             WriteLine($"ld $arg{i}, {EmitExpression(call.Arguments[i])}");
-
+        
         WriteLine($"call {call.FunctionName.Value}");
+        
+        // Reassign 'out' params back to the original variable names.
+        var functionNode = m_functionNodes.FirstOrDefault(o => o.Name.Value == call.FunctionName.Value);
+        if (functionNode != null)
+        {
+            var outParams = GetFunctionOutParams(functionNode);
+            for (var i = 0; i < outParams.Length; i++)
+            {
+                var param = outParams[i];
+                if (param != null)
+                    WriteLine($"ld ${((VariableNode)call.Arguments[i]).Name.Value}, $arg{i}");
+            }
+        }
+        
         return "$retval";
     }
     

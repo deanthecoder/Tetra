@@ -213,7 +213,7 @@ public class TetraVm
     private Operand GetOperandValue(Operand operand)
     {
         // If the operand is a variable, get its value.
-        return operand.Type == OperandType.Variable ? CurrentFrame.GetVariable(operand.Name) : operand;
+        return operand.Type == OperandType.Variable ? CurrentFrame.GetVariable(operand.Name, m_program.SymbolTable) : operand;
     }
 
     /// <summary>

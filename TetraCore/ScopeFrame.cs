@@ -21,7 +21,7 @@ namespace TetraCore;
 /// </summary>
 public class ScopeFrame
 {
-    public const int MaxSlots = 32;
+    public const int MaxSlots = 256;
     public const int RetvalSlot = 0;
 
     private readonly ScopeFrame m_parent;
@@ -135,7 +135,7 @@ public class ScopeFrame
         SetValue(varName, value);
     }
 
-    public Operand GetVariable(VarName varName)
+    public Operand GetVariable(VarName varName, SymbolTable symbolTable = null)
     {
         var frame = this;
         while (frame != null)
@@ -156,7 +156,7 @@ public class ScopeFrame
             frame = frame.m_parent;
         }
 
-        throw new RuntimeException($"Variable '{varName}' is not defined.");
+        throw new RuntimeException($"Variable '{varName.ToUiString(symbolTable)}' is not defined.");
     }
 
     public override string ToString() =>

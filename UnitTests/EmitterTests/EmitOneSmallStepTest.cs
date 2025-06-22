@@ -24,8 +24,10 @@ public class EmitOneSmallStepTest : TestsBase
         var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
 
         var codeWithHeader = new StringBuilder();
-        codeWithHeader.AppendLine("void main() {");
+        codeWithHeader.AppendLine("vec4 main() {");
         codeWithHeader.AppendLine("    vec3 rgba;");
+        codeWithHeader.AppendLine("    float iTime = 0.0;");
+        codeWithHeader.AppendLine("    vec2 iResolution = vec2(640, 480);");
         codeWithHeader.AppendLine("    mainImage(rgba, vec2(0));");
         codeWithHeader.AppendLine("    return rgba;");
         codeWithHeader.AppendLine("}");
@@ -34,7 +36,6 @@ public class EmitOneSmallStepTest : TestsBase
 
         string tetraCode = null;
         Assert.That(() => tetraCode = Compiler.CompileToTetraSource(codeWithHeader.ToString()), Throws.Nothing);
-
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
     }

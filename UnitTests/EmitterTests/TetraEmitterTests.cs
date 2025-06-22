@@ -175,6 +175,27 @@ public class TetraEmitterTests : TestsBase
     }
 
     [Test]
+    public void EmitFunctionCallWithOutParam()
+    {
+        const string code =
+            """
+            float main() {
+                float f;
+                foo(f);
+                return f;
+            }
+            void foo(out float a) {
+                a = 23.4;
+            } 
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["retval"].Float, Is.EqualTo(23.4).Within(0.001));
+    }    
+
+    [Test]
     public void EmitMathOperations()
     {
         const string code =
