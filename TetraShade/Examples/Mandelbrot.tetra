@@ -71,13 +71,13 @@ loop:
     add $mag2, $zi2
     ld $c, $mag2
     gt $c, 4
-    jmp_nz $c, end
+    jmpnz $c, end
 
     # i++
     inc $i
     ld $c, $i
     lt $c, $maxIter
-    jmp_nz $c, loop
+    jmpnz $c, loop
 
 end:
     ld $arg0, $i

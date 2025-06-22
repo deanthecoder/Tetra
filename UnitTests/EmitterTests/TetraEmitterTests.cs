@@ -264,7 +264,7 @@ public class TetraEmitterTests : TestsBase
             for0_start:
             ld $tmp0, $i
             lt $tmp0, 5
-            jmp_z $tmp0, for0_end
+            jmpz $tmp0, for0_end
             ld $tmp1, $sum
             add $tmp1, $i
             ld $sum, $tmp1
@@ -638,7 +638,7 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["a"].Int, Is.EqualTo(32));
     }
     
-    [Test, Explicit("Not implemented yet.")]
+    [Test]
     public void CheckTernary()
     {
         const string code =

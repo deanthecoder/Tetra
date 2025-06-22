@@ -22,7 +22,7 @@ Credit: ["Shield"](https://www.shadertoy.com/view/cltfRf) visual effect by [Xor]
   pushed/popped using `push_frame` / `pop_frame`.
 - **Named Variables**: No general-purpose registers. All values are stored and looked up by name.
 - **Conditional and Unconditional Jumps**: Support for jump labels like `mylabel:` and instructions like `jmp`,
-  `jmp_z` and `jmp_nz`.
+  `jmpz` and `jmpnz`.
 - **Multi-element Float Vector Support**: Support for `vec4` operations alongside scalar floats.
 - **Basic Arithmetic**: Instructions like `add`, `sub`, `inc`, `dec`.
 - **Debugging Aids**: A `print` instruction that outputs variable values along with the line number of the source
@@ -45,7 +45,7 @@ ld $limit, 800
 loop:
     ld $c, $i
     ge $c, $limit
-    jmp_nz $c, done
+    jmpnz $c, done
     ld $denominator, $i
     mul $denominator, 2
     add $denominator, 1
@@ -79,7 +79,7 @@ ld $count, 10
 loop:
     ld $c, $i
     ge $c, $count
-    jmp_nz $c, done
+    jmpnz $c, done
     ld $arg0, $i
     call fib
     print $retval
@@ -93,7 +93,7 @@ fib:
     ld $n, $arg0
     ld $c, $n
     le $c, 1
-    jmp_nz $c, base_case
+    jmpnz $c, base_case
     ld $arg0, $n
     dec $arg0
     call fib
@@ -178,12 +178,12 @@ ld $v, 1.1, 2.2, 3.3
 ld $v[1], 3.141   # $v = [1.1, 3.141, 3.3]
 ```
 
-Any instruction that operates on scalars (like `inc`, `mul`, `jmp_z`, etc.) can also target a specific vector component:
+Any instruction that operates on scalars (like `inc`, `mul`, `jmpz`, etc.) can also target a specific vector component:
 
 ```tetra
 inc $v[2]
 mul $a, $v[1]
-jmp_z $a, $v[2], label
+jmpz $a, $v[2], label
 ```
 
 Accessing vector elements from non-vector variables will throw a runtime error.
@@ -283,7 +283,7 @@ For a direct boolean test of a value (e.g. to use as a condition), use the `test
 
 ```
 test $cond
-jmp_z $cond, else_label
+jmpz $cond, else_label
 ```
 
 The result of `test` will always be a scalar `0` or `1`, even if the input is a vector. If any element of the input is non-zero, the result is `1`; otherwise, it is `0`.
@@ -293,8 +293,8 @@ The result of `test` will always be a scalar `0` or `1`, even if the input is a 
 | Instruction        | Description        |
 |--------------------|--------------------|
 | `jmp label`        | Unconditional jump |
-| `jmp_z $a, label`  | Jump if `$a == 0`  |
-| `jmp_nz $a, label` | Jump if `$a != 0`  |
+| `jmpz $a, label`  | Jump if `$a == 0`  |
+| `jmpnz $a, label` | Jump if `$a != 0`  |
 
 ### 📦 Variables and Frames
 

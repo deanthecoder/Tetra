@@ -248,108 +248,143 @@ public class TetraEmitter
             return EmitCall(call);
 
         if (exprNode is UnaryExprNode unaryExpr)
-        {
-            // Check if RHS is not to be directly modified.
-            if (unaryExpr.Operator.Value == "-")
-            {
-                var rhs = unaryExpr.Operand switch
-                {
-                    LiteralNode literalExpr => literalExpr.Value.Value,
-                    VariableNode variableExpr => $"${variableExpr.Name.Value}",
-                    CallExprNode callExpr => EmitCall(callExpr),
-                    SwizzleExprNode swizzleExpr => EmitSwizzle(swizzleExpr),
-                    _ => throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})")
-                };
-
-                var tmpName = $"tmp{m_tmpCounter++}";
-                WriteLine($"ld ${tmpName}, {rhs}");
-                WriteLine($"neg ${tmpName}");
-                return $"${tmpName}";
-            }
-
-            // These operators change the RHS value, so RHS must be a variable.
-            if (unaryExpr.Operand is VariableNode v)
-            {
-                var op = unaryExpr.Operator.Value switch
-                {
-                    "-" => "neg",
-                    "--" => "dec",
-                    "++" => "inc",
-                    _ => throw new NotImplementedException($"Unsupported operator '{unaryExpr.Operator.Value}'")
-                };
-
-                if (unaryExpr.IsPostfix)
-                {
-                    // Return the value, then modify the original.
-                    var tmpName = $"tmp{m_tmpCounter++}";
-                    WriteLine($"ld ${tmpName}, ${v.Name.Value}");
-                    WriteLine($"{op} ${v.Name.Value}");
-                    return $"${tmpName}";
-                }
-                
-                // Modify the original, then return the value.
-                WriteLine($"{op} ${v.Name.Value}");
-                return $"${v.Name.Value}";
-            }
-            
-            throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})");
-        }
+            return EmitUnary(unaryExpr);
         
         if (exprNode is BinaryExprNode binaryExpr)
-        {
-            var tmpName = $"tmp{m_tmpCounter++}"; 
-            WriteLine($"ld ${tmpName}, {EmitExpression(binaryExpr.Left)}");
+            return EmitBinary(binaryExpr);
 
-            var op = binaryExpr.Operator.Value switch
+        if (exprNode is TernaryNode ternary)
+            return EmitTernary(ternary);
+
+        throw new EmitterException($"Unexpected expression '{exprNode}' ({exprNode?.GetType().Name})");
+    }
+
+    private string EmitTernary(TernaryNode ternaryNode)
+    {
+        var tmpName = $"tmp{m_tmpCounter++}";
+        m_ifCounter++;
+        var elseLabel = $"if{m_ifCounter}_else";
+        var endLabel = $"if{m_ifCounter}_end";
+        
+        // If
+        WriteLine($"ld ${tmpName}, {EmitExpression(ternaryNode.Condition)}");
+        WriteLine($"test ${tmpName}");
+        WriteLine($"jmpz ${tmpName}, {elseLabel}");
+        
+        // Then
+        WriteLine($"ld ${tmpName}, {EmitExpression(ternaryNode.ThenExpr)}");
+        WriteLine($"jmp {endLabel}");
+        
+        // Else
+        WriteLine($"{elseLabel}:");
+        WriteLine($"ld ${tmpName}, {EmitExpression(ternaryNode.ElseExpr)}");
+
+        // End
+        WriteLine($"{endLabel}:");
+        
+        return $"${tmpName}";
+    }
+    
+    private string EmitBinary(BinaryExprNode binaryExpr)
+    {
+        var tmpName = $"tmp{m_tmpCounter++}"; 
+        WriteLine($"ld ${tmpName}, {EmitExpression(binaryExpr.Left)}");
+
+        var op = binaryExpr.Operator.Value switch
+        {
+            "+" => "add",
+            "-" => "sub",
+            "*" => "mul",
+            "/" => "div",
+            "%" => "mod",
+            "&" => "bit_and",
+            "|" => "bit_or",
+            "==" => "eq",
+            "!=" => "ne",
+            "<" => "lt",
+            "<=" => "le",
+            ">" => "gt",
+            ">=" => "ge",
+            "&&" => "and",
+            "||" => "or",
+            "<<" => "shiftl",
+            ">>" => "shiftr",
+            _ => throw new InvalidOperationException($"Unsupported operator '{binaryExpr.Operator.Value}'")
+        };
+
+        if (op == "and")
+        {
+            // Special case - The second expression should not be executed if the first is false.
+            var skipLabel = $"logic{m_skipLabelCounter++}_skip";
+            WriteLine($"test ${tmpName}");
+            WriteLine($"jmpz ${tmpName}, {skipLabel}");
+            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+            WriteLine($"test ${tmpName}");
+            WriteLine($"{skipLabel}:");
+        } else if (op == "or")
+        {
+            // Special case - The second expression should not be executed if the first is true.
+            var skipLabel = $"logic{m_skipLabelCounter++}_skip";
+            WriteLine($"test ${tmpName}");
+            WriteLine($"jmpnz ${tmpName}, {skipLabel}");
+            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+            WriteLine($"test ${tmpName}");
+            WriteLine($"{skipLabel}:");
+        }
+        else
+        {
+            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+        }
+            
+        return $"${tmpName}";
+    }
+
+    private string EmitUnary(UnaryExprNode unaryExpr)
+    {
+        // Check if RHS is not to be directly modified.
+        if (unaryExpr.Operator.Value == "-")
+        {
+            var rhs = unaryExpr.Operand switch
             {
-                "+" => "add",
-                "-" => "sub",
-                "*" => "mul",
-                "/" => "div",
-                "%" => "mod",
-                "&" => "bit_and",
-                "|" => "bit_or",
-                "==" => "eq",
-                "!=" => "ne",
-                "<" => "lt",
-                "<=" => "le",
-                ">" => "gt",
-                ">=" => "ge",
-                "&&" => "and",
-                "||" => "or",
-                "<<" => "shiftl",
-                ">>" => "shiftr",
-                _ => throw new NotImplementedException($"Unsupported operator '{binaryExpr.Operator.Value}'")
+                LiteralNode literalExpr => literalExpr.Value.Value,
+                VariableNode variableExpr => $"${variableExpr.Name.Value}",
+                CallExprNode callExpr => EmitCall(callExpr),
+                SwizzleExprNode swizzleExpr => EmitSwizzle(swizzleExpr),
+                _ => throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})")
             };
 
-            if (op == "and")
-            {
-                // Special case - The second expression should not be executed if the first is false.
-                var skipLabel = $"logic_skip{m_skipLabelCounter++}";
-                WriteLine($"test ${tmpName}");
-                WriteLine($"jmp_z ${tmpName}, {skipLabel}");
-                WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-                WriteLine($"test ${tmpName}");
-                WriteLine($"{skipLabel}:");
-            } else if (op == "or")
-            {
-                // Special case - The second expression should not be executed if the first is true.
-                var skipLabel = $"logic_skip{m_skipLabelCounter++}";
-                WriteLine($"test ${tmpName}");
-                WriteLine($"jmp_nz ${tmpName}, {skipLabel}");
-                WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-                WriteLine($"test ${tmpName}");
-                WriteLine($"{skipLabel}:");
-            }
-            else
-            {
-                WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-            }
-            
+            var tmpName = $"tmp{m_tmpCounter++}";
+            WriteLine($"ld ${tmpName}, {rhs}");
+            WriteLine($"neg ${tmpName}");
             return $"${tmpName}";
         }
 
-        throw new EmitterException($"Unexpected expression '{exprNode}' ({exprNode?.GetType().Name})");
+        // These operators change the RHS value, so RHS must be a variable.
+        if (unaryExpr.Operand is VariableNode v)
+        {
+            var op = unaryExpr.Operator.Value switch
+            {
+                "-" => "neg",
+                "--" => "dec",
+                "++" => "inc",
+                _ => throw new InvalidOperationException($"Unsupported operator '{unaryExpr.Operator.Value}'")
+            };
+
+            if (unaryExpr.IsPostfix)
+            {
+                // Return the value, then modify the original.
+                var tmpName = $"tmp{m_tmpCounter++}";
+                WriteLine($"ld ${tmpName}, ${v.Name.Value}");
+                WriteLine($"{op} ${v.Name.Value}");
+                return $"${tmpName}";
+            }
+                
+            // Modify the original, then return the value.
+            WriteLine($"{op} ${v.Name.Value}");
+            return $"${v.Name.Value}";
+        }
+            
+        throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})");
     }
 
     private string EmitSwizzle(SwizzleExprNode swizzle)
@@ -405,7 +440,7 @@ public class TetraEmitter
 
         // Condition check.
         var repeat = EmitExpression(forNode.Condition);
-        WriteLine($"jmp_z {repeat}, for{labelSuffix}_end");
+        WriteLine($"jmpz {repeat}, for{labelSuffix}_end");
 
         // Loop body.
         if (forNode.Body is BlockNode blockNode)
@@ -432,6 +467,7 @@ public class TetraEmitter
         // Condition check.
         var check = EmitExpression(ifNode.Condition);
         var tmpName = $"tmp{m_tmpCounter++}";
+        WriteLine($"test ${check}");
         WriteLine($"ld ${tmpName}, {check}");
         
         // Support 'if' with no else.
@@ -439,7 +475,7 @@ public class TetraEmitter
         if (ifNode.ElseBlock == null)
         {
             var endLabel = $"if{m_ifCounter}_end";
-            WriteLine($"jmp_z ${tmpName}, {endLabel}");
+            WriteLine($"jmpz ${tmpName}, {endLabel}");
             EmitNode(ifNode.ThenBlock);
             WriteLine($"{endLabel}:");
         }
@@ -447,7 +483,7 @@ public class TetraEmitter
         {
             var elseLabel = $"if{m_ifCounter}_else";
             var endLabel = $"if{m_ifCounter}_end";
-            WriteLine($"jmp_z ${tmpName}, {elseLabel}");
+            WriteLine($"jmpz ${tmpName}, {elseLabel}");
             EmitNode(ifNode.ThenBlock);
             WriteLine($"jmp {endLabel}");
             

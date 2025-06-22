@@ -300,11 +300,11 @@ public class Parser
 
                 _ => new BinaryExprNode(left, op, right)
             };
+        }
 
-            // Handle ternary after combining binary.
-            if (!Peek(TokenType.Question))
-                continue;
-            
+        // Handle ternary expressions as a separate low-precedence, right-associative operator
+        if (Peek(TokenType.Question) && parentPrecedence <= 1)
+        {
             Consume(); // consume '?'
             var thenExpr = ParseExpression();
             Consume(TokenType.Colon, "Expected ':' in ternary expression");

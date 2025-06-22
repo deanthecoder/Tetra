@@ -20,8 +20,6 @@ public static class OpCodeToStringMap
         // Special case names (Cannot be based on enum name).
         var manualEntries = new[]
         {
-            ("jmp_z", OpCode.JmpZ),
-            ("jmp_nz", OpCode.JmpNz),
             ("push_frame", OpCode.PushFrame),
             ("pop_frame", OpCode.PopFrame),
             ("bit_and", OpCode.BitAnd),
@@ -32,7 +30,6 @@ public static class OpCodeToStringMap
         var autoEntries =
             Enum.GetValues<OpCode>()
                 .Where(op => manualEntries.All(e => e.Item2 != op))
-                .Where(op => op.ToString().Count(char.IsUpper) == 1)
                 .Select(op => (op.ToString().ToLower(), op));
         Lut = manualEntries.Concat(autoEntries).ToArray();
 

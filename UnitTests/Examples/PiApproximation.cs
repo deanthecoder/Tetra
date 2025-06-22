@@ -32,7 +32,7 @@ public class PiApproximation
             loop:
                 ld $c, $i
                 ge $c, $limit
-                jmp_nz $c, done          # Exit if i >= limit
+                jmpnz $c, done          # Exit if i >= limit
 
                 ld $denominator, $i
                 mul $denominator, 2      # denominator = 2*i

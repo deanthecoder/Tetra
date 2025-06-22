@@ -18,7 +18,7 @@ main:
 loop:
     ld $cond, $i
     ge $cond, 1.0
-    jmp_nz $cond, end
+    jmpnz $cond, end
     
     # p=(I+I-v)/v.y*i;
     ld $v, $iResolution
@@ -37,7 +37,7 @@ loop:
     
     ld $cond, $z
     le $cond, 0.1
-    jmp_nz $cond, skip    # Early exit of color is near black.
+    jmpnz $cond, skip    # Early exit of color is near black.
     
     # p/=.2+sqrt(z)*.3;
     sqrt $_t, $z

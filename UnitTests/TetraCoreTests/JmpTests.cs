@@ -76,7 +76,7 @@ public class JmpTests
         const string code =
             """
                 ld $x, 0
-                jmp_z $x, zero
+                jmpz $x, zero
                 ld $a, 0
                 halt
             zero:
@@ -94,7 +94,7 @@ public class JmpTests
         const string code =
             """
                 ld $x, 5
-                jmp_nz $x, notzero
+                jmpnz $x, notzero
                 ld $a, 0
                 halt
             notzero:

@@ -160,8 +160,8 @@ public class TetraVm
             case OpCode.Not: ExecuteNot(instr); break;
             case OpCode.Test: ExecuteTest(instr); break;
             case OpCode.Jmp: ExecuteJmp(instr); break;
-            case OpCode.JmpZ: ExecuteJmpZ(instr); break;
-            case OpCode.JmpNz: ExecuteJmpNz(instr); break;
+            case OpCode.Jmpz: ExecuteJmpZ(instr); break;
+            case OpCode.Jmpnz: ExecuteJmpNz(instr); break;
             case OpCode.Print: ExecutePrint(instr); break;
             case OpCode.PushFrame: ExecutePushFrame(); break;
             case OpCode.PopFrame: ExecutePopFrame(); break;
@@ -291,7 +291,7 @@ public class TetraVm
 
     /// <summary>
     /// Jump if zero.
-    /// E.g. jmp_z $a, label
+    /// E.g. jmpz $a, label
     /// </summary>
     private void ExecuteJmpZ(Instruction instr)
     {
@@ -311,7 +311,7 @@ public class TetraVm
 
     /// <summary>
     /// Jump if not zero.
-    /// E.g. jmp_nz $a, label
+    /// E.g. jmpnz $a, label
     /// </summary>
     private void ExecuteJmpNz(Instruction instr)
     {
