@@ -427,17 +427,6 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["y"].Float, Is.EqualTo(2.0));
     }
     
-    [Test, Ignore("Not implemented yet.")]
-    public void CheckInlineVectorArrayAccess()
-    {
-        const string code = "float y = vec2(1.0, 2.0)[1];";
-        var tetraCode = Compiler.CompileToTetraSource(code);
-        var vm = new TetraVm(Assembler.Assemble(tetraCode));
-        vm.Run();
-        
-        Assert.That(vm["y"].Float, Is.EqualTo(2.0));
-    }
-    
     [Test, Sequential]
     public void CheckVectorArrayAccessWithOutOfBoundsIndex([Values(-1, 23)] int index)
     {
@@ -594,5 +583,74 @@ public class TetraEmitterTests : TestsBase
         vm.Run();
         
         Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.0, -2.0, -3.0 }));
+    }
+
+    [Test]
+    public void CheckIfStatement()
+    {
+        const string code =
+            """
+            int a;
+            if (1)
+                a = 23;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(23));
+    }
+
+    [Test] 
+    public void CheckIfStatementWithElse()
+    {
+        const string code =
+            """
+            int a;
+            if (0)
+                a = 23;
+            else
+                a = 32;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(32));
+    }
+    
+    [Test] 
+    public void CheckIfStatementWithElseBlocks()
+    {
+        const string code =
+            """
+            int a;
+            if (0) {
+                a = 23;
+            } else {
+                a = 32;
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(32));
+    }
+    
+    [Test, Explicit("Not implemented yet.")]
+    public void CheckTernary()
+    {
+        const string code =
+            """
+            int a = 1 ? 23 : 32;
+            int b = 0 ? 23 : 32;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Int, Is.EqualTo(23));
+        Assert.That(vm["b"].Int, Is.EqualTo(32));
     }
 }

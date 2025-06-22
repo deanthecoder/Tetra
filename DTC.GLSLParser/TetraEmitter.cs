@@ -24,6 +24,7 @@ public class TetraEmitter
     private readonly Stack<(string continueLabel, string breakLabel)> m_loopStack = [];
     private int m_tmpCounter;
     private int m_forLoopCounter;
+    private int m_ifCounter;
     private int m_skipLabelCounter;
 
     public string Emit(ProgramNode program, string entryPoint = "main")
@@ -31,6 +32,7 @@ public class TetraEmitter
         m_sb.Clear();
         m_tmpCounter = 0;
         m_forLoopCounter = 0;
+        m_ifCounter = 0;
         m_skipLabelCounter = 0;
         m_loopStack.Clear();
 
@@ -105,6 +107,14 @@ public class TetraEmitter
             
             case ContinueNode:
                 EmitContinue();
+                break;
+            
+            case IfNode ifNode:
+                EmitIf(ifNode);
+                break;
+            
+            case BlockNode block:
+                EmitBlock(block);
                 break;
 
             default:
@@ -421,5 +431,42 @@ public class TetraEmitter
         WriteLine("pop_frame");
         
         m_loopStack.Pop();
+    }
+
+    private void EmitIf(IfNode ifNode)
+    {
+        // Condition check.
+        var check = EmitExpression(ifNode.Condition);
+        var tmpName = $"tmp{m_tmpCounter++}";
+        WriteLine($"ld ${tmpName}, {check}");
+        
+        // Support 'if' with no else.
+        m_ifCounter++;
+        if (ifNode.ElseBlock == null)
+        {
+            var endLabel = $"if{m_ifCounter}_end";
+            WriteLine($"jmp_z ${tmpName}, {endLabel}");
+            EmitNode(ifNode.ThenBlock);
+            WriteLine($"{endLabel}:");
+        }
+        else
+        {
+            var elseLabel = $"if{m_ifCounter}_else";
+            var endLabel = $"if{m_ifCounter}_end";
+            WriteLine($"jmp_z ${tmpName}, {elseLabel}");
+            EmitNode(ifNode.ThenBlock);
+            WriteLine($"jmp {endLabel}");
+            
+            WriteLine($"{elseLabel}:");
+            EmitNode(ifNode.ElseBlock);
+            WriteLine($"{endLabel}:");
+        }
+    }
+
+    private void EmitBlock(BlockNode blockNode)
+    {
+        WriteLine("push_frame");
+        blockNode.Statements.ForEach(EmitNode);
+        WriteLine("pop_frame");
     }
 }
