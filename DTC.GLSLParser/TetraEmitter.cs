@@ -495,6 +495,9 @@ public class TetraEmitter
 
     private void EmitBlock(BlockNode blockNode)
     {
+        if (blockNode.Statements.Length == 0)
+            return; // Nothing to do.
+        
         WriteLine("push_frame");
         blockNode.Statements.ForEach(EmitNode);
         WriteLine("pop_frame");
