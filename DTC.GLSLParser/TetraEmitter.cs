@@ -183,13 +183,7 @@ public class TetraEmitter
     {
         var intrinsicOpCode = OpCodeToStringMap.GetIntrinsic(call.FunctionName.Value);
         if (intrinsicOpCode.HasValue)
-        {
-            var tmpVars = AssignArgsToLocals(call.Arguments);
-            var functionName = OpCodeToStringMap.GetString(intrinsicOpCode.Value);
-            var tmpName = $"$tmp{m_tmpCounter++}";
-            WriteLine($"{functionName} {tmpName}, {tmpVars.ToCsv(addSpace: true)}");
-            return tmpName;
-        }
+            return EmitIntrinsicCall(call, intrinsicOpCode);
         
         // User-defined function.
         for (var i = 0; i < call.Arguments.Length; i++)
@@ -198,7 +192,7 @@ public class TetraEmitter
         WriteLine($"call {call.FunctionName.Value}");
         return "$retval";
     }
-
+    
     private void EmitVariableDeclaration(VariableDeclarationNode decl)
     {
         if (decl.Value == null)
@@ -468,5 +462,46 @@ public class TetraEmitter
         WriteLine("push_frame");
         blockNode.Statements.ForEach(EmitNode);
         WriteLine("pop_frame");
+    }
+
+    private string EmitIntrinsicCall(CallExprNode call, OpCode? intrinsicOpCode)
+    {
+        var tmpVars = AssignArgsToLocals(call.Arguments);
+        var functionName = OpCodeToStringMap.GetString(intrinsicOpCode.Value);
+        
+        if (tmpVars.Length == 1)
+        {
+            // One arg:
+            // ld $a, ...
+            // sin $a, $a
+            // Return: $a
+            WriteLine($"{functionName} {tmpVars[0]}, {tmpVars[0]}");
+            return tmpVars[0];
+        }
+
+        if (tmpVars.Length == 2)
+        {
+            // Two args:
+            // ld $a, ...
+            // ld $b, ...
+            // min $a, $b
+            // Return: $a
+            WriteLine($"{functionName} {tmpVars[0]}, {tmpVars[1]}");
+            return tmpVars[0];
+        }
+
+        if (tmpVars.Length == 3)
+        {
+            // Three args:
+            // ld $a, ...
+            // ld $from, ...
+            // ld $to, ...
+            // clamp $a, $from, $to
+            // Return: $a
+            WriteLine($"{functionName} {tmpVars[0]}, {tmpVars[1]}, {tmpVars[2]}");
+            return tmpVars[0];
+        }
+        
+        throw new EmitterException($"Unsupported intrinsic call '{functionName}'");
     }
 }

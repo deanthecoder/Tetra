@@ -23,7 +23,7 @@ public class EmitOneSmallStepTest : TestsBase
         var code = ProjectDir.GetDir("Examples").GetFile("OneSmallStep.glsl").ReadAllText();
 
         string tetraCode = null;
-        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code, "main"), Throws.Nothing);
+        Assert.That(() => tetraCode = Compiler.CompileToTetraSource(code), Throws.Nothing);
 
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
