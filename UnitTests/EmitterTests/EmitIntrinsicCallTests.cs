@@ -85,4 +85,30 @@ public class EmitIntrinsicCallTests
         Assert.That(vm["a"].Float, Is.EqualTo(4.56).Within(0.001));
         Assert.That(vm["b"].Float, Is.EqualTo(1.23).Within(0.001));
     }
+    
+    [Test]
+    public void CheckFloor()
+    {
+        const string code =
+            "float a = floor(8.3);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Float, Is.EqualTo(8.0).Within(0.001));
+    }
+
+    [Test]
+    public void CheckMix()
+    {
+        const string code =
+            """
+            float a = mix(0.3, 1.1, 7.3);
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["a"].Float, Is.EqualTo(2.96).Within(0.001));
+    }
 }

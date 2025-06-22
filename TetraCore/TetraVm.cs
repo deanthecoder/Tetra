@@ -186,10 +186,12 @@ public class TetraVm
             case OpCode.Min: ExecuteMin(instr); break;
             case OpCode.Max: ExecuteMax(instr); break;
             case OpCode.Ceil: ExecuteCeil(instr); break;
+            case OpCode.Floor: ExecuteFloor(instr); break;
             case OpCode.Fract: ExecuteFract(instr); break;
             case OpCode.Length: ExecuteLength(instr); break;
             case OpCode.Normalize: ExecuteNormalize(instr); break;
             case OpCode.Clamp: ExecuteClamp(instr); break;
+            case OpCode.Mix: ExecuteMix(instr); break;
             case OpCode.Smoothstep: ExecuteSmoothstep(instr); break;
             case OpCode.Dot: ExecuteDot(instr); break;
             case OpCode.Reflect: ExecuteReflect(instr); break;
@@ -753,6 +755,12 @@ public class TetraVm
         DoMathOp(instr, (_, b) => MathF.Ceiling(b));
     
     /// <summary>
+    /// E.g. floor $a, $b    (a = floor(b))
+    /// </summary>
+    private void ExecuteFloor(Instruction instr) =>
+        DoMathOp(instr, (_, b) => MathF.Floor(b));
+    
+    /// <summary>
     /// E.g. fract $a, $b    (a = fract(b))
     /// </summary>
     private void ExecuteFract(Instruction instr) =>
@@ -812,6 +820,17 @@ public class TetraVm
             throw new RuntimeException("Expected: clamp $a, $from, $to");
 
         DoMathOp(instr, (a, b, c) => MathF.Max(b, MathF.Min(c, a)));
+    }
+    
+    /// <summary>
+    /// E.g. mix $a, $from, $to    (a = mix(a, from, to))
+    /// </summary>
+    private void ExecuteMix(Instruction instr)
+    {
+        if (instr.Operands.Length < 3)
+            throw new RuntimeException("Expected: mix $a, $from, $to");
+
+        DoMathOp(instr, (a, b, c) => a.Lerp(b, c));
     }
 
     /// <summary>
@@ -939,7 +958,7 @@ public class TetraVm
 
         CurrentFrame.DefineVariable(aName, new Operand(result));
         m_ip++;
-    }
+    }    
     
     /// <summary>
     /// Applies a binary float operation element-wise between the target variable <c>$a</c>

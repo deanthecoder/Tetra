@@ -68,6 +68,7 @@ public enum OpCode
     Min,
     Max,
     Clamp,
+    Mix,
     Smoothstep,
     Reflect,
     Refract,
@@ -75,6 +76,7 @@ public enum OpCode
     Length,
     Dot,
     Ceil,
+    Floor,
     Fract,
     Cross
 }
