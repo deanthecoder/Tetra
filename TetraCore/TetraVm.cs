@@ -333,8 +333,62 @@ public class TetraVm
     /// E.g. mul $a, 3.141
     /// E.g. mul $a, $b     (a *= b)
     /// </summary>
-    private void ExecuteMul(Instruction instr) =>
-        DoMathOp(instr, (a, b) => a * b);
+    private void ExecuteMul(Instruction instr)
+    {
+        // Get target variable.
+        var a = instr.Operands[0];
+        var aName = a.Name;
+        if (CurrentFrame.IsDefined(aName))
+        {
+            a = CurrentFrame.GetVariable(aName);
+            if (a.Type is OperandType.Label or OperandType.Variable)
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
+        }
+        
+        // Get 2nd+ operands.
+        var operands = new Operand[instr.Operands.Length - 1];
+        for (var i = 1; i < instr.Operands.Length; i++)
+            operands[i - 1] = GetOperandValue(instr.Operands[i]);
+        var b = Operand.FromOperands(operands);
+        if (b.Type is OperandType.Label or OperandType.Variable)
+            throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {b.Type}.");
+
+        if (!CurrentFrame.IsDefined(aName))
+            throw new RuntimeException($"Variable '{aName}' is not defined.");
+
+        float[] floats;
+        if (a.Length == 1 && b.Length == 1)
+        {
+            // Simple a * b
+            floats = [ a.Floats[0] * b.Floats[0] ];
+        }
+        else if (b.Length == a.Length * a.Length)
+        {
+            // Vector × Matrix (column-major)
+            floats = new float[a.Length];
+            for (var col = 0; col < a.Length; col++)
+            {
+                var sum = 0f;
+                for (var row = 0; row < a.Length; row++)
+                    sum += a.Floats[row] * b.Floats[col * a.Length + row];
+                floats[col] = sum;
+            }
+        }
+        else
+        {
+            EnsureArrayDimensionsMatch(instr, ref a, ref b);
+
+            floats = new float[a.Length];
+            for (var i = 0; i < a.Length; i++)
+                floats[i] = a.Floats[i] * b.Floats[i];
+        }
+
+        var result = new Operand(floats) { Type = a.Type == OperandType.Int && b.Type == OperandType.Int ? OperandType.Int : OperandType.Float };
+
+        // Store the result.
+        CurrentFrame.SetVariable(aName, result, true);
+        m_ip++;
+    }
 
     /// <summary>
     /// E.g. div $a, 3.141
