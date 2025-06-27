@@ -37,6 +37,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Int, Is.EqualTo(8487));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
     }
 
     [Test]
@@ -51,6 +52,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Float, Is.EqualTo(-13.8).Within(0.001));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
     }
 
     [Test]
@@ -66,6 +68,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Float, Is.EqualTo(6.9).Within(0.001));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
     }
 
     [Test]
@@ -82,6 +85,7 @@ public class MulDivTests
 
         Assert.That(vm["a"].Floats[0], Is.EqualTo(6.9).Within(0.001));
         Assert.That(vm["a"].Floats[1], Is.EqualTo(2.4).Within(0.001));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
     }
     
     [Test]
@@ -111,6 +115,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Length, Is.EqualTo(2));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
     }
     
     [Test]
@@ -126,6 +131,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Length, Is.EqualTo(2));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
     }
 
     [Test]
@@ -148,6 +154,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Int, Is.EqualTo(3));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
     }
     
     [Test]
@@ -162,6 +169,7 @@ public class MulDivTests
         vm.Run();
 
         Assert.That(vm["a"].Float, Is.EqualTo(3.5));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
     }
     
     [Test]
@@ -177,7 +185,7 @@ public class MulDivTests
         vm.Run();
 
         Assert.That(vm["a"].Int, Is.EqualTo(2));
-
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Int));
     }
     
     [Test]
@@ -207,6 +215,7 @@ public class MulDivTests
     
         Assert.That(vm["a"].Floats[0], Is.EqualTo(3.0).Within(0.001));
         Assert.That(vm["a"].Floats[1], Is.EqualTo(2.0).Within(0.001));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
     }
     
     [Test]
@@ -236,6 +245,7 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Length, Is.EqualTo(2));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
     }
     
     [Test]
@@ -251,5 +261,6 @@ public class MulDivTests
         vm.Run();
         
         Assert.That(vm["a"].Length, Is.EqualTo(2));
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
     }
 }

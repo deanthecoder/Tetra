@@ -333,6 +333,10 @@ public class TetraVm
     /// E.g. mul $a, 3.141
     /// E.g. mul $a, $b     (a *= b)
     /// </summary>
+    /// <remarks>
+    /// This has a different implementation to ExecuteDiv, as we need to
+    /// support matrix/vector multiplication.
+    /// </remarks>
     private void ExecuteMul(Instruction instr)
     {
         // Get target variable.
@@ -383,13 +387,18 @@ public class TetraVm
                 floats[i] = a.Floats[i] * b.Floats[i];
         }
 
-        var result = new Operand(floats) { Type = a.Type == OperandType.Int && b.Type == OperandType.Int ? OperandType.Int : OperandType.Float };
+        OperandType resultType;
+        if (a.Type == OperandType.Int && b.Type == OperandType.Int)
+            resultType = OperandType.Int;
+        else
+            resultType = floats.Length > 1 ? OperandType.Vector : OperandType.Float;
+        var result = new Operand(floats) { Type = resultType };
 
         // Store the result.
         CurrentFrame.SetVariable(aName, result, true);
         m_ip++;
     }
-
+    
     /// <summary>
     /// E.g. div $a, 3.141
     /// E.g. div $a, $b     (a /= b)
