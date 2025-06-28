@@ -33,6 +33,9 @@ public class TetraVm
 
     public ScopeFrame CurrentFrame => m_frames.Peek();
 
+    /// <summary>
+    /// Raised when a 'print' instruction is executed.
+    /// </summary>
     public event EventHandler<string> OutputWritten;
 
     // ReSharper disable once PropertyCanBeMadeInitOnly.Global
@@ -59,7 +62,7 @@ public class TetraVm
 
     public void Run()
     {
-        const int maxInstructionExecutions = 50_000;
+        const int maxInstructionExecutions = 100_000;
 
         // Execute the instructions.
         var instructionExecutions = 0;
@@ -98,10 +101,12 @@ public class TetraVm
                 var callstack = m_callStack
                     .Select(o => m_program.LabelTable.GetLabelFromInstructionPointer(o.functionLabel))
                     .Append("<Root>");
+                sb.AppendLine();
                 sb.AppendLine("Callstack:");
                 foreach(var funcName in callstack)
                     sb.AppendLine($"  → {funcName}");
 
+                sb.AppendLine();
                 sb.AppendLine("Variables:");
                 var state = CurrentFrame.ToUiString(m_program.SymbolTable);
                 if (string.IsNullOrEmpty(state))
@@ -110,6 +115,8 @@ public class TetraVm
                     sb.AppendLine($"  {s}");
 
                 Logger.Instance.Error(sb.ToString());
+                
+                m_program.Dump();
                 throw;
             }
             
@@ -461,13 +468,14 @@ public class TetraVm
         DoMathOp(instr, (a, _) => a == 0.0f ? 1.0f : 0.0f);
     
     /// <summary>
-    /// E.g. test $a    (a = 1 if 'a' is non-zero)
+    /// E.g. test $a, $b    (a = 1 if 'b' is non-zero)
     /// </summary>
     private void ExecuteTest(Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
         var aName = a.Name;
+        
         if (CurrentFrame.IsDefined(aName))
         {
             a = CurrentFrame.GetVariable(aName);
@@ -475,8 +483,11 @@ public class TetraVm
                 throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
         }
 
+        // Get test variable.
+        var b = UnpackBPlusOperands(instr.Operands);
+
         // Store the result.
-        var result = new Operand(a.Floats.Any(o => o != 0.0) ? 1 : 0);
+        var result = new Operand(b.Floats.Any(o => o != 0.0) ? 1 : 0);
         CurrentFrame.SetVariable(aName, result, true);
         m_ip++;
     }

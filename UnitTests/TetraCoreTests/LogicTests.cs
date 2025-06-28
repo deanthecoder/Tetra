@@ -387,11 +387,7 @@ public class LogicTests
     [Test]
     public void CheckTestWithZeroIntIsZero()
     {
-        const string code =
-            """
-            ld $a, 0
-            test $a
-            """;
+        const string code = "test $a, 0";
         var instructions = Assembler.Assemble(code);
         var vm = new TetraVm(instructions);
         vm.Run();
@@ -403,11 +399,7 @@ public class LogicTests
     [Test]
     public void CheckTestWithNonZeroIntIsOne()
     {
-        const string code =
-            """
-            ld $a, 23
-            test $a
-            """;
+        const string code = "test $a, 23";
         var instructions = Assembler.Assemble(code);
         var vm = new TetraVm(instructions);
         vm.Run();
@@ -419,11 +411,7 @@ public class LogicTests
     [Test]
     public void CheckTestWithZeroFloatIsZero()
     {
-        const string code =
-            """
-            ld $a, 0.0
-            test $a
-            """;
+        const string code = "test $a, 0.0";
         var instructions = Assembler.Assemble(code);
         var vm = new TetraVm(instructions);
         vm.Run();
@@ -435,11 +423,7 @@ public class LogicTests
     [Test]
     public void CheckTestWithNonZeroFloatIsOne()
     {
-        const string code =
-            """
-            ld $a, 12.34
-            test $a
-            """;
+        const string code = "test $a, 12.34";
         var instructions = Assembler.Assemble(code);
         var vm = new TetraVm(instructions);
         vm.Run();
@@ -451,11 +435,7 @@ public class LogicTests
     [Test]
     public void CheckTestWithZeroVectorIsZero()
     {
-        const string code =
-            """
-            ld $a, 0.0, 0.0
-            test $a
-            """;
+        const string code = "test $a, 0.0, 0.0";
         var instructions = Assembler.Assemble(code);
         var vm = new TetraVm(instructions);
         vm.Run();
@@ -467,11 +447,7 @@ public class LogicTests
     [Test]
     public void CheckTestWithNonZeroVectorIsOne()
     {
-        const string code =
-            """
-            ld $a, 0.0, 2.3
-            test $a
-            """;
+        const string code = "test $a, 0.0, 2.3";
         var instructions = Assembler.Assemble(code);
         var vm = new TetraVm(instructions);
         vm.Run();

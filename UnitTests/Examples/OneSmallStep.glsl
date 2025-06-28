@@ -59,7 +59,7 @@ float map(vec3 p) {
 
 vec3 NM(vec3 p, float t) {
 	vec3 n = vec3(0), e;
-	for (int i = min(iFrame, 0); i < 4; i++) {
+	for (int i = 0; i < 4; i++) {
 		e = .5773 * (2. * vec3(((i + 3) >> 1) & 1, (i >> 1) & 1, i & 1) - 1.);
 		n += e * map(p + .005 * t * e);
 	}

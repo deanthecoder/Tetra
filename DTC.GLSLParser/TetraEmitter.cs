@@ -28,7 +28,6 @@ public class TetraEmitter
     private int m_ifCounter;
     private int m_skipLabelCounter;
     private FunctionNode[] m_functionNodes;
-    private int m_emittedLines;
 
     public string Emit(ProgramNode program, string entryPoint = "main")
     {
@@ -39,7 +38,6 @@ public class TetraEmitter
         m_skipLabelCounter = 0;
         m_loopStack.Clear();
         m_functionNodes = program.Walk().OfType<FunctionNode>().ToArray();
-        m_emittedLines = 0;
 
         // Emit program statements.
         EmitNode(program);
@@ -133,12 +131,8 @@ public class TetraEmitter
     private void EmitContinue() =>
         WriteLine($"jmp {m_loopStack.Peek().continueLabel}");
 
-    private void WriteLine(string s = "")
-    {
+    private void WriteLine(string s = "") =>
         m_sb.AppendLine(s);
-        m_emittedLines++;
-        Console.WriteLine($"{m_emittedLines,4}: {s}"); // Useful for unit testing.
-    }
 
     private void EmitProgram(ProgramNode program)
     {
@@ -171,7 +165,7 @@ public class TetraEmitter
         if (function.Body.Statements.LastOrDefault()?.GetType() != typeof(ReturnNode))
             EmitReturn(new ReturnNode(null));
 
-        WriteLine($"{function.Name.Value}_end:");
+        WriteLine($"__{function.Name.Value}_end:");
 
         // Reassign 'out' param values back to $argN.
         var outParams = GetFunctionOutParams(function).ToArray();
@@ -203,7 +197,7 @@ public class TetraEmitter
                 WriteLine($"ld $retval, {EmitExpression(returnNode.Value)}");
 
             var function = m_currentFunctionStack.Peek();
-            WriteLine($"jmp {function.Name.Value}_end");
+            WriteLine($"jmp __{function.Name.Value}_end");
             return;
         }
         
@@ -339,12 +333,11 @@ public class TetraEmitter
     {
         var tmpName = $"tmp{m_tmpCounter++}";
         m_ifCounter++;
-        var elseLabel = $"if{m_ifCounter}_else";
-        var endLabel = $"if{m_ifCounter}_end";
+        var elseLabel = $"__if{m_ifCounter}_else";
+        var endLabel = $"__if{m_ifCounter}_end";
         
         // If
-        WriteLine($"ld ${tmpName}, {EmitExpression(ternaryNode.Condition)}");
-        WriteLine($"test ${tmpName}");
+        WriteLine($"test ${tmpName}, {EmitExpression(ternaryNode.Condition)}");
         WriteLine($"jmpz ${tmpName}, {elseLabel}");
         
         // Then
@@ -363,8 +356,7 @@ public class TetraEmitter
     
     private string EmitBinary(BinaryExprNode binaryExpr)
     {
-        var tmpName = $"tmp{m_tmpCounter++}"; 
-        WriteLine($"ld ${tmpName}, {EmitExpression(binaryExpr.Left)}");
+        var tmpName = $"tmp{m_tmpCounter++}";
 
         var op = binaryExpr.Operator.Value switch
         {
@@ -391,24 +383,25 @@ public class TetraEmitter
         if (op == "and")
         {
             // Special case - The second expression should not be executed if the first is false.
-            var skipLabel = $"logic{m_skipLabelCounter++}_skip";
-            WriteLine($"test ${tmpName}");
+            var skipLabel = $"__logic{m_skipLabelCounter++}_skip";
+            WriteLine($"test ${tmpName}, {EmitExpression(binaryExpr.Left)}");
             WriteLine($"jmpz ${tmpName}, {skipLabel}");
             WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-            WriteLine($"test ${tmpName}");
+            WriteLine($"test ${tmpName}, ${tmpName}");
             WriteLine($"{skipLabel}:");
         } else if (op == "or")
         {
             // Special case - The second expression should not be executed if the first is true.
-            var skipLabel = $"logic{m_skipLabelCounter++}_skip";
-            WriteLine($"test ${tmpName}");
+            var skipLabel = $"__logic{m_skipLabelCounter++}_skip";
+            WriteLine($"test ${tmpName}, {EmitExpression(binaryExpr.Left)}");
             WriteLine($"jmpnz ${tmpName}, {skipLabel}");
             WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-            WriteLine($"test ${tmpName}");
+            WriteLine($"test ${tmpName}, ${tmpName}");
             WriteLine($"{skipLabel}:");
         }
         else
         {
+            WriteLine($"ld ${tmpName}, {EmitExpression(binaryExpr.Left)}");
             WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
         }
             
@@ -506,17 +499,17 @@ public class TetraEmitter
         
         // Loop start label.
         var labelSuffix = m_forLoopCounter++;
-        var startLabel = $"for{labelSuffix}_start";
+        var startLabel = $"__for{labelSuffix}_start";
         WriteLine($"{startLabel}:");
 
         // Support break/continue.
-        var incrementLabel = $"for{labelSuffix}_incr";
-        var endLabel = $"for{labelSuffix}_end";
+        var incrementLabel = $"__for{labelSuffix}_incr";
+        var endLabel = $"__for{labelSuffix}_end";
         m_loopStack.Push((continueLabel: incrementLabel, breakLabel: endLabel));
 
         // Condition check.
         var repeat = EmitExpression(forNode.Condition);
-        WriteLine($"jmpz {repeat}, for{labelSuffix}_end");
+        WriteLine($"jmpz {repeat}, __for{labelSuffix}_end");
 
         // Loop body.
         if (forNode.Body is BlockNode blockNode)
@@ -543,22 +536,21 @@ public class TetraEmitter
         // Condition check.
         var check = EmitExpression(ifNode.Condition);
         var tmpName = $"tmp{m_tmpCounter++}";
-        WriteLine($"test ${check}");
-        WriteLine($"ld ${tmpName}, {check}");
+        WriteLine($"test ${tmpName}, {check}");
         
         // Support 'if' with no else.
         m_ifCounter++;
         if (ifNode.ElseBlock == null)
         {
-            var endLabel = $"if{m_ifCounter}_end";
+            var endLabel = $"__if{m_ifCounter}_end";
             WriteLine($"jmpz ${tmpName}, {endLabel}");
             EmitNode(ifNode.ThenBlock);
             WriteLine($"{endLabel}:");
         }
         else
         {
-            var elseLabel = $"if{m_ifCounter}_else";
-            var endLabel = $"if{m_ifCounter}_end";
+            var elseLabel = $"__if{m_ifCounter}_else";
+            var endLabel = $"__if{m_ifCounter}_end";
             WriteLine($"jmpz ${tmpName}, {elseLabel}");
             EmitNode(ifNode.ThenBlock);
             WriteLine($"jmp {endLabel}");

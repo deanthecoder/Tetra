@@ -282,17 +282,17 @@ public class TetraEmitterTests : TestsBase
             push_frame
             decl $i
             ld $i, 0
-            for0_start:
+            __for0_start:
             ld $tmp0, $i
             lt $tmp0, 5
-            jmpz $tmp0, for0_end
+            jmpz $tmp0, __for0_end
             ld $tmp1, $sum
             add $tmp1, $i
             ld $sum, $tmp1
-            for0_incr:
+            __for0_incr:
             inc $i
-            jmp for0_start
-            for0_end:
+            jmp __for0_start
+            __for0_end:
             pop_frame
             """;
         var tetraCode = Compiler.CompileToTetraSource(code);

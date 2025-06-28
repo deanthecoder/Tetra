@@ -25,4 +25,24 @@ public class Program
         SymbolTable = symbolTable;
         LabelTable = labelTable;
     }
+
+    public void Dump()
+    {
+        var instructions = Instructions.Select(o => o.ToString()).ToList();
+        
+        // Re-add labels.
+        foreach (var (label, index) in LabelTable.OrderByDescending(o => o.Value))
+        {
+            string line;
+            if (label.StartsWith('_'))
+                line = label;
+            else
+                line = $"\n{label}()";
+            instructions.Insert(index, $"{line}:  # {index}");
+        }
+
+        // Write out.
+        foreach (var instruction in instructions)
+            Console.WriteLine(instruction);
+    }
 }
