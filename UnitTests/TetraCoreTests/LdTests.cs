@@ -108,6 +108,62 @@ public class LdTests
     }
 
     [Test]
+    public void CheckExpandingFloatToVector()
+    {
+        const string code =
+            """
+            ld $a, 1.0
+            dim $a, 4
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+        
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Vector));
+        Assert.That(vm["a"].Floats, Is.EqualTo(new[] { 1.0, 1.0, 1.0, 1.0 }).Within(0.001));
+    }
+
+    [Test]
+    public void CheckTruncatingVectorToFloat()
+    {
+        const string code =
+            """
+            ld $a, 1.0, 2.0
+            dim $a, 1
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+        vm.Run();
+
+        Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
+        Assert.That(vm["a"].Float, Is.EqualTo(1.0).Within(0.001));
+    }
+
+    [Test]
+    public void CheckExpandingVec2ToVec4Throws()
+    {
+        const string code =
+            """
+            ld $a, 1.0, 2.0
+            dim $a, 4
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
+    [Test]
+    public void CheckSettingZeroVectorLengthThrows()
+    {
+        const string code =
+            """
+            ld $a, 1.0, 2.0
+            dim $a, 0
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+
+    [Test]
     public void CheckCopyingVariable()
     {
         const string code =

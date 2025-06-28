@@ -151,6 +151,7 @@ public class TetraVm
             case OpCode.Neg: ExecuteNeg(instr); break;
             case OpCode.Mul: ExecuteMul(instr); break;
             case OpCode.Div: ExecuteDiv(instr); break;
+            case OpCode.Dim: ExecuteDim(instr); break;
             case OpCode.Shiftl: ExecuteShiftL(instr); break;
             case OpCode.Shiftr: ExecuteShiftR(instr); break;
             case OpCode.BitAnd: ExecuteBitAnd(instr); break;
@@ -412,6 +413,59 @@ public class TetraVm
     /// </summary>
     private void ExecuteDiv(Instruction instr) =>
         DoMathOp(instr, (a, b) => b == 0.0f ? throw new RuntimeException("Division by zero.") : a / b);
+
+    /// <summary>
+    /// E.g. dim $a, $b    (Sets length of $a vector to 'b')
+    /// </summary>
+    private void ExecuteDim(Instruction instr)
+    {
+        // Get target variable.
+        var a = instr.Operands[0];
+        var aName = a.Name;
+
+        if (CurrentFrame.IsDefined(aName))
+        {
+            a = CurrentFrame.GetVariable(aName);
+            if (a.Type is OperandType.Label or OperandType.Variable)
+                throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
+        }
+
+        // Get length operand.
+        var b = GetOperandValue(instr.Operands[1]);
+        if (b.Type is not OperandType.Int)
+            throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' with non-integer operand {b.Type}.");
+        if (b.Int == 0)
+            throw new RuntimeException("Cannot set vector length to zero.");
+
+        // Store the result.
+        if (b.Int == 1)
+        {
+            CurrentFrame.SetVariable(aName, new Operand(a.Float), true);
+        }
+        else
+        {
+            float[] floats;
+            if (a.Length == 1)
+            {
+                // If $a is single float, duplicate 'b' times.
+                floats = Enumerable.Repeat(a.Float, b.Int).ToArray();
+            }
+            else
+            {
+                if (a.Length < b.Int)
+                    throw new RuntimeException($"Cannot increase vector length from {a.Length} to {b.Int}.");
+
+                // Truncate vector to a length of 'b'.
+                floats = new float[b.Int];
+                for (var i = 0; i < b.Int; i++)
+                    floats[i] = a.Float;
+            }
+            
+            CurrentFrame.SetVariable(aName, new Operand(floats), true);
+        }
+
+        m_ip++;
+    }
 
     /// <summary>
     /// E.g. lt $a, $b    (a = a < b)
