@@ -41,6 +41,6 @@ public class EmitOneSmallStepTest : TestsBase
         Assert.That(tetraCode, Is.Not.Empty);
         
         var vm = new TetraVm(Assembler.Assemble(tetraCode));
-        vm.Run();
+        Assert.That(() => vm.Run(), Throws.Nothing);
     }
 }

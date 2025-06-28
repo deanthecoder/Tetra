@@ -82,7 +82,7 @@ public class TetraVm
                     {
                         Console.WriteLine();
                         Console.WriteLine($"Running {functionName}() ".PadRight(80, '-'));
-                        Console.WriteLine("Variables:");
+                        Console.WriteLine("Variables: (Newest first)");
                         var state = CurrentFrame.ToUiString(m_program.SymbolTable);
                         foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
                             Console.WriteLine($"  {s}");
@@ -917,8 +917,11 @@ public class TetraVm
         
         // Calculate length.
         var sum2 = 0.0f;
-        foreach (var f in b.Floats)
+        for (var i = 0; i < b.Floats.Length; i++)
+        {
+            var f = b.Floats[i];
             sum2 += f * f;
+        }
         var l = new Operand(sum2 == 0.0f ? 0.0f : MathF.Sqrt(sum2));
 
         CurrentFrame.DefineVariable(a.Name, l);

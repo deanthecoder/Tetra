@@ -61,6 +61,11 @@ public class ScopeFrame
 
     private void SetValue(VarName varName, Operand value)
     {
+        if (float.IsNaN(value.Float))
+            throw new RuntimeException("Cannot assign NaN to a variable.");
+        if (float.IsInfinity(value.Float))
+            throw new RuntimeException("Cannot assign infinity to a variable.");
+        
         var hasArrayIndex = varName.ArrIndex.HasValue;
         var hasSwizzle = varName.Swizzle != null;
         if (!hasArrayIndex && !hasSwizzle)
@@ -180,8 +185,8 @@ public class ScopeFrame
 
         if (m_parent != null)
         {
-            sb.Append(m_parent.ToUiString(symbolTable));
             sb.AppendLine("---");
+            sb.Append(m_parent.ToUiString(symbolTable));
         }
 
         return sb.ToString();
