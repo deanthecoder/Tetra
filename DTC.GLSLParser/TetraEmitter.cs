@@ -152,10 +152,14 @@ public class TetraEmitter
         WriteLine($"{function.Name.Value}:");
 
         // Parameter mapping.
-        for (var i = 0; i < function.Parameters.Length; i++)
+        if (function.Parameters.Length > 0)
         {
-            var parameter = function.Parameters[i];
-            WriteLine($"ld ${parameter.Name.Value}, $arg{i}");
+            WriteLine($"decl {function.Parameters.Select(o => $"${o.Name.Value}").ToCsv()}");
+            for (var i = 0; i < function.Parameters.Length; i++)
+            {
+                var parameter = function.Parameters[i];
+                WriteLine($"ld ${parameter.Name.Value}, $arg{i}");
+            }
         }
 
         // Body

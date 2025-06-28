@@ -154,6 +154,7 @@ public class TetraEmitterTests : TestsBase
             """;
         var tetraCode = Compiler.CompileToTetraSource(code);
 
+        Assert.That(tetraCode, Does.Contain("decl $a,$b"));
         Assert.That(tetraCode, Does.Contain("ld $arg0, 6"));
         Assert.That(tetraCode, Does.Contain("ld $arg1, 9.2"));
         Assert.That(tetraCode, Does.Contain("call foo"));
@@ -685,5 +686,27 @@ public class TetraEmitterTests : TestsBase
 
         Assert.That(vm["v"].Length, Is.EqualTo(4));
         Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 3.0f, 4.0f }));
+    }
+
+    [Test]
+    public void CheckFunctionCallWithSameParamNameAsLocalVariable()
+    {
+        const string code =
+            """
+            float box(vec3 b) {
+                return 1.0;
+            }
+            
+            float main() {
+                float b = 0.0;
+                box(vec3(0));
+                return b;
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["retval"].Type, Is.EqualTo(OperandType.Float));
     }
 }
