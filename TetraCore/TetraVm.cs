@@ -436,32 +436,35 @@ public class TetraVm
             throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' with non-integer operand {b.Type}.");
         if (b.Int == 0)
             throw new RuntimeException("Cannot set vector length to zero.");
-
-        // Store the result.
-        if (b.Int == 1)
+        
+        if (a.Length != b.Int)
         {
-            CurrentFrame.SetVariable(aName, new Operand(a.Float), true);
-        }
-        else
-        {
-            float[] floats;
-            if (a.Length == 1)
+            // Store the result.
+            if (b.Int == 1)
             {
-                // If $a is single float, duplicate 'b' times.
-                floats = Enumerable.Repeat(a.Float, b.Int).ToArray();
+                CurrentFrame.SetVariable(aName, new Operand(a.Float), true);
             }
             else
             {
-                if (a.Length < b.Int)
-                    throw new RuntimeException($"Cannot increase vector length from {a.Length} to {b.Int}.");
+                float[] floats;
+                if (a.Length == 1)
+                {
+                    // If $a is single float, duplicate 'b' times.
+                    floats = Enumerable.Repeat(a.Float, b.Int).ToArray();
+                }
+                else
+                {
+                    if (a.Length < b.Int)
+                        throw new RuntimeException($"Cannot increase vector length from {a.Length} to {b.Int}.");
 
-                // Truncate vector to a length of 'b'.
-                floats = new float[b.Int];
-                for (var i = 0; i < b.Int; i++)
-                    floats[i] = a.Float;
-            }
+                    // Truncate vector to a length of 'b'.
+                    floats = new float[b.Int];
+                    for (var i = 0; i < b.Int; i++)
+                        floats[i] = a.Floats[i];
+                }
             
-            CurrentFrame.SetVariable(aName, new Operand(floats), true);
+                CurrentFrame.SetVariable(aName, new Operand(floats), true);
+            }
         }
 
         m_ip++;

@@ -674,4 +674,16 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["a"].Int, Is.EqualTo(23));
         Assert.That(vm["b"].Int, Is.EqualTo(32));
     }
+    
+    [Test]
+    public void CheckVectorCreationFromFloatsAndVector()
+    {
+        const string code = "vec4 v = vec4(1.0, vec2(2.0, 3.0), 4.0);";
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["v"].Length, Is.EqualTo(4));
+        Assert.That(vm["v"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 3.0f, 4.0f }));
+    }
 }

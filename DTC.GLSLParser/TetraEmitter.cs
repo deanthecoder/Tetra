@@ -265,19 +265,18 @@ public class TetraEmitter
         // Grab the component arguments.
         var tmpVars = AssignArgsToLocals(ctor.Arguments).ToList();
         
+        // Construct the object.
+        var result = $"$tmp{m_tmpCounter++}";
+        WriteLine($"ld {result}, {tmpVars.ToCsv(addSpace: true)}");
+
         // Support vectors.
         var typeName = ctor.FunctionName.Value;
         if (typeName.Contains("vec"))
         {
-            // Expand arg count to match dimension of the vector.
             var dimension = int.Parse(typeName.Last().ToString());
-            while (tmpVars.Count < dimension)
-                tmpVars.Add(tmpVars[0]);
+            WriteLine($"dim {result}, {dimension}");
         }
-        
-        // Construct the object.
-        var result = $"$tmp{m_tmpCounter++}";
-        WriteLine($"ld {result}, {tmpVars.ToCsv(addSpace: true)}");
+
         return result;
     }
 
