@@ -20,5 +20,5 @@ namespace TetraCore;
 public class LabelTable : Dictionary<string, int>
 {
     public string GetLabelFromInstructionPointer(int ip) =>
-        this.First(o => o.Value == ip).Key;
+        this.FirstOrDefault(o => o.Value == ip).Key ?? "<unknown>";
 }

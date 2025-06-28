@@ -40,7 +40,7 @@ public class Program
                 line = label;
             else
                 line = $"\n{label}()";
-            instructions.Insert(index, $"{line}:  # {index}");
+            instructions.Insert(index, $"{line}:");
         }
 
         // Write out.
@@ -51,7 +51,7 @@ public class Program
             {
                 var target = int.Parse(match.Groups[1].Value);
                 var label = LabelTable.FirstOrDefault(o => o.Value == target).Key;
-                Console.WriteLine(label != null ? instruction.Replace(match.Groups[1].Value, label) : instruction);
+                Console.WriteLine(label != null ? instruction.Replace($"call {match.Groups[1].Value}", $"call {label}") : instruction);
             }
             else
             {

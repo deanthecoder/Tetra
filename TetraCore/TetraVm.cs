@@ -30,6 +30,7 @@ public class TetraVm
     private readonly Stack<(int functionLabel, int returnIp, int scopeFrameDepth)> m_callStack = new Stack<(int, int, int)>(4);
     private List<string> m_uniforms;
     private int m_ip;
+    private bool m_isDebugging;
 
     public ScopeFrame CurrentFrame => m_frames.Peek();
 
@@ -40,7 +41,7 @@ public class TetraVm
 
     // ReSharper disable once PropertyCanBeMadeInitOnly.Global
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public bool Debug { get; set; }
+    public List<string> DebugFunctions { get; } = [];
 
     public TetraVm(Program program)
     {
@@ -73,14 +74,20 @@ public class TetraVm
             var instr = instructions[m_ip];
             try
             {
-                if (Debug)
+                if (DebugFunctions.Count > 0)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("Variables:");
-                    var state = CurrentFrame.ToUiString(m_program.SymbolTable);
-                    foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
-                        Console.WriteLine($"  {s}");
-                    Console.WriteLine($"Next: {instr}");
+                    var functionName = m_callStack.Count > 0 ? m_program.LabelTable.GetLabelFromInstructionPointer(m_callStack.Peek().functionLabel) : "<Root>";
+                    m_isDebugging = DebugFunctions.Contains("All") || DebugFunctions.Contains(functionName);
+                    if (m_isDebugging)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"Running {functionName}() ".PadRight(80, '-'));
+                        Console.WriteLine("Variables:");
+                        var state = CurrentFrame.ToUiString(m_program.SymbolTable);
+                        foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
+                            Console.WriteLine($"  {s}");
+                        Console.WriteLine($"Next: {instr}");
+                    }
                 }
                 
                 var keepRunning = Execute(instr);
@@ -91,6 +98,9 @@ public class TetraVm
             catch (Exception e)
             {
                 var sb = new StringBuilder();
+                sb.Append('-', 80);
+                sb.AppendLine();
+                
                 var message = Regex.Replace(
                     e.Message,
                     @"\$(\d+)",
@@ -107,7 +117,7 @@ public class TetraVm
                     sb.AppendLine($"  → {funcName}");
 
                 sb.AppendLine();
-                sb.AppendLine("Variables:");
+                sb.AppendLine("Variables (Newest first):");
                 var state = CurrentFrame.ToUiString(m_program.SymbolTable);
                 if (string.IsNullOrEmpty(state))
                     state = "<None>";
@@ -726,7 +736,7 @@ public class TetraVm
 
         // Make the return value available to the caller (may be null).
         CurrentFrame.Retval = a;
-
+        
         // Restore the IP.
         m_ip = preCallStackInfo.returnIp;
     }
@@ -1243,4 +1253,7 @@ public class TetraVm
         CurrentFrame.DefineVariable($"{m_uniforms.Count}", value);
         m_uniforms.Add(name);
     }
+
+    public void DebugAll() =>
+        DebugFunctions.AddIfUnique("All");
 }

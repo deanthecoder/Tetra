@@ -165,12 +165,6 @@ public class ScopeFrame
     public string ToUiString(SymbolTable symbolTable)
     {
         var sb = new StringBuilder();
-        if (m_parent != null)
-        {
-            sb.Append(m_parent.ToUiString(symbolTable));
-            sb.AppendLine("---");
-        }
-
         for (var slotIndex = 0; slotIndex < m_slots.Length; slotIndex++)
         {
             if (m_slots[slotIndex] == null)
@@ -183,6 +177,12 @@ public class ScopeFrame
         }
         if (Retval != null)
             sb.AppendLine($"retval = {Retval}");
+
+        if (m_parent != null)
+        {
+            sb.Append(m_parent.ToUiString(symbolTable));
+            sb.AppendLine("---");
+        }
 
         return sb.ToString();
     }
