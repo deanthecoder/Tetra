@@ -8,6 +8,8 @@
 // about your modifications. Your contributions are valued!
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+using System.Text.RegularExpressions;
+
 namespace TetraCore;
 
 /// <summary>
@@ -43,6 +45,18 @@ public class Program
 
         // Write out.
         foreach (var instruction in instructions)
-            Console.WriteLine(instruction);
+        {
+            var match = Regex.Match(instruction, @"call (\d+)$");
+            if (match.Success)
+            {
+                var target = int.Parse(match.Groups[1].Value);
+                var label = LabelTable.FirstOrDefault(o => o.Value == target).Key;
+                Console.WriteLine(label != null ? instruction.Replace(match.Groups[1].Value, label) : instruction);
+            }
+            else
+            {
+                Console.WriteLine(instruction);
+            }
+        }
     }
 }
