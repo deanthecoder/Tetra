@@ -64,7 +64,7 @@ public class VarName
     private static int ParseName(string name)
     {
         if (!int.TryParse(name, out var slot))
-            throw new SyntaxErrorException($"Invalid variable name: {name}");
+            throw new SyntaxErrorException($"Invalid variable name: {name} (Must be a number)");
         if (slot >= ScopeFrame.MaxSlots)
             throw new SyntaxErrorException("Variable count limit reached.");
         return slot;

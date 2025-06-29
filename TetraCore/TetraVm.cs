@@ -39,8 +39,7 @@ public class TetraVm
     /// </summary>
     public event EventHandler<string> OutputWritten;
 
-    // ReSharper disable once PropertyCanBeMadeInitOnly.Global
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
+    // ReSharper disable once MemberCanBePrivate.Global
     public List<string> DebugFunctions { get; } = [];
 
     public TetraVm(Program program)
@@ -681,7 +680,7 @@ public class TetraVm
     /// </summary>
     private void ExecutePushFrame()
     {
-        m_frames.Push(new ScopeFrame(CurrentFrame));
+        m_frames.Push(new ScopeFrame(ScopeType.Block, CurrentFrame));
         m_ip++;
     }
 
@@ -697,7 +696,7 @@ public class TetraVm
         if (instr.Operands.Length > 1)
             throw new RuntimeException("Too many operands.");
         m_callStack.Push((label.Int, m_ip + 1, m_frames.Count));
-        m_frames.Push(new ScopeFrame(CurrentFrame));
+        m_frames.Push(new ScopeFrame(ScopeType.Function, CurrentFrame));
         m_ip = label.Int;
     }
 

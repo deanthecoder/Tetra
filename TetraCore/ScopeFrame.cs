@@ -10,6 +10,7 @@
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
 using System.Text;
+using JetBrains.Annotations;
 using TetraCore.Exceptions;
 
 namespace TetraCore;
@@ -24,25 +25,54 @@ public class ScopeFrame
     public const int MaxSlots = 256;
     public const int RetvalSlot = 0;
 
+    private readonly ScopeType m_scopeType;
     private readonly ScopeFrame m_parent;
     private readonly Operand[] m_slots = new Operand[MaxSlots];
 
-    public bool IsRoot => m_parent == null;
+    public bool IsRoot => m_scopeType == ScopeType.Global;
     
     public Operand Retval
     {
         get => m_slots[0];
         set => m_slots[0] = value;
     }
-
-    public ScopeFrame(ScopeFrame parent = null)
+    
+    public ScopeFrame()
     {
-        m_parent = parent;
+        m_scopeType = ScopeType.Global;
     }
 
-    public bool IsDefined(VarName name) =>
-        m_slots[name.Slot] != null || (m_parent?.IsDefined(name) ?? false);
+    public ScopeFrame(ScopeType scopeType, [NotNull] ScopeFrame parent)
+    {
+        m_scopeType = scopeType;
+        m_parent = parent ?? throw new ArgumentNullException(nameof(parent));
+    }
 
+    public bool IsDefined(VarName name)
+    {
+        if (m_slots[name.Slot] != null)
+            return true; // Found locally.
+        
+        if (m_parent == null)
+            return false; // No parent, so not defined.
+
+        if (m_scopeType == ScopeType.Function)
+        {
+            // Functions can't access variables in a parent scope - So jump to the root(/globals).
+            return FindRoot()?.IsDefined(name) ?? false;
+        }
+        
+        return m_parent?.IsDefined(name) ?? false;
+    }
+
+    private ScopeFrame FindRoot()
+    {
+        var frame = this;
+        while (!frame.IsRoot && frame.m_parent != null)
+            frame = frame.m_parent;
+        return frame;
+    }
+    
     /// <summary>
     /// Creates a new variable in this scope.
     /// </summary>
@@ -170,6 +200,7 @@ public class ScopeFrame
     public string ToUiString(SymbolTable symbolTable)
     {
         var sb = new StringBuilder();
+        sb.AppendLine($"[{(m_scopeType == ScopeType.Function ? "Locals" : "Globals")}]");
         for (var slotIndex = 0; slotIndex < m_slots.Length; slotIndex++)
         {
             if (m_slots[slotIndex] == null)
@@ -183,10 +214,21 @@ public class ScopeFrame
         if (Retval != null)
             sb.AppendLine($"retval = {Retval}");
 
-        if (m_parent != null)
+        ScopeFrame next;
+        if (m_scopeType == ScopeType.Function)
+        {
+            // Skip to the root(/globals).
+            next = FindRoot();
+        }
+        else
+        {
+            next = m_parent;
+        }
+
+        if (next != null)
         {
             sb.AppendLine("---");
-            sb.Append(m_parent.ToUiString(symbolTable));
+            sb.Append(next.ToUiString(symbolTable));
         }
 
         return sb.ToString();

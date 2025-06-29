@@ -709,4 +709,102 @@ public class TetraEmitterTests : TestsBase
 
         Assert.That(vm["retval"].Type, Is.EqualTo(OperandType.Float));
     }
+    
+    [Test]
+    public void CheckFunctionDoesNotUseVariableFromCaller()
+    {
+        const string code =
+            """
+            float func() {
+                float a = 2.0;
+                return a;
+            }
+
+            float main() {
+                float a = 1.0;
+                return a + func();
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["retval"].Float, Is.EqualTo(3.0).Within(0.001));
+    }
+
+    [Test]
+    public void CheckDeclaringVariableInsideScopeMasksOuterScope()
+    {
+        const string code =
+            """
+            int main() {
+                float a = 1.0;
+                {
+                    int a = 2;
+                    return a * a;
+                }
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["retval"].Int, Is.EqualTo(4));
+    }
+    
+    [Test]
+    public void CheckUsingVariableInsideScopeUsesOuterScope()
+    {
+        const string code =
+            """
+            float main() {
+                float a = 2.0;
+                {
+                    return a * a;
+                }
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["retval"].Float, Is.EqualTo(4.0).Within(0.001));
+    }
+    
+    [Test]
+    public void CheckFunctionCanUseGlobalVariable()
+    {
+        const string code =
+            """
+            int a = 2;
+            int main() {
+                return a * a;
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["retval"].Int, Is.EqualTo(4));
+    }
+    
+    [Test]
+    public void CheckCalledFunctionCanUseGlobalVariable()
+    {
+        const string code =
+            """
+            int a = 2;
+            int func() {
+                return a * a;
+            }
+            int main() {
+                return func();
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["retval"].Int, Is.EqualTo(4));
+    }
 }

@@ -79,7 +79,7 @@ public class ScopeFrameTests
     {
         var operand = new Operand(23);
         m_scopeFrame.DefineVariable("31", operand);
-        var localScopeFrame = new ScopeFrame(m_scopeFrame);
+        var localScopeFrame = new ScopeFrame(ScopeType.Block, m_scopeFrame);
         
         Assert.That(localScopeFrame.IsDefined("31"), Is.True);
         Assert.That(localScopeFrame.GetVariable("31").Int, Is.EqualTo(23));
@@ -95,8 +95,71 @@ public class ScopeFrameTests
     public void GivenParentFrameCheckIsNotRoot()
     {
         var parentScopeFrame = new ScopeFrame();
-        var localScopeFrame = new ScopeFrame(parentScopeFrame);
+        var localScopeFrame = new ScopeFrame(ScopeType.Block, parentScopeFrame);
         
         Assert.That(localScopeFrame.IsRoot, Is.False);
+    }
+    [Test]
+    public void CheckFunctionScopeDoesNotSeeParentLocal()
+    {
+        var global = new ScopeFrame();
+        var parent = new ScopeFrame(ScopeType.Block, global);
+        parent.DefineVariable("1", new Operand(99));
+
+        var funcFrame = new ScopeFrame(ScopeType.Function, parent);
+
+        Assert.That(funcFrame.IsDefined("1"), Is.False);
+    }
+
+    [Test]
+    public void CheckFunctionScopeCanAccessGlobal()
+    {
+        var global = new ScopeFrame();
+        global.DefineVariable("1", new Operand(123));
+
+        var funcFrame = new ScopeFrame(ScopeType.Function, global);
+
+        Assert.That(funcFrame.IsDefined("1"), Is.True);
+        Assert.That(funcFrame.GetVariable("1").Int, Is.EqualTo(123));
+    }
+
+    [Test]
+    public void CheckBlockScopeInsideFunctionShadowsVariable()
+    {
+        var global = new ScopeFrame();
+        var func = new ScopeFrame(ScopeType.Function, global);
+        func.DefineVariable("1", new Operand(1));
+
+        var block = new ScopeFrame(ScopeType.Block, func);
+        block.DefineVariable("1", new Operand(2));
+
+        Assert.That(block.GetVariable("1").Int, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void CheckSettingShadowedVariableOnlyAffectsInnerScope()
+    {
+        var global = new ScopeFrame();
+        var func = new ScopeFrame(ScopeType.Function, global);
+        func.DefineVariable("1", new Operand(1));
+
+        var block = new ScopeFrame(ScopeType.Block, func);
+        block.DefineVariable("1", new Operand(2));
+        block.SetVariable("1", new Operand(3));
+
+        Assert.That(block.GetVariable("1").Int, Is.EqualTo(3));
+        Assert.That(func.GetVariable("1").Int, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void CheckBlockScopeCanAccessFunctionVariable()
+    {
+        var global = new ScopeFrame();
+        var func = new ScopeFrame(ScopeType.Function, global);
+        func.DefineVariable("1", new Operand(5));
+
+        var block = new ScopeFrame(ScopeType.Block, func);
+
+        Assert.That(block.GetVariable("1").Int, Is.EqualTo(5));
     }
 }
