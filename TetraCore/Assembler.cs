@@ -84,7 +84,7 @@ public class Assembler
             // Split the line into words.
             var words =
                 lines[lineIndex]
-                    .Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Split([' ', '\t', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(o => o.Trim(','))
                     .ToArray();
             
