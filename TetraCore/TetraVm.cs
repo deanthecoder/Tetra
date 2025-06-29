@@ -31,6 +31,7 @@ public class TetraVm
     private List<string> m_uniforms;
     private int m_ip;
     private bool m_isDebugging;
+    private string[] m_debugFunctions;
 
     public ScopeFrame CurrentFrame => m_frames.Peek();
 
@@ -38,10 +39,7 @@ public class TetraVm
     /// Raised when a 'print' instruction is executed.
     /// </summary>
     public event EventHandler<string> OutputWritten;
-
-    // ReSharper disable once MemberCanBePrivate.Global
-    public List<string> DebugFunctions { get; } = [];
-
+    
     public TetraVm(Program program)
     {
         m_program = program ?? throw new ArgumentNullException(nameof(program));
@@ -60,6 +58,20 @@ public class TetraVm
         }
     }
 
+    public void Debug(params string[] debugFunctions)
+    {
+        m_debugFunctions = debugFunctions ?? ["All"];
+
+        try
+        {
+            Run();
+        }
+        finally
+        {
+            m_debugFunctions = null;
+        }
+    }
+
     public void Run()
     {
         const int maxInstructionExecutions = 100_000;
@@ -73,14 +85,14 @@ public class TetraVm
             var instr = instructions[m_ip];
             try
             {
-                if (DebugFunctions.Count > 0)
+                if ((m_debugFunctions?.Length ?? 0) > 0)
                 {
                     var functionName = m_callStack.Count > 0 ? m_program.LabelTable.GetLabelFromInstructionPointer(m_callStack.Peek().functionLabel) : "<Root>";
-                    m_isDebugging = DebugFunctions.Contains("All") || DebugFunctions.Contains(functionName);
+                    m_isDebugging = m_debugFunctions.Contains("All") || m_debugFunctions.Contains(functionName);
                     if (m_isDebugging)
                     {
                         Console.WriteLine();
-                        Console.WriteLine($"Running {functionName}() ".PadRight(80, '-'));
+                        Console.WriteLine($"In {functionName}() ".PadRight(50, '-'));
                         Console.WriteLine("Variables: (Newest first)");
                         var state = CurrentFrame.ToUiString(m_program.SymbolTable);
                         foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
@@ -97,7 +109,7 @@ public class TetraVm
             catch (Exception e)
             {
                 var sb = new StringBuilder();
-                sb.Append('-', 80);
+                sb.Append('-', 50);
                 sb.AppendLine();
                 
                 var message = Regex.Replace(
@@ -153,6 +165,7 @@ public class TetraVm
             case OpCode.Nop: m_ip++; break;
             case OpCode.Decl: ExecuteDecl(instr); break;
             case OpCode.Ld: ExecuteLd(instr); break;
+            case OpCode.Ldc: ExecuteLdc(instr); break;
             case OpCode.Add: ExecuteAdd(instr); break;
             case OpCode.Sub: ExecuteSub(instr); break;
             case OpCode.Inc: ExecuteInc(instr); break;
@@ -1270,7 +1283,4 @@ public class TetraVm
         CurrentFrame.DefineVariable($"{m_uniforms.Count}", value);
         m_uniforms.Add(name);
     }
-
-    public void DebugAll() =>
-        DebugFunctions.AddIfUnique("All");
 }
