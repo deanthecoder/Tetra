@@ -211,16 +211,21 @@ public class TetraEmitterTests : TestsBase
             decl $i
             ld $i, 0
             decl $denominator
+            decl $tmp0
+            decl $tmp1
             ld $tmp1, 2
             mul $tmp1, $i
             ld $tmp0, $tmp1
             add $tmp0, 1
             ld $denominator, $tmp0
             decl $term
+            decl $tmp2
             ld $tmp2, 1.0
             div $tmp2, $denominator
             ld $term, $tmp2
+            decl $tmp3
             ld $tmp3, $term
+            decl $tmp4
             ld $tmp4, 2
             neg $tmp4
             mul $tmp3, $tmp4
@@ -257,6 +262,7 @@ public class TetraEmitterTests : TestsBase
             decl $i
             ld $i, 1
             decl $j
+            decl $tmp0
             ld $tmp0, $i
             dec $i
             ld $j, $tmp0
@@ -284,9 +290,11 @@ public class TetraEmitterTests : TestsBase
             decl $i
             ld $i, 0
             __for0_start:
+            decl $tmp0
             ld $tmp0, $i
             lt $tmp0, 5
             jmpz $tmp0, __for0_end
+            decl $tmp1
             ld $tmp1, $sum
             add $tmp1, $i
             ld $sum, $tmp1

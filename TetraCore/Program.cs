@@ -35,28 +35,31 @@ public class Program
         // Re-add labels.
         foreach (var (label, index) in LabelTable.OrderByDescending(o => o.Value))
         {
-            string line;
-            if (label.StartsWith('_'))
-                line = label;
-            else
-                line = $"\n{label}()";
+            var line = label.StartsWith('_') ? label : $"\n{label}()";
             instructions.Insert(index, $"{line}:");
         }
 
         // Write out.
         foreach (var instruction in instructions)
         {
-            var match = Regex.Match(instruction, @"call (\d+)$");
-            if (match.Success)
+            var updatedInstruction = instruction;
+
+            foreach (var keyword in new[] { OpCode.Call, OpCode.Jmp, OpCode.Jmpz, OpCode.Jmpnz }.Select(o => o.ToString().ToLower()))
             {
+                var match = Regex.Match(instruction, $@"\b{keyword} (\d+)$");
+                if (!match.Success)
+                    continue;
+                
                 var target = int.Parse(match.Groups[1].Value);
                 var label = LabelTable.FirstOrDefault(o => o.Value == target).Key;
-                Console.WriteLine(label != null ? instruction.Replace($"call {match.Groups[1].Value}", $"call {label}") : instruction);
+                if (label == null)
+                    continue;
+                
+                updatedInstruction = instruction.Replace($"{keyword} {target}", $"{keyword} {label}");
+                break;
             }
-            else
-            {
-                Console.WriteLine(instruction);
-            }
+
+            Console.WriteLine(updatedInstruction);
         }
     }
 }

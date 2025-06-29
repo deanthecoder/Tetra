@@ -275,6 +275,7 @@ public class TetraEmitter
         
         // Construct the object.
         var result = $"$tmp{m_tmpCounter++}";
+        WriteLine($"decl {result}");
         WriteLine($"ld {result}, {tmpVars.ToCsv(addSpace: true)}");
 
         // Support vectors.
@@ -296,6 +297,7 @@ public class TetraEmitter
             var v = argNodes[i];
             var tmpName = $"$tmp{m_tmpCounter++}";
             tmpVars[i] = tmpName;
+            WriteLine($"decl {tmpName}");
             WriteLine($"ld {tmpName}, {EmitExpression(v)}");
         }
         return tmpVars;
@@ -338,32 +340,34 @@ public class TetraEmitter
 
     private string EmitTernary(TernaryNode ternaryNode)
     {
-        var tmpName = $"tmp{m_tmpCounter++}";
+        var tmpName = $"$tmp{m_tmpCounter++}";
         m_ifCounter++;
         var elseLabel = $"__if{m_ifCounter}_else";
         var endLabel = $"__if{m_ifCounter}_end";
         
         // If
-        WriteLine($"test ${tmpName}, {EmitExpression(ternaryNode.Condition)}");
-        WriteLine($"jmpz ${tmpName}, {elseLabel}");
+        WriteLine($"decl {tmpName}");
+        WriteLine($"test {tmpName}, {EmitExpression(ternaryNode.Condition)}");
+        WriteLine($"jmpz {tmpName}, {elseLabel}");
         
         // Then
-        WriteLine($"ld ${tmpName}, {EmitExpression(ternaryNode.ThenExpr)}");
+        WriteLine($"ld {tmpName}, {EmitExpression(ternaryNode.ThenExpr)}");
         WriteLine($"jmp {endLabel}");
         
         // Else
         WriteLine($"{elseLabel}:");
-        WriteLine($"ld ${tmpName}, {EmitExpression(ternaryNode.ElseExpr)}");
+        WriteLine($"ld {tmpName}, {EmitExpression(ternaryNode.ElseExpr)}");
 
         // End
         WriteLine($"{endLabel}:");
         
-        return $"${tmpName}";
+        return tmpName;
     }
     
     private string EmitBinary(BinaryExprNode binaryExpr)
     {
-        var tmpName = $"tmp{m_tmpCounter++}";
+        var tmpName = $"$tmp{m_tmpCounter++}";
+        WriteLine($"decl {tmpName}");
 
         var op = binaryExpr.Operator.Value switch
         {
@@ -391,28 +395,28 @@ public class TetraEmitter
         {
             // Special case - The second expression should not be executed if the first is false.
             var skipLabel = $"__logic{m_skipLabelCounter++}_skip";
-            WriteLine($"test ${tmpName}, {EmitExpression(binaryExpr.Left)}");
-            WriteLine($"jmpz ${tmpName}, {skipLabel}");
-            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-            WriteLine($"test ${tmpName}, ${tmpName}");
+            WriteLine($"test {tmpName}, {EmitExpression(binaryExpr.Left)}");
+            WriteLine($"jmpz {tmpName}, {skipLabel}");
+            WriteLine($"{op} {tmpName}, {EmitExpression(binaryExpr.Right)}");
+            WriteLine($"test {tmpName}, {tmpName}");
             WriteLine($"{skipLabel}:");
         } else if (op == "or")
         {
             // Special case - The second expression should not be executed if the first is true.
             var skipLabel = $"__logic{m_skipLabelCounter++}_skip";
-            WriteLine($"test ${tmpName}, {EmitExpression(binaryExpr.Left)}");
-            WriteLine($"jmpnz ${tmpName}, {skipLabel}");
-            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
-            WriteLine($"test ${tmpName}, ${tmpName}");
+            WriteLine($"test {tmpName}, {EmitExpression(binaryExpr.Left)}");
+            WriteLine($"jmpnz {tmpName}, {skipLabel}");
+            WriteLine($"{op} {tmpName}, {EmitExpression(binaryExpr.Right)}");
+            WriteLine($"test {tmpName}, {tmpName}");
             WriteLine($"{skipLabel}:");
         }
         else
         {
-            WriteLine($"ld ${tmpName}, {EmitExpression(binaryExpr.Left)}");
-            WriteLine($"{op} ${tmpName}, {EmitExpression(binaryExpr.Right)}");
+            WriteLine($"ld {tmpName}, {EmitExpression(binaryExpr.Left)}");
+            WriteLine($"{op} {tmpName}, {EmitExpression(binaryExpr.Right)}");
         }
             
-        return $"${tmpName}";
+        return tmpName;
     }
 
     private string EmitUnary(UnaryExprNode unaryExpr)
@@ -429,10 +433,11 @@ public class TetraEmitter
                 _ => throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})")
             };
 
-            var tmpName = $"tmp{m_tmpCounter++}";
-            WriteLine($"ld ${tmpName}, {rhs}");
-            WriteLine($"neg ${tmpName}");
-            return $"${tmpName}";
+            var tmpName = $"$tmp{m_tmpCounter++}";
+            WriteLine($"decl {tmpName}");
+            WriteLine($"ld {tmpName}, {rhs}");
+            WriteLine($"neg {tmpName}");
+            return tmpName;
         }
 
         // These operators change the RHS value, so RHS must be a variable.
@@ -449,10 +454,11 @@ public class TetraEmitter
             if (unaryExpr.IsPostfix)
             {
                 // Return the value, then modify the original.
-                var tmpName = $"tmp{m_tmpCounter++}";
-                WriteLine($"ld ${tmpName}, ${v.Name.Value}");
+                var tmpName = $"$tmp{m_tmpCounter++}";
+                WriteLine($"decl {tmpName}");
+                WriteLine($"ld {tmpName}, ${v.Name.Value}");
                 WriteLine($"{op} ${v.Name.Value}");
-                return $"${tmpName}";
+                return tmpName;
             }
                 
             // Modify the original, then return the value.
@@ -542,15 +548,16 @@ public class TetraEmitter
     {
         // Condition check.
         var check = EmitExpression(ifNode.Condition);
-        var tmpName = $"tmp{m_tmpCounter++}";
-        WriteLine($"test ${tmpName}, {check}");
+        var tmpName = $"$tmp{m_tmpCounter++}";
+        WriteLine($"decl {tmpName}");
+        WriteLine($"test {tmpName}, {check}");
         
         // Support 'if' with no else.
         m_ifCounter++;
         if (ifNode.ElseBlock == null)
         {
             var endLabel = $"__if{m_ifCounter}_end";
-            WriteLine($"jmpz ${tmpName}, {endLabel}");
+            WriteLine($"jmpz {tmpName}, {endLabel}");
             EmitNode(ifNode.ThenBlock);
             WriteLine($"{endLabel}:");
         }
@@ -558,7 +565,7 @@ public class TetraEmitter
         {
             var elseLabel = $"__if{m_ifCounter}_else";
             var endLabel = $"__if{m_ifCounter}_end";
-            WriteLine($"jmpz ${tmpName}, {elseLabel}");
+            WriteLine($"jmpz {tmpName}, {elseLabel}");
             EmitNode(ifNode.ThenBlock);
             WriteLine($"jmp {endLabel}");
             
