@@ -100,6 +100,10 @@ public class TetraEmitter
                 EmitAssignment(assign);
                 break;
             
+            case UnaryExprNode unary:
+                EmitUnary(unary);
+                break;
+            
             case ForNode forNode:
                 EmitFor(forNode);
                 break;

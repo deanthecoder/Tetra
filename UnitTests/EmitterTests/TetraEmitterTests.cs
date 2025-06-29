@@ -807,4 +807,19 @@ public class TetraEmitterTests : TestsBase
         
         Assert.That(vm["retval"].Int, Is.EqualTo(4));
     }
+
+    [Test]
+    public void CheckEmittingSolitaryUnaryOperator()
+    {
+        const string code =
+            """
+            void main() {
+                int a = 1;
+                a++;
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        
+        Assert.That(tetraCode, Does.Contain("inc $a"));
+    }
 }
