@@ -38,7 +38,7 @@ public class PrintTests
         vm.OutputWritten += (_, output) => s += output; 
         
         Assert.That(() => vm.Run(), Throws.Nothing);
-        Assert.That(s, Is.EqualTo("123.456f"));
+        Assert.That(s, Is.EqualTo("123.456"));
     }
     
     [Test]
@@ -54,7 +54,7 @@ public class PrintTests
         vm.OutputWritten += (_, output) => s += output; 
         
         Assert.That(() => vm.Run(), Throws.Nothing);
-        Assert.That(s, Is.EqualTo("a = 69.23f"));
+        Assert.That(s, Is.EqualTo("a = 69.23"));
     }
 
     [Test]
@@ -66,7 +66,7 @@ public class PrintTests
         vm.OutputWritten += (_, output) => s += output; 
 
         Assert.That(() => vm.Run(), Throws.Nothing);
-        Assert.That(s, Is.EqualTo("[69.0f,0.23f]"));
+        Assert.That(s, Is.EqualTo("[69.0,0.23]"));
     }
     
     [Test]
@@ -82,7 +82,7 @@ public class PrintTests
         vm.OutputWritten += (_, output) => s += output; 
 
         Assert.That(() => vm.Run(), Throws.Nothing);
-        Assert.That(s, Is.EqualTo("a = [69.0f,-0.23f]"));
+        Assert.That(s, Is.EqualTo("a = [69.0,-0.23]"));
     }
 
     [Test]

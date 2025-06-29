@@ -216,6 +216,28 @@ public class ScopeFrame
     public override string ToString() =>
         ToUiString(null);
 
+    public IEnumerable<(ScopeType scopeType, string name, string value)> GetVariables(SymbolTable symbolTable)
+    {
+        for (var slotIndex = 0; slotIndex < m_slots.Length; slotIndex++)
+        {
+            if (m_slots[slotIndex] == null)
+                continue;
+            var variable = m_slots[slotIndex];
+
+            symbolTable.TryGetValue(slotIndex, out var varName);
+            yield return (m_scopeType, varName ?? $"${slotIndex}", variable.ToUiString(symbolTable));
+        }
+        
+        if (Retval != null)
+            yield return (m_scopeType, "retval", Retval.ToUiString(symbolTable));
+
+        var next = m_scopeType == ScopeType.Function ? FindRoot() : m_parent;
+        if (next == null)
+            yield break;
+        foreach (var valueTuple in next.GetVariables(symbolTable))
+            yield return valueTuple;
+    }
+
     public string ToUiString(SymbolTable symbolTable)
     {
         var sb = new StringBuilder();

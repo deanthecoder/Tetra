@@ -31,7 +31,6 @@ public class TetraVm
     private List<string> m_uniforms;
     private int m_ip;
     private bool m_isDebugging;
-    private string[] m_debugFunctions;
 
     public ScopeFrame CurrentFrame => m_frames.Peek();
 
@@ -58,25 +57,24 @@ public class TetraVm
         }
     }
 
-    public void Debug(params string[] debugFunctions)
+    public void Debug()
     {
-        m_debugFunctions = debugFunctions;
-        if (m_debugFunctions.Length == 0)
-            m_debugFunctions = ["All"];
-
         try
         {
+            m_isDebugging = true;
             Run();
         }
         finally
         {
-            m_debugFunctions = null;
+            m_isDebugging = false;
         }
     }
 
     public void Run()
     {
         const int maxInstructionExecutions = 100_000;
+
+        DebugSnap debugSnap = null;
 
         // Execute the instructions.
         var instructionExecutions = 0;
@@ -87,23 +85,20 @@ public class TetraVm
             var instr = instructions[m_ip];
             try
             {
-                if ((m_debugFunctions?.Length ?? 0) > 0)
-                {
-                    var functionName = m_callStack.Count > 0 ? m_program.LabelTable.GetLabelFromInstructionPointer(m_callStack.Peek().functionLabel) : "<Root>";
-                    m_isDebugging = m_debugFunctions.Contains("All") || m_debugFunctions.Contains(functionName);
-                    if (m_isDebugging)
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine($"In {functionName}() ".PadRight(50, '-'));
-                        var state = CurrentFrame.ToUiString(m_program.SymbolTable);
-                        Console.Write(state);
-                        Console.WriteLine($"Next: {instr}");
-                    }
-                }
+                if (m_isDebugging)
+                    debugSnap = new DebugSnap(m_program, m_ip, m_callStack, CurrentFrame);
                 
                 var keepRunning = Execute(instr);
+                if (m_isDebugging)
+                {
+                    var newDebugSnap = new DebugSnap(m_program, m_ip, m_callStack, CurrentFrame);
+                    Console.Write(debugSnap.GetDiff(newDebugSnap));
+                    debugSnap = newDebugSnap;
+                }
+                
                 if (!keepRunning)
                     break;
+                
                 instructionExecutions++;
             }
             catch (Exception e)

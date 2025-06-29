@@ -113,9 +113,9 @@ public sealed class Operand
     {
         return Type switch
         {
-            OperandType.Float => $"{Float:0.0###}f",
+            OperandType.Float => $"{Float:0.0##}",
             OperandType.Int => Int.ToString(CultureInfo.InvariantCulture),
-            OperandType.Vector => $"[{Floats.Select(o => $"{o:0.0###}f").ToCsv()}]",
+            OperandType.Vector => $"[{Floats.Select(o => $"{o:0.0##}").ToCsv()}]",
             OperandType.Label => Label,
             OperandType.Variable => Name.ToUiString(symbolTable),
             _ => throw new ArgumentOutOfRangeException()

@@ -23,7 +23,7 @@ public class OperandTests
 
         Assert.That(op.Type, Is.EqualTo(OperandType.Float));
         Assert.That(op.Float, Is.EqualTo(1.23f).Within(0.0001f));
-        Assert.That(op.ToString(), Is.EqualTo("1.23f"));
+        Assert.That(op.ToString(), Is.EqualTo("1.23"));
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class OperandTests
         Assert.That(op.Type, Is.EqualTo(OperandType.Vector));
         Assert.That(op.Length, Is.EqualTo(3));
         Assert.That(op.Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 3.0f }));
-        Assert.That(op.ToString(), Is.EqualTo("[1.0f,2.0f,3.0f]"));
+        Assert.That(op.ToString(), Is.EqualTo("[1.0,2.0,3.0]"));
     }
 
     [Test]
