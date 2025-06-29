@@ -60,7 +60,9 @@ public class TetraVm
 
     public void Debug(params string[] debugFunctions)
     {
-        m_debugFunctions = debugFunctions ?? ["All"];
+        m_debugFunctions = debugFunctions;
+        if (m_debugFunctions.Length == 0)
+            m_debugFunctions = ["All"];
 
         try
         {
@@ -93,10 +95,8 @@ public class TetraVm
                     {
                         Console.WriteLine();
                         Console.WriteLine($"In {functionName}() ".PadRight(50, '-'));
-                        Console.WriteLine("Variables: (Newest first)");
                         var state = CurrentFrame.ToUiString(m_program.SymbolTable);
-                        foreach (var s in state!.Split("\n").Where(o => !string.IsNullOrWhiteSpace(o)))
-                            Console.WriteLine($"  {s}");
+                        Console.Write(state);
                         Console.WriteLine($"Next: {instr}");
                     }
                 }
@@ -128,12 +128,8 @@ public class TetraVm
                     sb.AppendLine($"  → {funcName}");
 
                 sb.AppendLine();
-                sb.AppendLine("Variables (Newest first):");
                 var state = CurrentFrame.ToUiString(m_program.SymbolTable);
-                if (string.IsNullOrEmpty(state))
-                    state = "<None>";
-                foreach(var s in state!.Split('\n').Where(o => !string.IsNullOrWhiteSpace(o)))
-                    sb.AppendLine($"  {s}");
+                sb.Append(state);
 
                 Logger.Instance.Error(sb.ToString());
                 

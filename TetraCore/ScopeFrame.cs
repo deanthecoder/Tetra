@@ -220,6 +220,8 @@ public class ScopeFrame
     {
         var sb = new StringBuilder();
         sb.AppendLine($"[{(m_scopeType == ScopeType.Function ? "Locals" : "Globals")}]");
+        
+        var localVars = new List<string>();
         for (var slotIndex = 0; slotIndex < m_slots.Length; slotIndex++)
         {
             if (m_slots[slotIndex] == null)
@@ -228,10 +230,14 @@ public class ScopeFrame
 
             symbolTable.TryGetValue(slotIndex, out var varName);
             varName ??= $"${slotIndex}";
-            sb.AppendLine($"{varName} = {variable}");
+            localVars.Add($"{varName} = {variable}");
         }
         if (Retval != null)
             sb.AppendLine($"retval = {Retval}");
+        
+        localVars.Sort();
+        foreach (var localVar in localVars)
+            sb.AppendLine(localVar);
 
         ScopeFrame next;
         if (m_scopeType == ScopeType.Function)
