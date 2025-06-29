@@ -16,6 +16,7 @@ public enum OpCode
     Nop,
     Decl,
     Ld,
+    Ldc,
     Halt,
     Add,
     Sub,

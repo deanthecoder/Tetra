@@ -263,6 +263,21 @@ public class TetraVm
     }
     
     /// <summary>
+    /// As with 'ld', but sets the value in the scope of the function's caller.
+    /// </summary>
+    private void ExecuteLdc(Instruction instr)
+    {
+        var a = instr.Operands[0];
+        var b = UnpackBPlusOperands(instr.Operands);
+        
+        var callerFrame = CurrentFrame.CallerFrame;
+        if (callerFrame == null)
+            throw new RuntimeException("Cannot set value - No caller function found.");
+        callerFrame.SetVariable(a.Name, b, true);
+        m_ip++;
+    }
+    
+    /// <summary>
     /// E.g. add $a, 3.141
     /// E.g. add $a, $b     (a += b)
     /// </summary>

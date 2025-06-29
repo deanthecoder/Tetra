@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System.Diagnostics;
 using System.Text;
 using JetBrains.Annotations;
 using TetraCore.Exceptions;
@@ -20,6 +21,7 @@ namespace TetraCore;
 /// Variables are stored in fixed slots indexed by <see cref="VarName.Slot"/> and may optionally support vector-style indexing.
 /// Each frame maintains a reference to an optional parent scope, allowing variable shadowing and resolution through chained scopes.
 /// </summary>
+[DebuggerDisplay("{m_scopeType}")]
 public class ScopeFrame
 {
     public const int MaxSlots = 256;
@@ -35,6 +37,23 @@ public class ScopeFrame
     {
         get => m_slots[0];
         set => m_slots[0] = value;
+    }
+
+    public ScopeFrame CallerFrame
+    {
+        get
+        {
+            // Find root scope for the current function.
+            var frame = this;
+            while (frame.m_scopeType != ScopeType.Function)
+            {
+                frame = frame.m_parent;
+                if (frame == null)
+                    return null;
+            }
+            
+            return frame.m_parent;
+        }
     }
     
     public ScopeFrame()
@@ -148,7 +167,7 @@ public class ScopeFrame
     public void SetVariable(VarName varName, Operand value, bool defineIfMissing = false)
     {
         var isLocal = m_slots[varName.Slot] != null;
-        var definedInParent = !isLocal && m_parent?.IsDefined(varName) == true;
+        var definedInParent = !isLocal && IsDefined(varName);
 
         if (!isLocal && !defineIfMissing && !definedInParent)
             throw new RuntimeException($"Variable '{varName}' is undefined.");

@@ -187,6 +187,8 @@ public class Assembler
             new(OpCode.Decl, [OperandType.Variable]),
             new(OpCode.Ld, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Ld, [OperandType.Variable, OperandType.Float]),
+            new(OpCode.Ldc, [OperandType.Variable, OperandType.Int]),
+            new(OpCode.Ldc, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Halt, []),
             new(OpCode.Add, [OperandType.Variable, OperandType.Int]),
             new(OpCode.Add, [OperandType.Variable, OperandType.Float]),

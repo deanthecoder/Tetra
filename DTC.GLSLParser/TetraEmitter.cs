@@ -181,7 +181,7 @@ public class TetraEmitter
         {
             var param = outParams[i];
             if (param != null)
-                WriteLine($"ld $arg{i}, ${param}");
+                WriteLine($"ldc $arg{i}, ${param}");
         }
 
         WriteLine(function.ReturnType.Value == "void" ? "ret" : "ret $retval");
