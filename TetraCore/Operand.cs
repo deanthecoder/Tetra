@@ -24,6 +24,8 @@ namespace TetraCore;
 /// </remarks>
 public sealed class Operand
 {
+    public static readonly Operand Unassigned = new Operand(0.0f) { IsUnassigned = true };
+    
     public Operand(int f)
     {
         Type = OperandType.Int;
@@ -79,6 +81,8 @@ public sealed class Operand
     /// </summary>
     public int Length => Floats?.Length ?? 1;
 
+    public bool IsUnassigned { get; init; }
+
     public float AsFloat() =>
         Type switch
         {
@@ -111,6 +115,8 @@ public sealed class Operand
 
     public string ToUiString(SymbolTable symbolTable = null)
     {
+        if (IsUnassigned)
+            return "<UNASSIGNED>";
         return Type switch
         {
             OperandType.Float => $"{Float:0.0##}",
@@ -127,6 +133,8 @@ public sealed class Operand
     /// </summary>
     public Operand GrowFromOneToN(int length)
     {
+        if (IsUnassigned)
+            throw new InvalidOperationException("Cannot grow an unassigned operand.");
         if (Length != 1)
             throw new InvalidOperationException("Only one-dimensional operands can be grown.");
         
@@ -138,6 +146,10 @@ public sealed class Operand
         return new Operand(floats);
     }
 
-    public Operand WithType(OperandType newType) =>
-        new Operand(newType, Name, Label, Floats);
+    public Operand WithType(OperandType newType)
+    {
+        if (IsUnassigned)
+            throw new InvalidOperationException("Cannot change the type of an unassigned operand.");
+        return new Operand(newType, Name, Label, Floats);
+    }
 }

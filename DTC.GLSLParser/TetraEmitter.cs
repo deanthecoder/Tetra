@@ -190,10 +190,16 @@ public class TetraEmitter
         m_currentFunctionStack.Pop();
     }
 
+    private static string[] GetFunctionInParams(FunctionNode function) =>
+        function
+            .Parameters
+            .Select(o => string.IsNullOrEmpty(o.Modifier?.Value) || o.Modifier?.Value.StartsWith("in") == true ? o.Name.Value : null)
+            .ToArray();
+
     private static string[] GetFunctionOutParams(FunctionNode function) =>
         function
             .Parameters
-            .Select(o => o.Modifier?.Value == "out" ? o.Name.Value : null)
+            .Select(o => o.Modifier?.Value.Contains("out") == true ? o.Name.Value : null)
             .ToArray();
 
     private void EmitReturn(ReturnNode returnNode)
@@ -226,16 +232,35 @@ public class TetraEmitter
             return EmitIntrinsicCall(call, intrinsicOpCode.Value);
         
         // User-defined function.
-        for (var i = 0; i < call.Arguments.Length; i++)
-            WriteLine($"ld $arg{i}, {EmitExpression(call.Arguments[i])}");
+        FunctionNode currentFunction = null;
+        var hasParams = call.Arguments.Length > 0;
+        if (hasParams)
+        {
+            // 'inout' params need $arg0, ... assigning before the call.
+            // ('out' params do not - They're one way only.)
+            currentFunction = m_functionNodes.First(o => o.Name.Value == call.FunctionName.Value);
+            var inParams = GetFunctionInParams(currentFunction);
+            for (var i = 0; i < inParams.Length; i++)
+            {
+                if (inParams[i] != null)
+                {
+                    // 'in' param - Send in the value.
+                    WriteLine($"ld $arg{i}, {EmitExpression(call.Arguments[i])}");
+                }
+                else
+                {
+                    // 'out' param - Send in a fake value.
+                    WriteLine($"ld $arg{i}, 0.0");
+                }
+            }
+        }
         
         WriteLine($"call {call.FunctionName.Value}");
         
-        // Reassign 'out' params back to the original variable names.
-        var functionNode = m_functionNodes.FirstOrDefault(o => o.Name.Value == call.FunctionName.Value);
-        if (functionNode != null)
+        // Reassign '(in)out' params back to the original variable names.
+        if (hasParams)
         {
-            var outParams = GetFunctionOutParams(functionNode);
+            var outParams = GetFunctionOutParams(currentFunction);
             for (var i = 0; i < outParams.Length; i++)
             {
                 var param = outParams[i];

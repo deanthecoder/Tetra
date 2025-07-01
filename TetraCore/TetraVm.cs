@@ -53,7 +53,7 @@ public class TetraVm
         get
         {
             var slot = m_program.SymbolTable.GetSlotFromName(variableName);
-            return CurrentFrame.GetVariable(slot.ToString());
+            return CurrentFrame.GetVariable(slot.ToString(), allowUndefined: true);
         }
     }
 
@@ -247,7 +247,7 @@ public class TetraVm
         {
             if (o.Type != OperandType.Variable)
                 throw new RuntimeException("Variable operand expected.");
-            CurrentFrame.DefineVariable(o.Name, new Operand(0.0f));
+            CurrentFrame.DefineVariable(o.Name, Operand.Unassigned);
         });
         m_ip++;
     }
@@ -563,7 +563,7 @@ public class TetraVm
         
         if (CurrentFrame.IsDefined(aName))
         {
-            a = CurrentFrame.GetVariable(aName);
+            a = CurrentFrame.GetVariable(aName, allowUndefined: true);
             if (a.Type is OperandType.Label or OperandType.Variable)
                 throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
         }

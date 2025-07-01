@@ -9,6 +9,7 @@
 // 
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 using TetraCore;
+using TetraCore.Exceptions;
 
 namespace UnitTests.TetraCoreTests;
 
@@ -25,6 +26,44 @@ public class DeclTests
         vm.Run();
 
         Assert.That(vm["a"].Type, Is.EqualTo(OperandType.Float));
+        Assert.That(vm["a"].IsUnassigned, Is.True);
+    }
+
+    [Test]
+    public void CheckUnassignedOperandsAreSingletons()
+    {
+#pragma warning disable NUnit2009
+        Assert.That(Operand.Unassigned, Is.SameAs(Operand.Unassigned));
+#pragma warning restore NUnit2009
+    }
+
+    [Test]
+    public void CheckUsingUnassignedSingleOperandThrows()
+    {
+        const string code = 
+            """
+            decl $a
+            inc $a
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+    
+    [Test]
+    public void CheckUsingUnassignedSecondOperandThrows()
+    {
+        const string code = 
+            """
+            decl $a, $b
+            ld $a, 1.0
+            add $a, $b
+            """;
+        var instructions = Assembler.Assemble(code);
+        var vm = new TetraVm(instructions);
+        
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
     }
     
     [Test]

@@ -189,7 +189,7 @@ public class ScopeFrame
         SetValue(varName, value);
     }
 
-    public Operand GetVariable(VarName varName, SymbolTable symbolTable = null)
+    public Operand GetVariable(VarName varName, SymbolTable symbolTable = null, bool allowUndefined = false)
     {
         var frame = this;
         while (frame != null)
@@ -197,6 +197,9 @@ public class ScopeFrame
             var variable = frame.m_slots[varName.Slot];
             if (variable != null)
             {
+                if (!allowUndefined && variable.IsUnassigned)
+                    throw new RuntimeException($"Cannot use unassigned operand: {varName}");
+
                 if (!varName.ArrIndex.HasValue)
                     return variable;
 
