@@ -77,12 +77,25 @@ public class MathTests
     }
 
     [Test]
-    public void GivenOutOfRangeValueCheckPowThrows()
+    public void GivenOutOfRangePowerCheckPowThrows()
     {
         const string code =
             """
             ld $a, 0
             pow $a, -1.2
+            """;
+        var vm = new TetraVm(Assembler.Assemble(code));
+
+        Assert.That(() => vm.Run(), Throws.TypeOf<RuntimeException>());
+    }
+    
+    [Test]
+    public void GivenNegativeValueCheckPowThrows()
+    {
+        const string code =
+            """
+            ld $a, -2.3
+            pow $a, 2.0
             """;
         var vm = new TetraVm(Assembler.Assemble(code));
 

@@ -72,7 +72,7 @@ public class TetraVm
 
     public void Run()
     {
-        const int maxInstructionExecutions = 100_000;
+        const int maxInstructionExecutions = 150_000;
 
         DebugSnap debugSnap = null;
 
@@ -92,7 +92,7 @@ public class TetraVm
                 if (m_isDebugging)
                 {
                     var newDebugSnap = new DebugSnap(m_program, m_ip, m_callStack, CurrentFrame);
-                    Console.Write(debugSnap.GetDiff(newDebugSnap));
+                    Console.Write(debugSnap!.GetDiff(newDebugSnap));
                     debugSnap = newDebugSnap;
                 }
                 
@@ -834,7 +834,9 @@ public class TetraVm
     {
         DoMathOp(instr, (a, b) =>
         {
-            if (a == 0f && b < 0f)
+            if (a < 0.0f)
+                throw new RuntimeException($"Negative input value '{a:0.0###}' cannot be raised to any power.");
+            if (a == 0.0f && b < 0.0f)
                 throw new RuntimeException($"Zero cannot be raised to a negative power (base: {a:0.0###}, exponent: {b:0.0###}).");
             return MathF.Pow(a, b);
         });
