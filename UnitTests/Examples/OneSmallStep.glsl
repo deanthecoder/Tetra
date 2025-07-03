@@ -114,7 +114,9 @@ void mainImage(out vec4 fragColor, vec2 fc) {
 	ro.xz *= rot(1.1 + cos(t) * .2);
 	f = normalize(vec3(0, 0, .8) - ro);
 	r = normalize(cross(vec3(0, 1, 0), f));
-	c = pow(march(ro, normalize(f + r * uv.x + cross(f, r) * uv.y)), vec3(.45));
+	c = march(ro, normalize(f + r * uv.x + cross(f, r) * uv.y));
+	c = clamp(c, vec3(0), vec3(1));
+	c = pow(c, vec3(.45));
 	c *= .5 + .5 * pow(16. * q.x * q.y * (1. - q.x) * (1. - q.y), .4);
 	fragColor = vec4(c, mix(1.2, 0., (d + 1.) / 8.));
 }
