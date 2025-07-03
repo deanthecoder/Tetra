@@ -817,6 +817,23 @@ public class TetraEmitterTests : TestsBase
     }
 
     [Test]
+    public void CheckGlobalsAreAllocatedOnStartup()
+    {
+        const string code =
+            """
+            int main() {
+                return a;
+            }
+            int a = 2;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+
+        Assert.That(vm["retval"].Int, Is.EqualTo(2));
+    }
+
+    [Test]
     public void CheckEmittingSolitaryUnaryOperator()
     {
         const string code =

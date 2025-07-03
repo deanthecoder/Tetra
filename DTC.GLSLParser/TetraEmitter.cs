@@ -40,7 +40,7 @@ public class TetraEmitter
         m_functionNodes = program.Walk().OfType<FunctionNode>().ToArray();
 
         // Emit program statements.
-        EmitNode(program);
+        EmitProgram(program);
 
         if (string.IsNullOrEmpty(entryPoint))
             return m_sb.ToString(); // No entry point defined.
@@ -68,10 +68,6 @@ public class TetraEmitter
         // Should be primarily statements.
         switch (node)
         {
-            case ProgramNode program:
-                EmitProgram(program);
-                break;
-
             case FunctionNode function:
                 EmitFunction(function);
                 break;
@@ -140,7 +136,8 @@ public class TetraEmitter
 
     private void EmitProgram(ProgramNode program)
     {
-        foreach (var statement in program.Statements)
+        var nodes = program.Statements.OrderBy(o => o.GetType() == typeof(FunctionNode) ? 1 : 0);
+        foreach (var statement in nodes)
             EmitNode(statement);
     }
 
