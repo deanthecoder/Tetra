@@ -906,7 +906,7 @@ public class TetraVm
         {
             if (b == 0f)
                 throw new RuntimeException("Modulus by zero is undefined.");
-            return a % b;
+            return a - b * MathF.Floor(a / b);
         });
 
     /// <summary>
