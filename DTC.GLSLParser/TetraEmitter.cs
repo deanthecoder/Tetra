@@ -655,7 +655,12 @@ public class TetraEmitter
             // ld $to, ...
             // clamp $a, $from, $to
             // Return: $a
-            WriteLine($"{functionName} {tmpVars[0]}, {tmpVars[1]}, {tmpVars[2]}");
+            
+            // GLSL smoothstep(from, to, f) => tetra (f, from, to).
+            if (functionName == "smoothstep")
+                WriteLine($"{functionName} {tmpVars[2]}, {tmpVars[0]}, {tmpVars[1]}");
+            else
+                WriteLine($"{functionName} {tmpVars[0]}, {tmpVars[1]}, {tmpVars[2]}");
             return tmpVars[0];
         }
         
