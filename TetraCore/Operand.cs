@@ -150,6 +150,11 @@ public sealed class Operand
     {
         if (IsUnassigned)
             throw new InvalidOperationException("Cannot change the type of an unassigned operand.");
-        return new Operand(newType, Name, Label, Floats);
+        return new Operand(newType, Name, Label, Floats.ToArray());
+    }
+
+    public Operand Clone()
+    {
+        return new Operand(Type, Name, Label, Floats.ToArray());
     }
 }

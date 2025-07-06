@@ -939,4 +939,21 @@ public class TetraEmitterTests : TestsBase
         
         Assert.That(sb.ToString(), Does.Contain("[1.1,2.2,3.3,4.4]"));
     }
+    
+    [Test]
+    public void CheckVectorAssignmentDoesNotCopy()
+    {
+        const string code =
+            """
+            vec3 a = vec3(1, 2, 3);
+            vec3 b = a;
+            b.z = 33;
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.Run();
+        
+        Assert.That(vm["a"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 3.0f }).Within(0.001));
+        Assert.That(vm["b"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 33.0f }).Within(0.001));
+    }
 }

@@ -23,7 +23,7 @@ public class DebugSnap
     {
         m_inFunction = callStack.Count > 0 ? $"{program.LabelTable.GetLabelFromInstructionPointer(callStack.Peek().functionLabel)}()" : "<Root>";
         m_variables = scopeFrame.GetVariables(program.SymbolTable).ToList();
-        m_instruction = program.Instructions[ip];
+        m_instruction = ip < program.Instructions.Length ? program.Instructions[ip] : new Instruction();
     }
 
     public string GetDiff(DebugSnap newSnap)

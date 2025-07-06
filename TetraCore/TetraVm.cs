@@ -263,7 +263,7 @@ public class TetraVm
         var a = instr.Operands[0];
         var b = UnpackBPlusOperands(instr.Operands);
 
-        CurrentFrame.SetVariable(a.Name, b, true);
+        CurrentFrame.SetVariable(a.Name, b.Clone(), true);
         m_ip++;
     }
     

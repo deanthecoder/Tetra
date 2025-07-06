@@ -83,6 +83,21 @@ public class ScopeFrame
         
         return m_parent?.IsDefined(name) ?? false;
     }
+    
+    /// <summary>
+    /// It's dangerous for the same operand to be stored twice,
+    /// as a modification to one instance will change others too.
+    /// </summary>
+    private bool IsReferenced(Operand operand)
+    {
+        if (m_slots.Any(o => o?.Floats == operand.Floats))
+            return true; // Found locally.
+        
+        if (m_parent == null)
+            return false; // No parent, so not defined.
+        
+        return m_parent?.IsReferenced(operand) ?? false;
+    }
 
     private ScopeFrame FindRoot()
     {
@@ -166,6 +181,11 @@ public class ScopeFrame
     /// </summary>
     public void SetVariable(VarName varName, Operand value, bool defineIfMissing = false)
     {
+#if DEBUG
+        if (IsReferenced(value))
+            throw new InvalidOperationException($"Cannot assign variable '{varName}' as it is already referenced.");
+#endif
+
         var isLocal = m_slots[varName.Slot] != null;
         var definedInParent = !isLocal && IsDefined(varName);
 

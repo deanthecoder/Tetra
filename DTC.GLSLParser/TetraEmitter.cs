@@ -136,7 +136,14 @@ public class TetraEmitter
 
     private void EmitProgram(ProgramNode program)
     {
-        var nodes = program.Statements.OrderBy(o => o.GetType() == typeof(FunctionNode) ? 1 : 0);
+        var nodes = program.Statements;
+
+        if (nodes.OfType<FunctionNode>().Any())
+        {
+            // Move globals to the head of the code.
+            nodes = nodes.OrderBy(o => o.GetType() == typeof(FunctionNode) ? 1 : 0).ToArray();
+        }
+        
         foreach (var statement in nodes)
             EmitNode(statement);
     }
