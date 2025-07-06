@@ -100,7 +100,7 @@ public class EmitIntrinsicCallTests
     [Test]
     public void CheckMix()
     {
-        const string code = "float a = mix(0.3, 1.1, 7.3);";
+        const string code = "float a = mix(1.1, 7.3, 0.3);";
         var tetraCode = Compiler.CompileToTetraSource(code);
         var vm = new TetraVm(Assembler.Assemble(tetraCode));
         vm.Run();

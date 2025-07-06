@@ -1006,7 +1006,7 @@ public class TetraVm
         if (instr.Operands.Length < 3)
             throw new RuntimeException("Expected: mix $a, $from, $to");
 
-        DoMathOp(instr, (a, b, c) => a.Lerp(b, c));
+        DoMathOp(instr, (a, b, c) => c.Lerp(a, b));
     }
 
     /// <summary>
