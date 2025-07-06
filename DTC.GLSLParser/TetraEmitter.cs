@@ -612,6 +612,13 @@ public class TetraEmitter
         var tmpVars = AssignArgsToLocals(call.Arguments);
         var functionName = OpCodeToStringMap.GetString(intrinsicOpCode);
         
+        // Special-case intrinsic statements (that don't return a value).
+        if (functionName == "debug" || functionName == "print")
+        {
+            WriteLine($"{functionName} {tmpVars.ToCsv(addSpace: true)}");
+            return null;
+        }
+        
         if (tmpVars.Length == 1)
         {
             // One arg:

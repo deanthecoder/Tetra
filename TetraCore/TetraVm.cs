@@ -183,7 +183,8 @@ public class TetraVm
             case OpCode.Jmp: ExecuteJmp(instr); break;
             case OpCode.Jmpz: ExecuteJmpZ(instr); break;
             case OpCode.Jmpnz: ExecuteJmpNz(instr); break;
-            case OpCode.Print: ExecutePrint(instr); break;
+            case OpCode.Print: ExecutePrint(instr, debug: false); break;
+            case OpCode.Debug: ExecutePrint(instr, debug: true); break;
             case OpCode.PushFrame: ExecutePushFrame(); break;
             case OpCode.PopFrame: ExecutePopFrame(); break;
             case OpCode.Call: ExecuteCall(instr); break;
@@ -673,11 +674,22 @@ public class TetraVm
     /// E.g. print 3.141
     /// E.g. print $a
     /// </summary>
-    private void ExecutePrint(Instruction instr)
+    private void ExecutePrint(Instruction instr, bool debug)
     {
         var a = instr.Operands[0];
-        var toPrint = Operand.FromOperands(instr.Operands.Select(GetOperandValue).ToArray());
-        OutputWritten?.Invoke(this, a.Type == OperandType.Variable ? $"{a.ToUiString(m_program.SymbolTable).TrimStart('$')} = {toPrint}" : toPrint.ToString());
+        var value = Operand.FromOperands(instr.Operands.Select(GetOperandValue).ToArray());
+
+        var toPrint = value.ToString();
+        if (a.Type == OperandType.Variable)
+            toPrint = $"{a.ToUiString(m_program.SymbolTable).TrimStart('$')} = {toPrint}";
+
+        if (debug)
+        {
+            var functionName = m_callStack.Count > 0 ? $"{m_program.LabelTable.GetLabelFromInstructionPointer(m_callStack.Peek().functionLabel)}()" : "<Root>";
+            toPrint = $"{toPrint,-30} : {functionName}";
+        }
+        
+        OutputWritten?.Invoke(this, toPrint);
         m_ip++;
     }
 

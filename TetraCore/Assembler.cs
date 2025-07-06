@@ -230,6 +230,8 @@ public class Assembler
             new(OpCode.Jmpnz, [OperandType.Variable, OperandType.Label]),
             new(OpCode.Print, [OperandType.Int]),
             new(OpCode.Print, [OperandType.Float]),
+            new(OpCode.Debug, [OperandType.Int]),
+            new(OpCode.Debug, [OperandType.Float]),
             new(OpCode.PushFrame, []),
             new(OpCode.PopFrame, []),
             new(OpCode.Call, [OperandType.Label]),

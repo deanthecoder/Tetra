@@ -43,7 +43,6 @@ public enum OpCode
     Jmp,
     Jmpz,
     Jmpnz,
-    Print,
     PushFrame,
     PopFrame,
     Call,
@@ -51,6 +50,8 @@ public enum OpCode
     
     // Intrinsics.
     Intrinsic,
+    Print,
+    Debug,
     Sin,
     Sinh,
     Asin,

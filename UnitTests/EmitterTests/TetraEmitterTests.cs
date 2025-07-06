@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using System.Text;
 using DTC.Core.UnitTesting;
 using DTC.GLSLParser;
 using TetraCore;
@@ -846,5 +847,96 @@ public class TetraEmitterTests : TestsBase
         var tetraCode = Compiler.CompileToTetraSource(code, "main");
         
         Assert.That(tetraCode, Does.Contain("inc $a"));
+    }
+    
+    [Test]
+    public void CheckEmittingDebugStatementWithConstant()
+    {
+        const string code =
+            """
+            void main() {
+                debug(1.2);
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        var sb = new StringBuilder();
+        vm.OutputWritten += (_, message) => sb.AppendLine(message);
+        vm.Run();
+        
+        Assert.That(sb.ToString(), Does.Contain("1.2"));
+    }
+    
+    [Test]
+    public void CheckEmittingDebugStatementWithVariable()
+    {
+        const string code =
+            """
+            void main() {
+                float a = 1.2;
+                debug(a);
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        var sb = new StringBuilder();
+        vm.OutputWritten += (_, message) => sb.AppendLine(message);
+        vm.Run();
+        
+        Assert.That(sb.ToString(), Does.Contain("1.2"));
+    }
+    
+    [Test]
+    public void CheckEmittingDebugStatementWithVector()
+    {
+        const string code =
+            """
+            void main() {
+                debug(vec3(1.1, 2.2, 3.3));
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        var sb = new StringBuilder();
+        vm.OutputWritten += (_, message) => sb.AppendLine(message);
+        vm.Run();
+        
+        Assert.That(sb.ToString(), Does.Contain("[1.1,2.2,3.3]"));
+    }
+    
+    [Test]
+    public void CheckEmittingDebugStatementWithVectorVariable()
+    {
+        const string code =
+            """
+            void main() {
+                debug(vec3(1.1, 2.2, 3.3));
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        var sb = new StringBuilder();
+        vm.OutputWritten += (_, message) => sb.AppendLine(message);
+        vm.Run();
+        
+        Assert.That(sb.ToString(), Does.Contain("[1.1,2.2,3.3]"));
+    }
+    
+    [Test]
+    public void CheckEmittingDebugStatementWithMultipleArguments()
+    {
+        const string code =
+            """
+            void main() {
+                debug(1.1, 2.2, 3.3, 4.4);
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        var sb = new StringBuilder();
+        vm.OutputWritten += (_, message) => sb.AppendLine(message);
+        vm.Run();
+        
+        Assert.That(sb.ToString(), Does.Contain("[1.1,2.2,3.3,4.4]"));
     }
 }
