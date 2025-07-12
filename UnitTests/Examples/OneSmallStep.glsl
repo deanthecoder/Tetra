@@ -118,5 +118,5 @@ void mainImage(out vec4 fragColor, vec2 fc) {
 	c = clamp(c, vec3(0), vec3(1));
 	c = pow(c, vec3(.45));
 	c *= .5 + .5 * pow(16. * q.x * q.y * (1. - q.x) * (1. - q.y), .4);
-	fragColor = vec4(c, mix(1.2, 0., (d + 1.) / 8.));
+	fragColor = vec4(c, 0);
 }

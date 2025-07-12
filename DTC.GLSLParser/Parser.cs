@@ -143,6 +143,12 @@ public class Parser
                 return ParseVariableDeclaration(isConst);
             }
 
+            if (CurrentToken.Value == "uniform")
+            {
+                Consume(); // skip 'uniform'
+                return ParseVariableDeclaration(true);
+            }
+
             switch (CurrentToken.Value)
             {
                 case "for":

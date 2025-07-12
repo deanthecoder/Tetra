@@ -69,7 +69,7 @@ public class ScopeFrame
 
     public bool IsDefined(VarName name)
     {
-        if (m_slots[name.Slot] != null)
+        if (IsDefinedLocally(name))
             return true; // Found locally.
         
         if (m_parent == null)
@@ -83,7 +83,12 @@ public class ScopeFrame
         
         return m_parent?.IsDefined(name) ?? false;
     }
-    
+
+    public bool IsDefinedLocally(VarName name)
+    {
+        return m_slots[name.Slot] != null;
+    }
+
     /// <summary>
     /// It's dangerous for the same operand to be stored twice,
     /// as a modification to one instance will change others too.

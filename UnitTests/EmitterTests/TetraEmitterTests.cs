@@ -956,4 +956,22 @@ public class TetraEmitterTests : TestsBase
         Assert.That(vm["a"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 3.0f }).Within(0.001));
         Assert.That(vm["b"].Floats, Is.EqualTo(new[] { 1.0f, 2.0f, 33.0f }).Within(0.001));
     }
+    
+    [Test]
+    public void CheckUnformsCanBeAccessed()
+    {
+        const string code =
+            """
+            uniform float iTime;
+            float main() {
+                return iTime * 2.0;
+            }
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code, "main");
+        var vm = new TetraVm(Assembler.Assemble(tetraCode));
+        vm.AddUniform("iTime", new Operand(34.5f));
+        vm.Run();
+        
+        Assert.That(vm["retval"].Float, Is.EqualTo(69.0).Within(0.001));
+    }
 }

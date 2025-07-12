@@ -248,7 +248,8 @@ public class TetraVm
         {
             if (o.Type != OperandType.Variable)
                 throw new RuntimeException("Variable operand expected.");
-            CurrentFrame.DefineVariable(o.Name, Operand.Unassigned);
+            if (!CurrentFrame.IsDefinedLocally(o.Name))
+               CurrentFrame.DefineVariable(o.Name, Operand.Unassigned);
         });
         m_ip++;
     }
