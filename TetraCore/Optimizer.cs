@@ -1,0 +1,346 @@
+// Code authored by Dean Edis (DeanTheCoder).
+// Anyone is free to copy, modify, use, compile, or distribute this software,
+// either in source code form or as a compiled binary, for any non-commercial
+// purpose.
+//
+// If you modify the code, please retain this copyright header,
+// and consider contributing back to the repository or letting us know
+// about your modifications. Your contributions are valued!
+//
+// THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
+
+using JetBrains.Annotations;
+
+namespace TetraCore;
+
+public static class Optimizer
+{
+    public static Program Optimize([NotNull] this Program program)
+    {
+        var originalSize = program.Instructions.Sum(o => o.Operands.Length + 1);
+        
+        // todo - find decl operands that aren't used.
+
+        int postChangeSize;
+        while (true)
+        {
+            var preChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
+
+            InlineLdWithSingleUseConst(program);
+            RemoveNoOpDimInstructions(program);
+            MergeLdAndNeg(program.Instructions);
+            MergeConsecutiveDecls(program.Instructions);
+            RemoveUnusedVariableDeclarations(program);
+            
+            StripNops(ref program);
+
+            postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
+            if (postChangeSize == preChangeSize)
+                break;
+        }
+        
+        Console.WriteLine($"Optimized code size: {postChangeSize:N0} (was {originalSize:N0})");
+        return program;
+    }
+
+    private static void RemoveNoOpDimInstructions(Program program)
+    {
+        var instructions = program.Instructions;
+        var jumpTargets = FindJumpTargets(instructions);
+        for (var i = 1; i < instructions.Length; i++)
+        {
+            var ldInstruction = instructions[i - 1];
+            if (ldInstruction.OpCode != OpCode.Ld)
+                continue;
+            var dimInstruction = instructions[i];
+            if (dimInstruction.OpCode != OpCode.Dim)
+                continue;
+
+            // `ld` and `dim` must have constant operands.
+            var isLdWithConstants = ldInstruction.Operands.Skip(1).All(o => o.IsNumeric());
+            if (!isLdWithConstants)
+                continue;
+            var isDimWithConstant = dimInstruction.Operands[^1].Type is OperandType.Int;
+            if (!isDimWithConstant)
+                continue;
+                    
+            // See if `dim` is a no-op.
+            var dimOperand = dimInstruction.Operands[^1].Int;
+            if (dimOperand != ldInstruction.Operands.Length - 1)
+                continue;
+                    
+            // Can't remove a jump target.
+            if (jumpTargets.Contains(i))
+                continue;
+                    
+            // Remove `dim` - It's a no-op.
+            ReplaceWithNop(instructions, i);
+        }
+    }
+
+    private static void InlineLdWithSingleUseConst(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length; i++)
+        {
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld)
+                continue;
+
+            // The `ld` operands must be a single constant.
+            if (ldInstruction.Operands.Length != 2)
+                continue;
+            var isOperandConstant = ldInstruction.Operands[^1].Type is OperandType.Int or OperandType.Float;
+            if (!isOperandConstant)
+                continue;
+            
+            // Can't be an 'argN' param - They're needed for function calls.
+            var varName = ldInstruction.Operands[0].Name;
+            if (varName.IsFunctionArgument(ldInstruction.SymbolTable))
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+            
+            // Find instructions using the variable.
+            var variableName = ldInstruction.Operands[0].Name;
+            var instructionsUsingVariable =
+                indicesUntilEndOfScope
+                    .Select(o => program.Instructions[o])
+                    .Where(o => o.Operands.Any(op => Equals(op.Name, variableName)))
+                    .ToArray();
+            
+            // The `ld` variable must be used exactly once.
+            if (instructionsUsingVariable.Length != 1)
+                continue;
+            var usageCount = instructionsUsingVariable.Sum(o => o.Operands.Count(op => Equals(op.Name, variableName)));
+            if (usageCount != 1)
+                continue;
+            
+            // Inline const `ld` definition into the usage point.
+            var usageInstruction = instructionsUsingVariable[0];
+            var usageOperandIndex = Array.FindIndex(usageInstruction.Operands, o => Equals(o.Name, variableName));
+            usageInstruction.Operands[usageOperandIndex] = ldInstruction.Operands[^1];
+            ReplaceWithNop(instructions, i);
+        }
+    }
+
+    private static void RemoveUnusedVariableDeclarations(Program program)
+    {
+        var instructions = program.Instructions;
+        
+        // Skip globals - They can be used anywhere.
+        var startIndex = instructions.TakeWhile(o => !HasJmpTarget(o)).Count();
+        
+        for (var i = startIndex; i < instructions.Length; i++)
+        {
+            var declInstruction = instructions[i];
+            if (declInstruction.OpCode != OpCode.Decl)
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+
+            var unusedVariableNames = new List<VarName>();
+            var declaredVariableNames = declInstruction.Operands.Select(o => o.Name).ToArray();
+            foreach (var varName in declaredVariableNames)
+            {
+                // Find instructions using the variable.
+                var isUsed =
+                    indicesUntilEndOfScope
+                        .Select(o => program.Instructions[o])
+                        .Any(o => o.Operands.Any(op => Equals(op.Name, varName)));
+                if (!isUsed)
+                    unusedVariableNames.Add(varName);
+            }
+
+            if (unusedVariableNames.Count == 0)
+                continue; // No unused variable names - Nothing to do.
+            
+            // Remove the unused entries.
+            var newOperands = declInstruction.Operands.Where(o => !unusedVariableNames.Contains(o.Name)).ToArray();
+            if (newOperands.Length == 0)
+            {
+                // Declaration is unused - Make it a `nop`.
+                ReplaceWithNop(instructions, i);
+                continue;
+            }
+            
+            instructions[i] = declInstruction.WithOperands(newOperands);
+        }
+    }
+
+    private static List<int> GetIndicesUntilEndOfScope(Instruction[] instructions, int startIndex)
+    {
+        // Look ahead to find the next end of scope/return instruction.
+        var indicesUntilEndOfScope = new List<int>();
+        for (var j = startIndex; j < instructions.Length; j++)
+        {
+            if (instructions[j].OpCode == OpCode.Ret || instructions[j].OpCode == OpCode.Halt)
+                break;
+            indicesUntilEndOfScope.Add(j);
+        }
+        return indicesUntilEndOfScope;
+    }
+    
+    private static void StripNops(ref Program program)
+    {
+        var instructions = program.Instructions;
+        var jumpTargets = FindJumpTargets(instructions);
+
+        for (var i = instructions.Length - 1; i >= 0; i--)
+        {
+            if (program.Instructions[i].OpCode != OpCode.Nop)
+                continue;
+
+            // We can't remove a jump target.
+            if (jumpTargets.Contains(i))
+                continue;
+
+            // Remove the `nop`.
+            var nop = program.Instructions[i];
+            Array.Copy(program.Instructions, i + 1, program.Instructions, i, program.Instructions.Length - i - 1);
+            program.Instructions[^1] = nop;
+            
+            // Update the label table.
+            foreach (var kvp in program.LabelTable.ToArray())
+            {
+                if (kvp.Value >= i)
+                    program.LabelTable[kvp.Key]--;
+            }
+            
+            // Update jmp targets.
+            foreach (var instruction in program.Instructions)
+            {
+                var isJmp = IsJmp(instruction) || instruction.OpCode == OpCode.Call;
+                if (!isJmp)
+                    continue;
+                
+                var target = instruction.Operands[^1].Int;
+                if (target >= i)
+                    instruction.Operands[^1].Floats[0]--;
+            }
+        }
+
+        var trailingNopCount = instructions.Reverse().TakeWhile(o => o.OpCode == OpCode.Nop).Count();
+        Array.Resize(ref instructions, instructions.Length - trailingNopCount);
+        program = program.WithInstructions(instructions);
+    }
+
+    private static void MergeLdAndNeg(Instruction[] instructions)
+    {
+        // Inline negation of constants.
+        var jumpTargets = FindJumpTargets(instructions);
+        for (var i = 1; i < instructions.Length; i++)
+        {
+            if (instructions[i].OpCode != OpCode.Neg)
+                continue;
+            
+            // Must be preceded by a `ld`.
+            var prevInstruction = instructions[i - 1];
+            if (prevInstruction.OpCode != OpCode.Ld)
+                continue;
+            
+            // `neg` must be negating the `ld` target operand.
+            if (!Equals(instructions[i].Operands[0].Name, prevInstruction.Operands[0].Name))
+                continue;
+
+            // We can't remove a jump target.
+            if (jumpTargets.Contains(i))
+                continue;
+
+            // The `ld` operands must be constants.
+            var isOperandsConstant = prevInstruction.Operands.Skip(1).All(o => o.Type is OperandType.Int or OperandType.Float);
+            if (!isOperandsConstant)
+                continue;
+            
+            // Negate the constants, to avoid the need for 'neg'.
+            for (var operandIndex = 1; operandIndex < prevInstruction.Operands.Length; operandIndex++)
+            {
+                for (var j = 0; j < prevInstruction.Operands[operandIndex].Floats.Length; j++)
+                    instructions[i - 1].Operands[operandIndex].Floats[j] *= -1;
+            }
+
+            // Replace the `ld` and `neg` with a `nop`.
+            ReplaceWithNop(instructions, i);
+        }
+    }
+
+    private static void MergeConsecutiveDecls(Instruction[] instructions)
+    {
+        var jumpTargets = FindJumpTargets(instructions);
+        for (var i = 0; i < instructions.Length - 1; i++)
+        {
+            if (instructions[i].OpCode != OpCode.Decl)
+                continue;
+            
+            // Count until a control flow statement.
+            var count = 0;
+            while (i + count < instructions.Length)
+            {
+                var isControlFlow = IsJmp(instructions[i + count]);
+                if (isControlFlow)
+                    break;
+                
+                switch (instructions[i + count].OpCode)
+                {
+                    case OpCode.Call:
+                    case OpCode.Ret:
+                    case OpCode.Halt:
+                    case OpCode.PushFrame:
+                    case OpCode.PopFrame:
+                        isControlFlow = true;
+                        break;
+                }
+                if (isControlFlow)
+                    break;
+                
+                count++;
+            }
+            
+            if (count == 0)
+                continue;
+
+            var startIndex = i + 1;
+            var endIndex = i + count - 1;
+            
+            // If there's a jump target in the instruction range, we can't combine ops past this point.
+            foreach (var jumpTarget in jumpTargets)
+            {
+                if (jumpTarget >= startIndex && jumpTarget <= endIndex)
+                {
+                    endIndex = jumpTarget - 1;
+                    break;
+                }
+            }
+
+            for (var j = startIndex; j <= endIndex; j++)
+            {
+                var nextInstruction = instructions[j];
+                if (nextInstruction.OpCode == OpCode.Decl)
+                {
+                    instructions[i] = instructions[i].WithOperands(instructions[i].Operands.Union(nextInstruction.Operands).ToArray());
+                    ReplaceWithNop(instructions, j);
+                }
+            }
+
+            i = endIndex;
+        }
+    }
+
+    private static bool IsJmp(Instruction instruction) =>
+        instruction.OpCode is OpCode.Jmp or OpCode.Jmpz or OpCode.Jmpnz;
+
+    private static bool HasJmpTarget(Instruction instruction) =>
+        instruction.OpCode is OpCode.Call || IsJmp(instruction);
+
+    private static void ReplaceWithNop(Instruction[] instructions, int i) =>
+        instructions[i] = new Instruction { LineNumber = i + 1, OpCode = OpCode.Nop };
+
+    private static int[] FindJumpTargets(Instruction[] instructions) =>
+        instructions.Where(HasJmpTarget).Select(o => o.Operands[^1].Int).Order().ToArray();
+}

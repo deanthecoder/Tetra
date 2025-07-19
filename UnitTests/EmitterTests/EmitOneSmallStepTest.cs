@@ -44,7 +44,8 @@ public class EmitOneSmallStepTest : TestsBase
         Assert.That(tetraCode, Is.Not.Null);
         Assert.That(tetraCode, Is.Not.Empty);
 
-        var program = Assembler.Assemble(tetraCode);
+        var program = Assembler.Assemble(tetraCode).Optimize();
+        
         var vm = new TetraVm(program);
         vm.AddUniform("fragCoord", new Operand(x, y));
         vm.AddUniform("iResolution", new Operand(640.0f, 480.0f));

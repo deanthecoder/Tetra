@@ -19,20 +19,27 @@ namespace TetraCore;
 /// </summary>
 public readonly struct Instruction
 {
-    private readonly SymbolTable m_symbolTable;
-    
+    private readonly Operand[] m_operands;
+    public SymbolTable SymbolTable { get; }
     public int LineNumber { get; init; }
     public OpCode OpCode { get; init; }
-    public Operand[] Operands { get; init; }
+    public Operand[] Operands
+    {
+        get => m_operands ?? [];
+        init => m_operands = value;
+    }
 
     public Instruction(SymbolTable symbolTable)
     {
-        m_symbolTable = symbolTable;
+        SymbolTable = symbolTable;
     }
-    
+
+    public Instruction WithOperands(params Operand[] operands) =>
+        new Instruction(SymbolTable) { LineNumber = LineNumber, OpCode = OpCode, Operands = operands };
+
     public override string ToString()
     {
-        var table = m_symbolTable;
+        var table = SymbolTable;
         return $"[Line {LineNumber}] {OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.ToUiString(table)).ToCsv()}".TrimEnd();
     }
 }

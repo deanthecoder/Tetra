@@ -89,4 +89,10 @@ public class VarName
         var varName = $"${symbolTable?[Slot] ?? Slot.ToString()}";
         return varName + (Swizzle != null ? $".{Swizzle}" : string.Empty) + (ArrIndex.HasValue ? $"[{ArrIndex}]" : string.Empty);
     }
+
+    public bool IsFunctionArgument(SymbolTable symbolTable)
+    {
+        var varName = $"${symbolTable?[Slot] ?? Slot.ToString()}";
+        return varName.StartsWith("$arg");
+    }
 }

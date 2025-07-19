@@ -27,6 +27,9 @@ public class Program
         SymbolTable = symbolTable;
         LabelTable = labelTable;
     }
+    
+    public Program WithInstructions(Instruction[] instructions) =>
+        new Program(instructions, SymbolTable, LabelTable);
 
     public void Dump()
     {

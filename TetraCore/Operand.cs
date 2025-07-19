@@ -81,7 +81,7 @@ public sealed class Operand
     /// </summary>
     public int Length => Floats?.Length ?? 1;
 
-    public bool IsUnassigned { get; init; }
+    public bool IsUnassigned { get; private init; }
 
     public float AsFloat() =>
         Type switch
@@ -101,7 +101,7 @@ public sealed class Operand
             return operands[0];
         
         // All operands must be numeric.
-        if (operands.All(o => o.Type is OperandType.Float or OperandType.Int or OperandType.Vector))
+        if (operands.All(o => o.IsNumeric() || o.Type == OperandType.Vector))
             return new Operand(operands.SelectMany(o => o.Floats).ToArray());
         
         var s = "Error: Multiple operands must all be numeric";
@@ -153,8 +153,12 @@ public sealed class Operand
         return new Operand(newType, Name, Label, Floats.ToArray());
     }
 
-    public Operand Clone()
-    {
-        return new Operand(Type, Name, Label, Floats.ToArray());
-    }
+    /// <summary>
+    /// Determines whether the operand represents a numeric value (integer or float).
+    /// </summary>
+    public bool IsNumeric() =>
+        Type is OperandType.Int or OperandType.Float;
+
+    public Operand Clone() =>
+        new Operand(Type, Name, Label, Floats.ToArray());
 }
