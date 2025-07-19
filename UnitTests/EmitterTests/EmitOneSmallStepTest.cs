@@ -68,5 +68,7 @@ public class EmitOneSmallStepTest : TestsBase
             program.Dump();
             throw;
         }
+        
+        program.Dump();
     }
 }

@@ -9,6 +9,7 @@
 //
 // THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
 
+using DTC.Core.Extensions;
 using JetBrains.Annotations;
 
 namespace TetraCore;
@@ -31,7 +32,8 @@ public static class Optimizer
             MergeLdAndNeg(program.Instructions);
             MergeConsecutiveDecls(program.Instructions);
             RemoveUnusedVariableDeclarations(program);
-            
+            RemoveJumpsToNextInstruction(program);
+
             StripNops(ref program);
 
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
@@ -41,6 +43,15 @@ public static class Optimizer
         
         Console.WriteLine($"Optimized code size: {postChangeSize:N0} (was {originalSize:N0})");
         return program;
+    }
+
+    private static void RemoveJumpsToNextInstruction(Program program)
+    {
+        var instructions = program.Instructions;
+        instructions
+            .Where(IsJmp)
+            .Where(o => o.Operands[^1].Int == Array.IndexOf(instructions, o) + 1)
+            .ForEach(jmp => ReplaceWithNop(instructions, Array.IndexOf(instructions, jmp)));
     }
 
     private static void RemoveNoOpDimInstructions(Program program)

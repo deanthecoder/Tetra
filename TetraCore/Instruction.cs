@@ -17,7 +17,7 @@ namespace TetraCore;
 /// Represents a single instruction in the Tetra virtual machine. 
 /// Each instruction includes its op code, operands, and the source line number it originated from.
 /// </summary>
-public readonly struct Instruction
+public readonly record struct Instruction
 {
     private readonly Operand[] m_operands;
     public SymbolTable SymbolTable { get; }
