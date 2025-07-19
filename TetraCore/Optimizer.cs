@@ -45,6 +45,9 @@ public static class Optimizer
         return program;
     }
 
+    /// <summary>
+    /// Remove jump instructions that target the next instruction.
+    /// </summary>
     private static void RemoveJumpsToNextInstruction(Program program)
     {
         var instructions = program.Instructions;
@@ -54,6 +57,9 @@ public static class Optimizer
             .ForEach(jmp => ReplaceWithNop(instructions, Array.IndexOf(instructions, jmp)));
     }
 
+    /// <summary>
+    /// Remove dimension instructions that don't affect the actual size of arrays.
+    /// </summary>
     private static void RemoveNoOpDimInstructions(Program program)
     {
         var instructions = program.Instructions;
@@ -89,6 +95,9 @@ public static class Optimizer
         }
     }
 
+    /// <summary>
+    /// Optimize away single-use constant loads by inlining them directly into their usage point.
+    /// </summary>
     private static void InlineLdWithSingleUseConst(Program program)
     {
         var instructions = program.Instructions;
@@ -99,10 +108,8 @@ public static class Optimizer
                 continue;
 
             // The `ld` operands must be a single constant.
-            if (ldInstruction.Operands.Length != 2)
-                continue;
-            var isOperandConstant = ldInstruction.Operands[^1].Type is OperandType.Int or OperandType.Float;
-            if (!isOperandConstant)
+            var isAllOperandsConstant = ldInstruction.Operands.Skip(1).All(o => o.IsNumeric());
+            if (!isAllOperandsConstant)
                 continue;
             
             // Can't be an 'argN' param - They're needed for function calls.
@@ -133,11 +140,17 @@ public static class Optimizer
             // Inline const `ld` definition into the usage point.
             var usageInstruction = instructionsUsingVariable[0];
             var usageOperandIndex = Array.FindIndex(usageInstruction.Operands, o => Equals(o.Name, variableName));
-            usageInstruction.Operands[usageOperandIndex] = ldInstruction.Operands[^1];
+            var newOperands = usageInstruction.Operands.Where(o => !Equals(o.Name, variableName)).ToList();
+            newOperands.InsertRange(usageOperandIndex, ldInstruction.Operands.Skip(1));
+            var instToModifyIndex = Array.IndexOf(instructions, usageInstruction);
+            instructions[instToModifyIndex] = usageInstruction.WithOperands(newOperands.ToArray());
             ReplaceWithNop(instructions, i);
         }
     }
 
+    /// <summary>
+    /// Remove declarations for variables that are never used
+    /// </summary>
     private static void RemoveUnusedVariableDeclarations(Program program)
     {
         var instructions = program.Instructions;
@@ -242,6 +255,9 @@ public static class Optimizer
         program = program.WithInstructions(instructions);
     }
 
+    /// <summary>
+    /// Merge negation operation into load constant operations where possible
+    /// </summary>
     private static void MergeLdAndNeg(Instruction[] instructions)
     {
         // Inline negation of constants.
@@ -281,6 +297,9 @@ public static class Optimizer
         }
     }
 
+    /// <summary>
+    /// Combine consecutive declaration instructions into a single declaration
+    /// </summary>
     private static void MergeConsecutiveDecls(Instruction[] instructions)
     {
         var jumpTargets = FindJumpTargets(instructions);
