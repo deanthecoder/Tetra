@@ -19,6 +19,7 @@ public static class Optimizer
     public static Program Optimize([NotNull] this Program program)
     {
         var originalSize = program.Instructions.Sum(o => o.Operands.Length + 1);
+        var originalLoc = program.Instructions.Length;
         
         int postChangeSize;
         var allowReuseOfTemps = false;
@@ -57,7 +58,8 @@ public static class Optimizer
             break;
         }
         
-        Console.WriteLine($"Optimized code size: {postChangeSize:N0} (was {originalSize:N0})");
+        Console.WriteLine($"Optimized size: {postChangeSize:N0} (was {originalSize:N0})");
+        Console.WriteLine($"                {program.Instructions.Length:N0} LOC (was {originalLoc:N0})");
         return program;
     }
 
