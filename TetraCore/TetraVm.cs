@@ -776,13 +776,13 @@ public class TetraVm
     /// E.g. sin $a, $b    (a = sin(b))
     /// </summary>
     private void ExecuteSin(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Sin(b));
+        DoMathOp(instr, (_, b) => MathF.Sin(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. sinh $a, $b    (a = sinh(b))
     /// </summary>
     private void ExecuteSinh(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Sinh(b));
+        DoMathOp(instr, (_, b) => MathF.Sinh(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. asin $a, $b    (a = asin(b))
@@ -794,20 +794,20 @@ public class TetraVm
             if (b < -1f || b > 1f)
                 throw new RuntimeException($"Input value '{b:0.0###}' must be in the range [-1, 1].");
             return MathF.Asin(b);
-        });
+        }, requiresSingleInput: true);
     }
 
     /// <summary>
     /// E.g. cos $a, $b    (a = cos(b))
     /// </summary>
     private void ExecuteCos(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Cos(b));
+        DoMathOp(instr, (_, b) => MathF.Cos(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. cosh $a, $b    (a = cosh(b))
     /// </summary>
     private void ExecuteCosh(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Cosh(b));
+        DoMathOp(instr, (_, b) => MathF.Cosh(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. acos $a, $b    (a = acos(b))
@@ -819,26 +819,26 @@ public class TetraVm
             if (b < -1f || b > 1f)
                 throw new RuntimeException($"Input value '{b:0.0###}' must be in the range [-1, 1].");
             return MathF.Acos(b);
-        });
+        }, requiresSingleInput: true);
     }
 
     /// <summary>
     /// E.g. tan $a, $b    (a = tan(b))
     /// </summary>
     private void ExecuteTan(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Tan(b));
+        DoMathOp(instr, (_, b) => MathF.Tan(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. tanh $a, $b    (a = tanh(b))
     /// </summary>
     private void ExecuteTanh(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Tanh(b));
+        DoMathOp(instr, (_, b) => MathF.Tanh(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. atan $a, $b    (a = atan(b))
     /// </summary>
     private void ExecuteAtan(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Atan(b));
+        DoMathOp(instr, (_, b) => MathF.Atan(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. pow $a, $b    (a = pow(a, b))
@@ -865,14 +865,14 @@ public class TetraVm
             if (b < 0f)
                 throw new RuntimeException($"Input value '{b:0.0###}' must be greater than or equal to zero.");
             return MathF.Sqrt(b);
-        });
+        }, requiresSingleInput: true);
     }
 
     /// <summary>
     /// E.g. exp $a, $b    (a = exp(b))
     /// </summary>
     private void ExecuteExp(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Exp(b));
+        DoMathOp(instr, (_, b) => MathF.Exp(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. log $a, $b    (a = log(b))
@@ -884,20 +884,20 @@ public class TetraVm
             if (b <= 0f)
                 throw new RuntimeException($"Input value '{b:0.0###}' must be greater than 0.");
             return MathF.Log(b);
-        });
+        }, requiresSingleInput: true);
     }
 
     /// <summary>
     /// E.g. abs $a, $b    (a = abs(b))
     /// </summary>
     private void ExecuteAbs(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Abs(b));
+        DoMathOp(instr, (_, b) => MathF.Abs(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. sign $a, $b    (a = sign(b))
     /// </summary>
     private void ExecuteSign(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Sign(b));
+        DoMathOp(instr, (_, b) => MathF.Sign(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. mod $a, $b    (a = a % b)
@@ -926,19 +926,19 @@ public class TetraVm
     /// E.g. ceil $a, $b    (a = ceil(b))
     /// </summary>
     private void ExecuteCeil(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Ceiling(b));
+        DoMathOp(instr, (_, b) => MathF.Ceiling(b), requiresSingleInput: true);
     
     /// <summary>
     /// E.g. floor $a, $b    (a = floor(b))
     /// </summary>
     private void ExecuteFloor(Instruction instr) =>
-        DoMathOp(instr, (_, b) => MathF.Floor(b));
+        DoMathOp(instr, (_, b) => MathF.Floor(b), requiresSingleInput: true);
     
     /// <summary>
     /// E.g. fract $a, $b    (a = fract(b))
     /// </summary>
     private void ExecuteFract(Instruction instr) =>
-        DoMathOp(instr, (_, b) => b - MathF.Floor(b));
+        DoMathOp(instr, (_, b) => b - MathF.Floor(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. length $a, $b    (a = length(b))
@@ -1143,14 +1143,14 @@ public class TetraVm
     /// 
     /// This supports scalar or vector operands.
     /// </summary>
-    private void DoMathOp(Instruction instr, Func<float, float, float> op, bool resultAsBool = false)
+    private void DoMathOp(Instruction instr, Func<float, float, float> op, bool resultAsBool = false, bool requiresSingleInput = false)
     {
         // Get target variable.
         var a = instr.Operands[0];
         var aName = a.Name;
         if (CurrentFrame.IsDefined(aName))
         {
-            a = CurrentFrame.GetVariable(aName);
+            a = CurrentFrame.GetVariable(aName, allowUndefined: requiresSingleInput);
             if (a.Type is OperandType.Label or OperandType.Variable)
                 throw new RuntimeException($"Cannot perform '{OpCodeToStringMap.GetString(instr.OpCode)}' on {a.Type}.");
         }
@@ -1178,11 +1178,20 @@ public class TetraVm
             float[] floats;
             if (CurrentFrame.IsDefined(aName))
             {
-                EnsureArrayDimensionsMatch(instr, ref a, ref b);
+                if (requiresSingleInput)
+                {
+                    floats = new float[b.Length];
+                    for (var i = 0; i < b.Length; i++)
+                        floats[i] = op(float.NaN, b.Floats[i]);
+                }
+                else
+                {
+                    EnsureArrayDimensionsMatch(instr, ref a, ref b);
 
-                floats = new float[a.Length];
-                for (var i = 0; i < a.Length; i++)
-                    floats[i] = op(a.Floats[i], b.Floats[i]);
+                    floats = new float[a.Length];
+                    for (var i = 0; i < a.Length; i++)
+                        floats[i] = op(a.Floats[i], b.Floats[i]);
+                }
             }
             else
             {

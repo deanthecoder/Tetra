@@ -20,13 +20,13 @@ public static class Optimizer
     {
         var originalSize = program.Instructions.Sum(o => o.Operands.Length + 1);
         var originalLoc = program.Instructions.Length;
-        
+
         int postChangeSize;
         var allowReuseOfTemps = false;
         while (true)
         {
             var preChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
-
+        
             InlineConstLdWithSingleUse(program);
             RemoveNoOpDimInstructions(program);
             MergeLdAndNeg(program.Instructions);
@@ -38,9 +38,10 @@ public static class Optimizer
                 ReuseTempVariables(program);
             RemoveCircularAssignments(program);
             RemoveUnusedDeclarations(program);
-
+            MergeLdWithDirectAssignment(program);
+        
             StripNops(ref program);
-
+        
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
             if (postChangeSize != preChangeSize)
                 continue; // Iterate again.
@@ -61,6 +62,47 @@ public static class Optimizer
         Console.WriteLine($"Optimized size: {postChangeSize:N0} (was {originalSize:N0})");
         Console.WriteLine($"                {program.Instructions.Length:N0} LOC (was {originalLoc:N0})");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes instructions by merging load operations with direct assignments that follow them.
+    /// For example, converts:
+    ///   ld $a, $b
+    ///   floor $a, $a
+    /// Into:
+    ///   floor $a, $b
+    /// </summary>
+    private static void MergeLdWithDirectAssignment(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 1; i++)
+        {
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld)
+                continue;
+            var nextAssignmentInstruction = instructions[i + 1];
+            if (!nextAssignmentInstruction.IsDirectAssignment())
+                continue;
+            if (nextAssignmentInstruction.Operands.Length != 2)
+                continue;
+                    
+            // ld $a, $b
+            // <instr> $a, $a
+                    
+            // Instruction args must both be the same.
+            var instrA1 = ldInstruction.Operands[0].Name;
+            var instrA2 = nextAssignmentInstruction.Operands[0].Name;
+            if (instrA1 == null || instrA2 == null || !instrA1.IsNameEqual(instrA2))
+                continue;
+                    
+            // Instruction must be the target of the 'ld'.
+            if (!instrA1.Equals(ldInstruction.Operands[0].Name))
+                continue;
+                    
+            // Replace the 'ld' with the next instruction.
+            instructions[i + 1].Operands[1] = ldInstruction.Operands[1];
+            ReplaceWithNop(instructions, i);
+        }
     }
 
     /// <summary>
@@ -159,7 +201,7 @@ public static class Optimizer
         {
             // Instruction needs to assign to a variable.
             var ldInstruction = instructions[i];
-            if (ldInstruction.OpCode != OpCode.Ld || ldInstruction.Operands[0]?.Name.IsTemporary(program.SymbolTable) != true)
+            if (!ldInstruction.IsDirectAssignment() || ldInstruction.Operands[0]?.Name.IsTemporary(program.SymbolTable) != true)
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
@@ -180,7 +222,7 @@ public static class Optimizer
                         {
                             // Must be assignment to a tmp variable.
                             var instruction = instructions[o];
-                            if (instruction.OpCode != OpCode.Ld)
+                            if (!instruction.IsDirectAssignment())
                                 return false;
                             var varName = instruction.Operands[0]?.Name;
                             if (varName?.IsTemporary(program.SymbolTable) != true)
@@ -228,7 +270,7 @@ public static class Optimizer
             while (isModified);
         }
     }
-
+    
     /// <summary>
     /// Optimizes the program by inlining load (ld) instructions that are only used on the next line.
     /// For example, if we have:
