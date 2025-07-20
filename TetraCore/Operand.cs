@@ -24,8 +24,11 @@ namespace TetraCore;
 /// </remarks>
 public sealed class Operand
 {
-    public static readonly Operand Unassigned = new Operand(0.0f) { IsUnassigned = true };
-    
+    public static readonly Operand Unassigned = new Operand(0.0f)
+    {
+        IsUnassigned = true
+    };
+
     public Operand(int f)
     {
         Type = OperandType.Int;
@@ -45,7 +48,7 @@ public sealed class Operand
         Label = label;
         Floats = floats;
     }
-    
+
     /// <summary>
     /// Gets the type of operand (e.g., variable, constant, label).
     /// </summary>
@@ -55,7 +58,7 @@ public sealed class Operand
     /// Gets the variable name (only applicable for operands of type Variable).
     /// </summary>
     public VarName Name { get; init; }
-    
+
     /// <summary>
     /// Gets the label name.
     /// </summary>
@@ -70,7 +73,7 @@ public sealed class Operand
     /// Gets the integer value if the operand is an integer constant.
     /// </summary>
     public int Int => (int)Floats[0];
-    
+
     /// <summary>
     /// Gets the number(s) contained within the operand.
     /// </summary>
@@ -99,11 +102,11 @@ public sealed class Operand
         // Just one operand? No change.
         if (operands.Length == 1)
             return operands[0];
-        
+
         // All operands must be numeric.
         if (operands.All(o => o.IsNumeric() || o.Type == OperandType.Vector))
             return new Operand(operands.SelectMany(o => o.Floats).ToArray());
-        
+
         var s = "Error: Multiple operands must all be numeric";
         s += "\nReceived:";
         s += $"\n  {operands.Select(op => $"<{op}>").ToCsv()}";
@@ -137,10 +140,10 @@ public sealed class Operand
             throw new InvalidOperationException("Cannot grow an unassigned operand.");
         if (Length != 1)
             throw new InvalidOperationException("Only one-dimensional operands can be grown.");
-        
+
         if (length == Length)
             return this; // No change.
-        
+
         var floats = new float[length];
         Array.Fill(floats, Float);
         return new Operand(floats);
@@ -161,4 +164,7 @@ public sealed class Operand
 
     public Operand Clone() =>
         new Operand(Type, Name, Label, Floats.ToArray());
+
+    public Operand RenamedTo(VarName newName) =>
+        new Operand(Type, Name.RenamedTo(newName), Label, Floats.ToArray());
 }

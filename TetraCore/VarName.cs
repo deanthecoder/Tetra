@@ -18,9 +18,16 @@ namespace TetraCore;
 /// </summary>
 public class VarName
 {
-    public int Slot { get; set; }
+    public int Slot { get; private init; }
     public int? ArrIndex { get; }
     public string Swizzle { get; }
+
+    private VarName(VarName other)
+    {
+        Slot = other.Slot;
+        ArrIndex = other.ArrIndex;
+        Swizzle = other.Swizzle;
+    }
 
     public VarName(string name)
     {
@@ -97,5 +104,22 @@ public class VarName
         return varName.StartsWith("$arg");
     }
 
+    public bool IsTemporary(SymbolTable symbolTable)
+    {
+        var varName = $"${symbolTable?[Slot] ?? Slot.ToString()}";
+        return varName.StartsWith("$tmp");
+    }
+
     public bool IsNameEqual(VarName other) => Slot == other?.Slot;
+
+    public VarName Clone() => new VarName(this);
+
+    /// <summary>
+    /// Take the variable name of another variable.
+    /// </summary>
+    /// <remarks>
+    /// This can be used to rename a variable without changing its swizzle or array indexer.
+    /// </remarks>
+    public VarName RenamedTo(VarName newName) =>
+        new VarName(this) { Slot = newName.Slot };
 }

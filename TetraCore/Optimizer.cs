@@ -21,6 +21,7 @@ public static class Optimizer
         var originalSize = program.Instructions.Sum(o => o.Operands.Length + 1);
         
         int postChangeSize;
+        var allowReuseOfTemps = false;
         while (true)
         {
             var preChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
@@ -32,16 +33,161 @@ public static class Optimizer
             RemoveJumpsToNextInstruction(program);
             InlineLdWithSingleUseOnNextLine(program);
             MergeConsecutiveDecls(program.Instructions);
+            if (allowReuseOfTemps)
+                ReuseTempVariables(program);
+            RemoveUnusedDeclarations(program);
 
             StripNops(ref program);
 
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
-            if (postChangeSize == preChangeSize)
-                break;
+            if (postChangeSize != preChangeSize)
+                continue; // Iterate again.
+            
+            // No improvements detected.
+            if (!allowReuseOfTemps)
+            {
+                // Reusing temps makes detecting variable usage difficult, so we
+                // only do it after all other optimizations have occurred.
+                allowReuseOfTemps = true;
+                continue;
+            }
+                
+            // We're done.
+            break;
         }
         
         Console.WriteLine($"Optimized code size: {postChangeSize:N0} (was {originalSize:N0})");
         return program;
+    }
+
+    private static void RemoveUnusedDeclarations(Program program)
+    {
+        var instructions = program.Instructions;
+
+        // Skip globals - They can be used anywhere.
+        var startIndex = instructions.TakeWhile(o => !HasJmpTarget(o)).Count();
+        
+        for (var i = startIndex; i < instructions.Length; i++)
+        {
+            var declInstruction = instructions[i];
+            if (declInstruction.OpCode != OpCode.Decl)
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+            
+            // Check if each variable name is used.
+            var instructionsUntilEndOfScope =
+                indicesUntilEndOfScope
+                    .Select(o => instructions[o]);
+            var operandsUntilEndOfScope =
+                instructionsUntilEndOfScope
+                    .SelectMany(o => o.Operands);
+
+            var seenSlots = new HashSet<int>();
+            var currentDeclOperands = declInstruction.Operands.Where(varName => seenSlots.Add(varName.Name.Slot));
+            var usedDeclOperands =
+                currentDeclOperands
+                    .Where(o => operandsUntilEndOfScope.Any(op => o.Name.IsNameEqual(op.Name)))
+                    .ToArray();
+            
+            if (usedDeclOperands.Length == 0)
+            {
+                // Nothing to declare - Remove the 'decl'.
+                ReplaceWithNop(instructions, i);
+                continue;
+            }
+
+            instructions[i] = declInstruction.WithOperands(usedDeclOperands);
+        }
+    }
+
+    /// <summary>
+    /// Optimizes temporary variable usage by reusing variables when their scope has ended.
+    /// For example, given:
+    ///   ld $tmp4,$p
+    ///   floor $tmp4,$tmp4
+    ///   ld $ip,$tmp4
+    ///   ld $tmp5,$p
+    /// The $tmp5 variable can reuse $tmp4's slot since $tmp4 is no longer used.
+    /// </summary>
+    private static void ReuseTempVariables(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length; i++)
+        {
+            // Instruction needs to assign to a variable.
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld || ldInstruction.Operands[0]?.Name.IsTemporary(program.SymbolTable) != true)
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+
+            bool isModified;
+            do
+            {
+                isModified = false;
+                
+                // Find all assignments to temp variables.
+                var visited = new HashSet<VarName>();
+                var ldTmpItems =
+                    indicesUntilEndOfScope
+                        .Where(o =>
+                        {
+                            // Must be assignment to a tmp variable.
+                            var instruction = instructions[o];
+                            if (instruction.OpCode != OpCode.Ld)
+                                return false;
+                            var varName = instruction.Operands[0]?.Name;
+                            if (varName?.IsTemporary(program.SymbolTable) != true)
+                                return false;
+                            return visited.Add(varName);
+                        })
+                        .Select(assignmentIndex =>
+                        {
+                            // Record where the assignment is, and find the last use of the tmp.
+                            var ld = instructions[assignmentIndex];
+                            var tmpName = ld.Operands[0].Name;
+                            var lastUseIndex = indicesUntilEndOfScope.Last(o => instructions[o].Operands.Any(op => tmpName.IsNameEqual(op.Name)));
+                            return (ld, assignmentIndex, lastUseIndex);
+                        })
+                        .ToArray();
+
+                // Find first case where a tmp assignment is after the end of a previous one.
+                foreach (var ldTmpItem in ldTmpItems)
+                {
+                    var toReplace = ldTmpItems.FirstOrDefault(o => o.assignmentIndex > ldTmpItem.lastUseIndex);
+                    if (toReplace == default)
+                        continue; // No later candidate found.
+
+                    var srcVarName = ldTmpItem.ld.Operands[0].Name;
+                    var dstVarName = toReplace.ld.Operands[0].Name;
+
+                    // Replace later tmp name with the first one.
+                    for (var j = toReplace.assignmentIndex; j <= toReplace.lastUseIndex; j++)
+                    {
+                        var o = instructions[j];
+                        for (var k = 0; k < o.Operands.Length; k++)
+                        {
+                            if (dstVarName.IsNameEqual(o.Operands[k].Name))
+                            {
+                                o.Operands[k] = o.Operands[k].RenamedTo(srcVarName);
+                                isModified = true;
+                            }
+                        }
+                    }
+
+                    if (isModified)
+                        break;
+                }
+            }
+            while (isModified);
+        }
     }
 
     /// <summary>
@@ -104,7 +250,7 @@ public static class Optimizer
                 else
                 {
                     // Target has swizzle or array index, so just replace its name component.
-                    nextInstruction.Operands[j].Name.Slot = valueOperand.Name.Slot;
+                    nextInstruction.Operands[j] = nextInstruction.Operands[j].RenamedTo(valueOperand.Name);
                 }
                 
                 didChange = true;
@@ -184,7 +330,7 @@ public static class Optimizer
             
             // Can't be an 'argN' param - They're needed for function calls.
             var varName = ldInstruction.Operands[0].Name;
-            if (varName.IsFunctionArgument(ldInstruction.SymbolTable))
+            if (varName.IsFunctionArgument(program.SymbolTable))
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
