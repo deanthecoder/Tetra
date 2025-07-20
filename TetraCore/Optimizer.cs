@@ -468,15 +468,9 @@ public static class Optimizer
     private static void StripNops(ref Program program)
     {
         var instructions = program.Instructions;
-        var jumpTargets = FindJumpTargets(instructions);
-
         for (var i = instructions.Length - 1; i >= 0; i--)
         {
             if (program.Instructions[i].OpCode != OpCode.Nop)
-                continue;
-
-            // We can't remove a jump target.
-            if (jumpTargets.Contains(i))
                 continue;
 
             // Remove the `nop`.
@@ -499,7 +493,7 @@ public static class Optimizer
                     continue;
                 
                 var target = instruction.Operands[^1].Int;
-                if (target >= i)
+                if (target > i)
                     instruction.Operands[^1].Floats[0]--;
             }
         }
