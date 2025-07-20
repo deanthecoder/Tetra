@@ -18,7 +18,7 @@ namespace TetraCore;
 /// </summary>
 public class VarName
 {
-    public int Slot { get; }
+    public int Slot { get; set; }
     public int? ArrIndex { get; }
     public string Swizzle { get; }
 
@@ -78,6 +78,7 @@ public class VarName
         Slot == other.Slot &&
         ArrIndex == other.ArrIndex;
 
+    // ReSharper disable once NonReadonlyMemberInGetHashCode
     public override int GetHashCode() =>
         HashCode.Combine(Slot, ArrIndex);
 

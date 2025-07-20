@@ -44,14 +44,17 @@ public static class Optimizer
         return program;
     }
 
+    /// <summary>
+    /// Optimizes the program by inlining load (ld) instructions that are only used on the next line.
+    /// For example, if we have:
+    ///   ld $tmp26,$p[0]
+    ///   mix $tmp17,$tmp21,$tmp26
+    /// This will be optimized to:
+    ///   mix $tmp17,$tmp21,$p[0]
+    /// </summary>
+    /// <param name="program">The program to optimize</param>
     private static void InlineLdWithSingleUseOnNextLine(Program program)
     {
-        // [Line 104] ld $tmp26,$p[0]
-        // [Line 105] mix $tmp17,$tmp21,$tmp26
-        // 1) Find 'ld' with 2 operands (var name and value)
-        // 1) Variable must be used once on the next line.
-        // 2) Variable must not be used later on.
-        // 3) then replace operand in the 'used' instruction with the 'ld' value operand(s).
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length - 1; i++)
         {
@@ -74,24 +77,41 @@ public static class Optimizer
                     .Where(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)))
                     .ToArray();
 
-            // The `ld` variable must be used exactly once.
+            // The `ld` variable must be used on the line after the `ld`.
             if (instructionsUsingVariable.Length != 1)
                 continue;
-            var usageCount = instructionsUsingVariable.Sum(o => o.Operands.Count(op => varName.IsNameEqual(op.Name)));
-            if (usageCount != 1)
-                continue;
-
-            // Must be used on the line after the `ld`.
             var usageInstrIndex = Array.IndexOf(instructions, instructionsUsingVariable[0]);
             if (usageInstrIndex != i + 1)
                 continue;
 
-            // Replace variable usage with the value.
+            // Replace variable usage with the source value.
             var valueOperand = ldInstruction.Operands[1];
+            var srcHasArrayIndexOrSwizzle = valueOperand.Name.Swizzle != null || valueOperand.Name.ArrIndex != null;
             var nextInstruction = instructions[i + 1];
-            var operandIndex = Array.FindIndex(nextInstruction.Operands, o => varName.IsNameEqual(o.Name));
-            instructions[i + 1].Operands[operandIndex] = valueOperand;
-            ReplaceWithNop(instructions, i);
+            var didChange = false;
+            for (var j = 0; j < nextInstruction.Operands.Length; j++)
+            {
+                if (!varName.IsNameEqual(nextInstruction.Operands[j].Name))
+                    continue; // Not replacing this operand.
+                
+                var targetHasArrayIndexOrSwizzle = nextInstruction.Operands[j].Name.Swizzle != null || nextInstruction.Operands[j].Name.ArrIndex != null;
+                if (srcHasArrayIndexOrSwizzle || !targetHasArrayIndexOrSwizzle)
+                {
+                    // Replace target with the source operand, retaining any swizzle or array index
+                    // the source may have.
+                    nextInstruction.Operands[j] = valueOperand;
+                }
+                else
+                {
+                    // Target has swizzle or array index, so just replace its name component.
+                    nextInstruction.Operands[j].Name.Slot = valueOperand.Name.Slot;
+                }
+                
+                didChange = true;
+            }
+            
+            if (didChange)
+                ReplaceWithNop(instructions, i);
         }
     }
 
