@@ -35,6 +35,7 @@ public static class Optimizer
             MergeConsecutiveDecls(program.Instructions);
             if (allowReuseOfTemps)
                 ReuseTempVariables(program);
+            RemoveCircularAssignments(program);
             RemoveUnusedDeclarations(program);
 
             StripNops(ref program);
@@ -58,6 +59,42 @@ public static class Optimizer
         
         Console.WriteLine($"Optimized code size: {postChangeSize:N0} (was {originalSize:N0})");
         return program;
+    }
+
+    /// <summary>
+    /// Removes cyclic assignments where a variable's value is loaded then immediately loaded back, making the second load redundant.
+    /// For example:
+    ///   ld $a,$b
+    ///   ld $b,$a // Can be removed.
+    /// </summary>
+    private static void RemoveCircularAssignments(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 1; i++)
+        {
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld)
+                continue;
+
+            var srcVarName = ldInstruction.Operands[1].Name;
+            if (srcVarName == null)
+                continue; // Not a variable.
+            var dstVarName = ldInstruction.Operands[0].Name;
+            if (dstVarName == null)
+                continue; // Not a variable.
+
+            var secondLdInstruction = instructions[i + 1];
+            if (secondLdInstruction.OpCode != OpCode.Ld)
+                continue;
+
+            if (!srcVarName.Equals(secondLdInstruction.Operands[0].Name))
+                continue;
+            if (!dstVarName.Equals(secondLdInstruction.Operands[1].Name))
+                continue;
+
+            // Found a cyclic assignment - Remove it.
+            ReplaceWithNop(instructions, i + 1);
+        }
     }
 
     private static void RemoveUnusedDeclarations(Program program)
