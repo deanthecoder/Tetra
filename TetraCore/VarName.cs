@@ -95,4 +95,6 @@ public class VarName
         var varName = $"${symbolTable?[Slot] ?? Slot.ToString()}";
         return varName.StartsWith("$arg");
     }
+
+    public bool IsNameEqual(VarName other) => Slot == other?.Slot;
 }

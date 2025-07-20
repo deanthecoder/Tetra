@@ -20,19 +20,18 @@ public static class Optimizer
     {
         var originalSize = program.Instructions.Sum(o => o.Operands.Length + 1);
         
-        // todo - find decl operands that aren't used.
-
         int postChangeSize;
         while (true)
         {
             var preChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
 
-            InlineLdWithSingleUseConst(program);
+            InlineConstLdWithSingleUse(program);
             RemoveNoOpDimInstructions(program);
             MergeLdAndNeg(program.Instructions);
-            MergeConsecutiveDecls(program.Instructions);
             RemoveUnusedVariableDeclarations(program);
             RemoveJumpsToNextInstruction(program);
+            InlineLdWithSingleUseOnNextLine(program);
+            MergeConsecutiveDecls(program.Instructions);
 
             StripNops(ref program);
 
@@ -43,6 +42,57 @@ public static class Optimizer
         
         Console.WriteLine($"Optimized code size: {postChangeSize:N0} (was {originalSize:N0})");
         return program;
+    }
+
+    private static void InlineLdWithSingleUseOnNextLine(Program program)
+    {
+        // [Line 104] ld $tmp26,$p[0]
+        // [Line 105] mix $tmp17,$tmp21,$tmp26
+        // 1) Find 'ld' with 2 operands (var name and value)
+        // 1) Variable must be used once on the next line.
+        // 2) Variable must not be used later on.
+        // 3) then replace operand in the 'used' instruction with the 'ld' value operand(s).
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 1; i++)
+        {
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld)
+                continue;
+            if (ldInstruction.Operands.Length != 2)
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+
+            // Find instructions using the variable.
+            var varName = ldInstruction.Operands[0].Name;
+            var instructionsUsingVariable =
+                indicesUntilEndOfScope
+                    .Select(o => program.Instructions[o])
+                    .Where(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)))
+                    .ToArray();
+
+            // The `ld` variable must be used exactly once.
+            if (instructionsUsingVariable.Length != 1)
+                continue;
+            var usageCount = instructionsUsingVariable.Sum(o => o.Operands.Count(op => varName.IsNameEqual(op.Name)));
+            if (usageCount != 1)
+                continue;
+
+            // Must be used on the line after the `ld`.
+            var usageInstrIndex = Array.IndexOf(instructions, instructionsUsingVariable[0]);
+            if (usageInstrIndex != i + 1)
+                continue;
+
+            // Replace variable usage with the value.
+            var valueOperand = ldInstruction.Operands[1];
+            var nextInstruction = instructions[i + 1];
+            var operandIndex = Array.FindIndex(nextInstruction.Operands, o => varName.IsNameEqual(o.Name));
+            instructions[i + 1].Operands[operandIndex] = valueOperand;
+            ReplaceWithNop(instructions, i);
+        }
     }
 
     /// <summary>
@@ -98,7 +148,7 @@ public static class Optimizer
     /// <summary>
     /// Optimize away single-use constant loads by inlining them directly into their usage point.
     /// </summary>
-    private static void InlineLdWithSingleUseConst(Program program)
+    private static void InlineConstLdWithSingleUse(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length; i++)
@@ -123,24 +173,23 @@ public static class Optimizer
                 continue;
             
             // Find instructions using the variable.
-            var variableName = ldInstruction.Operands[0].Name;
             var instructionsUsingVariable =
                 indicesUntilEndOfScope
                     .Select(o => program.Instructions[o])
-                    .Where(o => o.Operands.Any(op => Equals(op.Name, variableName)))
+                    .Where(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)))
                     .ToArray();
             
             // The `ld` variable must be used exactly once.
             if (instructionsUsingVariable.Length != 1)
                 continue;
-            var usageCount = instructionsUsingVariable.Sum(o => o.Operands.Count(op => Equals(op.Name, variableName)));
+            var usageCount = instructionsUsingVariable.Sum(o => o.Operands.Count(op => varName.IsNameEqual(op.Name)));
             if (usageCount != 1)
                 continue;
             
             // Inline const `ld` definition into the usage point.
             var usageInstruction = instructionsUsingVariable[0];
-            var usageOperandIndex = Array.FindIndex(usageInstruction.Operands, o => Equals(o.Name, variableName));
-            var newOperands = usageInstruction.Operands.Where(o => !Equals(o.Name, variableName)).ToList();
+            var usageOperandIndex = Array.FindIndex(usageInstruction.Operands, o => varName.IsNameEqual(o.Name));
+            var newOperands = usageInstruction.Operands.Where(o => !Equals(o.Name, varName)).ToList();
             newOperands.InsertRange(usageOperandIndex, ldInstruction.Operands.Skip(1));
             var instToModifyIndex = Array.IndexOf(instructions, usageInstruction);
             instructions[instToModifyIndex] = usageInstruction.WithOperands(newOperands.ToArray());
@@ -177,7 +226,7 @@ public static class Optimizer
                 var isUsed =
                     indicesUntilEndOfScope
                         .Select(o => program.Instructions[o])
-                        .Any(o => o.Operands.Any(op => Equals(op.Name, varName)));
+                        .Any(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)));
                 if (!isUsed)
                     unusedVariableNames.Add(varName);
             }
