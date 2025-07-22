@@ -35,6 +35,7 @@ public static class Optimizer
             InlineTempLoadUsedImmediately(program);
             CombineAdjacentDeclStatements(program.Instructions);
             FoldUnaryOpResultIntoDestination(program);
+            InlineTemps(program);
 
             if (allowReuseOfTemps)
                 ReuseExpiredTemporarySlots(program);
@@ -65,6 +66,58 @@ public static class Optimizer
         Console.WriteLine($"Optimized size: {postChangeSize:N0} (was {originalSize:N0})");
         Console.WriteLine($"                {program.Instructions.Length:N0} LOC (was {originalLoc:N0})");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes variable usage by replacing a temporary variable's usage with its source value when possible.
+    /// For example:
+    ///   ld $tmp1,$c
+    ///   ld $v,$tmp1,$tmp2  =>  ld $v,$c,$tmp2
+    /// </summary>
+    private static void InlineTemps(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 1; i++)
+        {
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld || ldInstruction.Operands.Length != 2)
+                continue;
+            var toAssign = ldInstruction.Operands[1].Name;
+            if (toAssign == null || !string.IsNullOrEmpty(toAssign.Swizzle) || toAssign.ArrIndex.HasValue)
+                continue;
+            var tmpN = ldInstruction.Operands[0].Name;
+            if (!tmpN.IsTemporary(program.SymbolTable))
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+
+            // tmpN must only be used once.
+            var instructionsUsingVariable =
+                indicesUntilEndOfScope
+                    .Select(o => program.Instructions[o])
+                    .Where(o => o.Operands.Any(op => tmpN.IsNameEqual(op.Name)))
+                    .ToArray();
+            if (instructionsUsingVariable.Length != 1)
+                continue; // More than one use - Ignore.
+            var nextInstruction = instructionsUsingVariable[0];
+                    
+            // Variable must not be used anywhere else (as something could modify it).
+            if (indicesUntilEndOfScope
+                .Select(o => program.Instructions[o])
+                .Any(o => o.Operands?.FirstOrDefault()?.Name?.IsNameEqual(toAssign) == true))
+                continue;
+                    
+            for (var j = 0; j < nextInstruction.Operands.Length; j++)
+            {
+                var operand = nextInstruction.Operands[j];
+                if (operand.Name?.IsNameEqual(tmpN) == true)
+                    nextInstruction.Operands[j] = operand.RenamedTo(toAssign);
+            }
+            ReplaceWithNop(instructions, i);
+        }
     }
 
     /// <summary>
