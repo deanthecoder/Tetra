@@ -30,7 +30,7 @@ public class DebugSnap
     {
         var sb = new StringBuilder();
         var instrStr = Regex.Replace(m_instruction.ToString(), @"^\[Line\s+\d+\]\s*", string.Empty);
-        sb.AppendLine($">> {instrStr,-32} {m_inFunction}:{m_instruction.LineNumber}");
+        sb.AppendLine($">> {instrStr,-32} {m_inFunction}");
 
         var variables = new List<(ScopeType scopeType, string name, string value)>();
         

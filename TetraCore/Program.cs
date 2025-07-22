@@ -33,13 +33,13 @@ public class Program
 
     public void Dump()
     {
-        var instructions = Instructions.Select(o => o.ToString()).ToList();
+        var instructions = Instructions.Select((o, i) => $"{i + 1}: {o}").ToList();
         
         // Re-add labels.
         foreach (var (label, index) in LabelTable.OrderByDescending(o => o.Value))
         {
-            var line = label.StartsWith('_') ? label : $"\n{label}()";
-            instructions.Insert(index, $"{line}:");
+            var s = label.StartsWith('_') ? label : $"\n{label}()";
+            instructions.Insert(index, $"{s}:");
         }
 
         // Write out.
@@ -47,17 +47,20 @@ public class Program
         {
             var updatedInstruction = instruction;
 
-            foreach (var keyword in new[] { OpCode.Call, OpCode.Jmp, OpCode.Jmpz, OpCode.Jmpnz }.Select(o => o.ToString().ToLower()))
+            foreach (var keyword in new[]
+                     {
+                         OpCode.Call, OpCode.Jmp, OpCode.Jmpz, OpCode.Jmpnz
+                     }.Select(o => o.ToString().ToLower()))
             {
                 var match = Regex.Match(instruction, $@"\b{keyword} (\d+)$");
                 if (!match.Success)
                     continue;
-                
+
                 var target = int.Parse(match.Groups[1].Value);
                 var label = LabelTable.FirstOrDefault(o => o.Value == target).Key;
                 if (label == null)
                     continue;
-                
+
                 updatedInstruction = instruction.Replace($"{keyword} {target}", $"{keyword} {label}");
                 break;
             }

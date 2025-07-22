@@ -722,7 +722,7 @@ public static class Optimizer
         instruction.OpCode is OpCode.Call || IsJmp(instruction);
 
     private static void ReplaceWithNop(Instruction[] instructions, int i) =>
-        instructions[i] = new Instruction { LineNumber = i + 1, OpCode = OpCode.Nop };
+        instructions[i] = new Instruction { OpCode = OpCode.Nop };
 
     private static int[] FindJumpTargets(Instruction[] instructions) =>
         instructions.Where(HasJmpTarget).Select(o => o.Operands[^1].Int).Order().ToArray();

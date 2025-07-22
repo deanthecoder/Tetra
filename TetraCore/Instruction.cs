@@ -22,7 +22,6 @@ public readonly record struct Instruction
     private readonly Operand[] m_operands;
     private readonly SymbolTable m_symbolTable;
     
-    public int LineNumber { get; init; }
     public OpCode OpCode { get; init; }
     public Operand[] Operands
     {
@@ -36,11 +35,11 @@ public readonly record struct Instruction
     }
 
     public Instruction WithOperands(params Operand[] operands) =>
-        new Instruction(m_symbolTable) { LineNumber = LineNumber, OpCode = OpCode, Operands = operands };
+        new Instruction(m_symbolTable) { OpCode = OpCode, Operands = operands };
 
     public override string ToString()
     {
         var table = m_symbolTable;
-        return $"[Line {LineNumber}] {OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.ToUiString(table)).ToCsv()}".TrimEnd();
+        return $"{OpCodeToStringMap.GetString(OpCode)} {Operands.Select(o => o.ToUiString(table)).ToCsv()}".TrimEnd();
     }
 }

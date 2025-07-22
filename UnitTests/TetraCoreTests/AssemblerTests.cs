@@ -34,7 +34,6 @@ public class AssemblerTests
 
         Assert.That(instructions, Has.Length.EqualTo(1));
         var instr = instructions[0];
-        Assert.That(instr.LineNumber, Is.EqualTo(1));
         Assert.That(instr.OpCode, Is.EqualTo(OpCode.Ld));
         Assert.That(instr.Operands, Has.Length.EqualTo(2));
 
@@ -65,7 +64,6 @@ public class AssemblerTests
 
         Assert.That(instructions, Has.Length.EqualTo(1));
         var instr = instructions[0];
-        Assert.That(instr.LineNumber, Is.EqualTo(2));
         Assert.That(instr.OpCode, Is.EqualTo(OpCode.Ld));
         Assert.That(instr.Operands, Has.Length.EqualTo(2));
 

@@ -109,7 +109,6 @@ public class Assembler
             // Build the instruction.
             var instruction = new Instruction(symbolTable)
             {
-                LineNumber = lineIndex + 1,
                 OpCode = opCode,
                 Operands = operands
             }; 
@@ -130,7 +129,7 @@ public class Assembler
                 // Replace the label with the actual value.
                 var labelName = instr.Operands[j].Label;
                 if (!labelTable.TryGetValue(labelName, out var labelIp))
-                    throw new SyntaxErrorException($"[Line {instr.LineNumber}] Error: Label '{labelName}' not found.");
+                    throw new SyntaxErrorException($"[{instructions.IndexOf(instr)}] Error: Label '{labelName}' not found.");
                 instr.Operands[j] = new Operand(labelIp);
             }
         }
