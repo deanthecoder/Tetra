@@ -34,6 +34,8 @@ public static class Optimizer
             RemoveJumpsToNextInstruction(program);
             InlineLdWithSingleUseOnNextLine(program);
             MergeConsecutiveDecls(program.Instructions);
+            MergeDirectAssignmentWithFollowingLd(program);
+
             if (allowReuseOfTemps)
                 ReuseTempVariables(program);
             RemoveCircularAssignments(program);
@@ -78,7 +80,7 @@ public static class Optimizer
         for (var i = 0; i < instructions.Length - 1; i++)
         {
             var ldInstruction = instructions[i];
-            if (ldInstruction.OpCode != OpCode.Ld)
+            if (ldInstruction.OpCode != OpCode.Ld || ldInstruction.Operands.Length != 2)
                 continue;
             var nextAssignmentInstruction = instructions[i + 1];
             if (!nextAssignmentInstruction.IsDirectAssignment())
@@ -86,13 +88,10 @@ public static class Optimizer
             if (nextAssignmentInstruction.Operands.Length != 2)
                 continue;
                     
-            // ld $a, $b
-            // <instr> $a, $a
-                    
             // Instruction args must both be the same.
             var instrA1 = ldInstruction.Operands[0].Name;
             var instrA2 = nextAssignmentInstruction.Operands[0].Name;
-            if (instrA1 == null || instrA2 == null || !instrA1.IsNameEqual(instrA2))
+            if (instrA1 == null || instrA2 == null || !instrA1.Equals(instrA2))
                 continue;
                     
             // Instruction must be the target of the 'ld'.
@@ -100,7 +99,7 @@ public static class Optimizer
                 continue;
                     
             // Replace the 'ld' with the next instruction.
-            instructions[i + 1].Operands[1] = ldInstruction.Operands[1];
+            nextAssignmentInstruction.Operands[1] = ldInstruction.Operands[1];
             ReplaceWithNop(instructions, i);
         }
     }
@@ -663,4 +662,52 @@ public static class Optimizer
 
     private static int[] FindJumpTargets(Instruction[] instructions) =>
         instructions.Where(HasJmpTarget).Select(o => o.Operands[^1].Int).Order().ToArray();
+
+    /// <summary>
+    /// Merges a direct assignment followed by a load into a single assignment.
+    /// For example:
+    ///   fract $tmpN,$b
+    ///   ld $c,$tmpN
+    /// becomes:
+    ///   fract $c, $b
+    /// </summary>
+    private static void MergeDirectAssignmentWithFollowingLd(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 2; i++)
+        {
+            var assignment = instructions[i];
+            if (!assignment.IsDirectAssignment())
+                continue;
+
+            var ld = instructions[i + 1];
+            if (ld.OpCode != OpCode.Ld || ld.Operands.Length != 2)
+                continue;
+
+            var tmpN = assignment.Operands[0].Name;
+            if (!tmpN.IsTemporary(program.SymbolTable))
+                continue;
+
+            var ldFrom = ld.Operands[1].Name;
+            if (!tmpN.Equals(ldFrom))
+                continue;
+            var ldTo = ld.Operands[0];
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 2);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+
+            // Check no instructions using the tmpN variable.
+            var isTmpUsedLater =
+                indicesUntilEndOfScope
+                    .Select(o => program.Instructions[o])
+                    .Any(o => o.Operands.Any(op => tmpN.IsNameEqual(op.Name)));
+            if (isTmpUsedLater)
+                continue;
+
+            assignment.Operands[0] = ldTo;
+            ReplaceWithNop(instructions, i + 1);
+        }
+    }
 }
