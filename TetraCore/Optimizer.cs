@@ -26,28 +26,29 @@ public static class Optimizer
         while (true)
         {
             var preChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
-        
-            InlineConstLdWithSingleUse(program);
-            RemoveNoOpDimInstructions(program);
-            MergeLdAndNeg(program.Instructions);
+
+            InlineConstantLoadIfUsedOnce(program);
+            RemoveRedundantDimInstructions(program);
+            FoldNegatedConstantLoads(program.Instructions);
             RemoveUnusedVariableDeclarations(program);
-            RemoveJumpsToNextInstruction(program);
-            InlineLdWithSingleUseOnNextLine(program);
-            MergeConsecutiveDecls(program.Instructions);
-            MergeDirectAssignmentWithFollowingLd(program);
+            RemoveSelfTargetedJump(program);
+            InlineTempLoadUsedImmediately(program);
+            CombineAdjacentDeclStatements(program.Instructions);
+            FoldUnaryOpResultIntoDestination(program);
 
             if (allowReuseOfTemps)
-                ReuseTempVariables(program);
-            RemoveCircularAssignments(program);
+                ReuseExpiredTemporarySlots(program);
+            
+            RemoveRedundantSwapAssignments(program);
             RemoveUnusedDeclarations(program);
-            MergeLdWithDirectAssignment(program);
-        
+            FoldLoadIntoUnaryOp(program);
+
             StripNops(ref program);
-        
+
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
             if (postChangeSize != preChangeSize)
                 continue; // Iterate again.
-            
+
             // No improvements detected.
             if (!allowReuseOfTemps)
             {
@@ -56,11 +57,11 @@ public static class Optimizer
                 allowReuseOfTemps = true;
                 continue;
             }
-                
+
             // We're done.
             break;
         }
-        
+
         Console.WriteLine($"Optimized size: {postChangeSize:N0} (was {originalSize:N0})");
         Console.WriteLine($"                {program.Instructions.Length:N0} LOC (was {originalLoc:N0})");
         return program;
@@ -74,7 +75,8 @@ public static class Optimizer
     /// Into:
     ///   floor $a, $b
     /// </summary>
-    private static void MergeLdWithDirectAssignment(Program program)
+    // FoldLoadIntoUnaryOp
+    private static void FoldLoadIntoUnaryOp(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length - 1; i++)
@@ -110,7 +112,8 @@ public static class Optimizer
     ///   ld $a,$b
     ///   ld $b,$a // Can be removed.
     /// </summary>
-    private static void RemoveCircularAssignments(Program program)
+    // RemoveRedundantSwapAssignments
+    private static void RemoveRedundantSwapAssignments(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length - 1; i++)
@@ -193,7 +196,8 @@ public static class Optimizer
     ///   ld $tmp5,$p
     /// The $tmp5 variable can reuse $tmp4's slot since $tmp4 is no longer used.
     /// </summary>
-    private static void ReuseTempVariables(Program program)
+    // ReuseExpiredTemporarySlots
+    private static void ReuseExpiredTemporarySlots(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length; i++)
@@ -279,7 +283,8 @@ public static class Optimizer
     ///   mix $tmp17,$tmp21,$p[0]
     /// </summary>
     /// <param name="program">The program to optimize</param>
-    private static void InlineLdWithSingleUseOnNextLine(Program program)
+    // InlineTempLoadUsedImmediately
+    private static void InlineTempLoadUsedImmediately(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length - 1; i++)
@@ -344,7 +349,8 @@ public static class Optimizer
     /// <summary>
     /// Remove jump instructions that target the next instruction.
     /// </summary>
-    private static void RemoveJumpsToNextInstruction(Program program)
+    // RemoveSelfTargetedJump
+    private static void RemoveSelfTargetedJump(Program program)
     {
         var instructions = program.Instructions;
         instructions
@@ -356,7 +362,8 @@ public static class Optimizer
     /// <summary>
     /// Remove dimension instructions that don't affect the actual size of arrays.
     /// </summary>
-    private static void RemoveNoOpDimInstructions(Program program)
+    // RemoveRedundantDimInstructions
+    private static void RemoveRedundantDimInstructions(Program program)
     {
         var instructions = program.Instructions;
         var jumpTargets = FindJumpTargets(instructions);
@@ -394,7 +401,8 @@ public static class Optimizer
     /// <summary>
     /// Optimize away single-use constant loads by inlining them directly into their usage point.
     /// </summary>
-    private static void InlineConstLdWithSingleUse(Program program)
+    // InlineConstantLoadIfUsedOnce
+    private static void InlineConstantLoadIfUsedOnce(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length; i++)
@@ -446,6 +454,7 @@ public static class Optimizer
     /// <summary>
     /// Remove declarations for variables that are never used
     /// </summary>
+    // RemoveUnusedVariableDeclarations
     private static void RemoveUnusedVariableDeclarations(Program program)
     {
         var instructions = program.Instructions;
@@ -547,7 +556,8 @@ public static class Optimizer
     /// <summary>
     /// Merge negation operation into load constant operations where possible
     /// </summary>
-    private static void MergeLdAndNeg(Instruction[] instructions)
+    // FoldNegatedConstantLoads
+    private static void FoldNegatedConstantLoads(Instruction[] instructions)
     {
         // Inline negation of constants.
         var jumpTargets = FindJumpTargets(instructions);
@@ -589,7 +599,8 @@ public static class Optimizer
     /// <summary>
     /// Combine consecutive declaration instructions into a single declaration
     /// </summary>
-    private static void MergeConsecutiveDecls(Instruction[] instructions)
+    // CombineAdjacentDeclStatements
+    private static void CombineAdjacentDeclStatements(Instruction[] instructions)
     {
         var jumpTargets = FindJumpTargets(instructions);
         for (var i = 0; i < instructions.Length - 1; i++)
@@ -671,7 +682,8 @@ public static class Optimizer
     /// becomes:
     ///   fract $c, $b
     /// </summary>
-    private static void MergeDirectAssignmentWithFollowingLd(Program program)
+    // FoldUnaryOpResultIntoDestination
+    private static void FoldUnaryOpResultIntoDestination(Program program)
     {
         var instructions = program.Instructions;
         for (var i = 0; i < instructions.Length - 2; i++)
