@@ -128,7 +128,6 @@ public static class Optimizer
     /// Into:
     ///   floor $a, $b
     /// </summary>
-    // FoldLoadIntoUnaryOp
     private static void FoldLoadIntoUnaryOp(Program program)
     {
         var instructions = program.Instructions;
@@ -165,7 +164,6 @@ public static class Optimizer
     ///   ld $a,$b
     ///   ld $b,$a // Can be removed.
     /// </summary>
-    // RemoveRedundantSwapAssignments
     private static void RemoveRedundantSwapAssignments(Program program)
     {
         var instructions = program.Instructions;
@@ -249,7 +247,6 @@ public static class Optimizer
     ///   ld $tmp5,$p
     /// The $tmp5 variable can reuse $tmp4's slot since $tmp4 is no longer used.
     /// </summary>
-    // ReuseExpiredTemporarySlots
     private static void ReuseExpiredTemporarySlots(Program program)
     {
         var instructions = program.Instructions;
@@ -336,7 +333,6 @@ public static class Optimizer
     ///   mix $tmp17,$tmp21,$p[0]
     /// </summary>
     /// <param name="program">The program to optimize</param>
-    // InlineTempLoadUsedImmediately
     private static void InlineTempLoadUsedImmediately(Program program)
     {
         var instructions = program.Instructions;
@@ -402,7 +398,6 @@ public static class Optimizer
     /// <summary>
     /// Remove jump instructions that target the next instruction.
     /// </summary>
-    // RemoveSelfTargetedJump
     private static void RemoveSelfTargetedJump(Program program)
     {
         var instructions = program.Instructions;
@@ -413,14 +408,18 @@ public static class Optimizer
     }
 
     /// <summary>
-    /// Remove dimension instructions that don't affect the actual size of arrays.
+    /// Remove dimension instructions that don't affect the actual size of arrays, or
+    /// if we can apply the dimension implicitly.
+    /// E.g.
+    ///   ld $a,12
+    ///   dim $a,3
+    ///   pow $v,$a   // Tetra will auto-expand the '12' into '12,12,12' at runtime.
     /// </summary>
-    // RemoveRedundantDimInstructions
     private static void RemoveRedundantDimInstructions(Program program)
     {
         var instructions = program.Instructions;
         var jumpTargets = FindJumpTargets(instructions);
-        for (var i = 1; i < instructions.Length; i++)
+        for (var i = 1; i < instructions.Length - 1; i++)
         {
             var ldInstruction = instructions[i - 1];
             if (ldInstruction.OpCode != OpCode.Ld)
@@ -437,24 +436,40 @@ public static class Optimizer
             if (!isDimWithConstant)
                 continue;
                     
-            // See if `dim` is a no-op.
-            var dimOperand = dimInstruction.Operands[^1].Int;
-            if (dimOperand != ldInstruction.Operands.Length - 1)
-                continue;
-                    
             // Can't remove a jump target.
             if (jumpTargets.Contains(i))
                 continue;
-                    
-            // Remove `dim` - It's a no-op.
-            ReplaceWithNop(instructions, i);
+            
+            // See if `dim` is a no-op ('ld' args defines the correct number of operands already).
+            var dimOperand = dimInstruction.Operands[^1].Int;
+            if (dimOperand == ldInstruction.Operands.Length - 1)
+            {
+                // Remove `dim` - It's a no-op.
+                ReplaceWithNop(instructions, i);
+                continue;
+            }
+
+            // If 'ld' has a single constant operand, we can duplicate it to satisfy the 'dim' request.
+            if (ldInstruction.Operands.Length != 2)
+                continue;
+
+            var nextInstruction = instructions[i + 1];
+            if (nextInstruction.Operands.Length > 2)
+            {
+                // Next instruction won't be able to implicitly expand the 1D constant to a vector, so we do it.
+                instructions[i - 1] = ldInstruction.WithOperands(ldInstruction.Operands.Take(1).Concat(Enumerable.Range(0, dimOperand).Select(_ => ldInstruction.Operands[1].Clone())).ToArray());
+            }
+            else
+            {
+                // Next instruction will implicitly expanded the 1D constant, so the 'dim' can be removed.
+                ReplaceWithNop(instructions, i);
+            }
         }
     }
 
     /// <summary>
     /// Optimize away single-use constant loads by inlining them directly into their usage point.
     /// </summary>
-    // InlineConstantLoadIfUsedOnce
     private static void InlineConstantLoadIfUsedOnce(Program program)
     {
         var instructions = program.Instructions;
@@ -464,7 +479,7 @@ public static class Optimizer
             if (ldInstruction.OpCode != OpCode.Ld)
                 continue;
 
-            // The `ld` operands must be a single constant.
+            // The `ld` operands must be constants.
             var isAllOperandsConstant = ldInstruction.Operands.Skip(1).All(o => o.IsNumeric());
             if (!isAllOperandsConstant)
                 continue;
@@ -493,8 +508,13 @@ public static class Optimizer
             if (usageCount != 1)
                 continue;
             
-            // Inline const `ld` definition into the usage point.
+            // There must be no other args in the usage that could potentially be inlined with a vector.
+            // E.g. clamp $a,$v1,$v2 ...which could result in clamp $a,0,1,2,3,5,4,3 (too many args)
             var usageInstruction = instructionsUsingVariable[0];
+            if (ldInstruction.Operands.Length > 2 && usageInstruction.Operands.Length > 2)
+                continue;
+            
+            // Inline const `ld` definition into the usage point.
             var usageOperandIndex = Array.FindIndex(usageInstruction.Operands, o => varName.IsNameEqual(o.Name));
             var newOperands = usageInstruction.Operands.Where(o => !Equals(o.Name, varName)).ToList();
             newOperands.InsertRange(usageOperandIndex, ldInstruction.Operands.Skip(1));
@@ -507,7 +527,6 @@ public static class Optimizer
     /// <summary>
     /// Remove declarations for variables that are never used
     /// </summary>
-    // RemoveUnusedVariableDeclarations
     private static void RemoveUnusedVariableDeclarations(Program program)
     {
         var instructions = program.Instructions;
@@ -702,7 +721,7 @@ public static class Optimizer
                 var nextInstruction = instructions[j];
                 if (nextInstruction.OpCode == OpCode.Decl)
                 {
-                    instructions[i] = instructions[i].WithOperands(instructions[i].Operands.Union(nextInstruction.Operands).ToArray());
+                    instructions[i] = instructions[i].WithOperands(instructions[i].Operands.Concat(nextInstruction.Operands).ToArray());
                     ReplaceWithNop(instructions, j);
                 }
             }
