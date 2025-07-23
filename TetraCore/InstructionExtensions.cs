@@ -39,6 +39,8 @@ public static class InstructionExtensions
             case OpCode.Floor:
             case OpCode.Ceil:
             case OpCode.Fract:
+            case OpCode.Normalize:
+            case OpCode.Length:
                 return true;
             default:
                 return false;
