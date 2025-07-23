@@ -20,6 +20,8 @@ public static class Optimizer
     {
         var originalSize = program.Instructions.Sum(o => o.Operands.Length + 1);
         var originalLoc = program.Instructions.Length;
+        var originalLabelCount = program.LabelTable.Count;
+        var originalVariableCount = program.SymbolTable.Count;
 
         int postChangeSize;
         var allowReuseOfTemps = false;
@@ -66,9 +68,19 @@ public static class Optimizer
         // Trim unused jump labels.
         var jumpTargets = program.Instructions.Where(HasJmpTarget).Select(o => o.Operands.Last().Int).Distinct().ToArray();
         program.LabelTable.Where(o => !jumpTargets.Contains(o.Value)).ToList().ForEach(o => program.LabelTable.Remove(o.Key));
+        
+        // Trim unused variable slots.
+        var usedVariableSlots = program.Instructions.SelectMany(o => o.Operands).Where(o => o.Name != null).Select(o => o.Name.Slot).Distinct().ToArray();
+        program.SymbolTable.Where(o => !usedVariableSlots.Contains(o.Key)).ToList().ForEach(o => program.SymbolTable.Remove(o.Key));
 
-        Console.WriteLine($"Optimized size: {postChangeSize:N0} (was {originalSize:N0})");
-        Console.WriteLine($"                {program.Instructions.Length:N0} LOC (was {originalLoc:N0})");
+        Console.WriteLine("               /-----------+-----------\\");
+        Console.WriteLine("               | Original  | Optimized |");
+        Console.WriteLine("/--------------+-----------+-----------+");
+        Console.WriteLine("| Instructions | {1,9:N0} | {0,9:N0} |", postChangeSize, originalSize);
+        Console.WriteLine("|          LOC | {1,9:N0} | {0,9:N0} |", program.Instructions.Length, originalLoc);
+        Console.WriteLine("|    Variables | {1,9:N0} | {0,9:N0} |", program.SymbolTable.Count, originalVariableCount);
+        Console.WriteLine("|  Jump labels | {1,9:N0} | {0,9:N0} |", program.LabelTable.Count, originalLabelCount);
+        Console.WriteLine("\\--------------+-----------+-----------/");
         return program;
     }
 
