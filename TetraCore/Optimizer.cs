@@ -62,6 +62,10 @@ public static class Optimizer
             // We're done.
             break;
         }
+        
+        // Trim unused jump labels.
+        var jumpTargets = program.Instructions.Where(HasJmpTarget).Select(o => o.Operands.Last().Int).Distinct().ToArray();
+        program.LabelTable.Where(o => !jumpTargets.Contains(o.Value)).ToList().ForEach(o => program.LabelTable.Remove(o.Key));
 
         Console.WriteLine($"Optimized size: {postChangeSize:N0} (was {originalSize:N0})");
         Console.WriteLine($"                {program.Instructions.Length:N0} LOC (was {originalLoc:N0})");
@@ -605,12 +609,8 @@ public static class Optimizer
                 program.LabelTable[kvp.Key]--;
             
             // Update jmp targets.
-            foreach (var instruction in program.Instructions)
+            foreach (var instruction in program.Instructions.Where(HasJmpTarget))
             {
-                var isJmp = IsJmp(instruction) || instruction.OpCode == OpCode.Call;
-                if (!isJmp)
-                    continue;
-                
                 var target = instruction.Operands[^1].Int;
                 if (target > nopIndex)
                     instruction.Operands[^1].Floats[0]--;
