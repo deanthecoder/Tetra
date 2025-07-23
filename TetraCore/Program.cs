@@ -33,7 +33,7 @@ public class Program
 
     public void Dump()
     {
-        var instructions = Instructions.Select((o, i) => $"{i + 1}: {o}").ToList();
+        var instructions = Instructions.Select((o, i) => $"{i}: {o}").ToList();
         
         // Re-add labels.
         foreach (var (label, index) in LabelTable.OrderByDescending(o => o.Value))
@@ -43,29 +43,30 @@ public class Program
         }
 
         // Write out.
+        var jmpKeywords = new[] { OpCode.Call, OpCode.Jmp, OpCode.Jmpz, OpCode.Jmpnz }.Select(o => o.ToString().ToLower()).ToArray();
+        var jmpTargetRegex = new Regex(@"(\d+)$");
         foreach (var instruction in instructions)
         {
-            var updatedInstruction = instruction;
+            var s = instruction;
 
-            foreach (var keyword in new[]
-                     {
-                         OpCode.Call, OpCode.Jmp, OpCode.Jmpz, OpCode.Jmpnz
-                     }.Select(o => o.ToString().ToLower()))
+            foreach (var keyword in jmpKeywords)
             {
-                var match = Regex.Match(instruction, $@"\b{keyword} (\d+)$");
+                if (!s.Contains(keyword))
+                    continue;
+                var match = jmpTargetRegex.Match(s);
                 if (!match.Success)
                     continue;
 
-                var target = int.Parse(match.Groups[1].Value);
+                var target = int.Parse(match.Groups[^1].Value);
                 var label = LabelTable.FirstOrDefault(o => o.Value == target).Key;
                 if (label == null)
                     continue;
 
-                updatedInstruction = instruction.Replace($"{keyword} {target}", $"{keyword} {label}");
+                s = s.Replace(match.Groups[^1].Value, label);
                 break;
             }
 
-            Console.WriteLine(updatedInstruction);
+            Console.WriteLine(s);
         }
     }
 }

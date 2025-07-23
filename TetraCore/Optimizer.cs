@@ -570,23 +570,20 @@ public static class Optimizer
     
     private static void StripNops(ref Program program)
     {
-        var instructions = program.Instructions;
-        for (var i = instructions.Length - 1; i >= 0; i--)
-        {
-            if (program.Instructions[i].OpCode != OpCode.Nop)
-                continue;
+        var reducedInstructions = program.Instructions.ToList();
 
+        var didModify = false;
+        int nopIndex;
+        while ((nopIndex = reducedInstructions.FindIndex(o => o.OpCode == OpCode.Nop)) >= 0)
+        {
+            didModify = true;
+            
             // Remove the `nop`.
-            var nop = program.Instructions[i];
-            Array.Copy(program.Instructions, i + 1, program.Instructions, i, program.Instructions.Length - i - 1);
-            program.Instructions[^1] = nop;
+            reducedInstructions.RemoveAt(nopIndex);
             
             // Update the label table.
-            foreach (var kvp in program.LabelTable.ToArray())
-            {
-                if (kvp.Value >= i)
-                    program.LabelTable[kvp.Key]--;
-            }
+            foreach (var kvp in program.LabelTable.Where(kvp => kvp.Value > nopIndex))
+                program.LabelTable[kvp.Key]--;
             
             // Update jmp targets.
             foreach (var instruction in program.Instructions)
@@ -596,14 +593,13 @@ public static class Optimizer
                     continue;
                 
                 var target = instruction.Operands[^1].Int;
-                if (target > i)
+                if (target > nopIndex)
                     instruction.Operands[^1].Floats[0]--;
             }
         }
 
-        var trailingNopCount = instructions.Reverse().TakeWhile(o => o.OpCode == OpCode.Nop).Count();
-        Array.Resize(ref instructions, instructions.Length - trailingNopCount);
-        program = program.WithInstructions(instructions);
+        if (didModify)
+            program = program.WithInstructions(reducedInstructions.ToArray());
     }
 
     /// <summary>
