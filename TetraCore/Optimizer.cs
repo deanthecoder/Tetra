@@ -38,6 +38,7 @@ public static class Optimizer
             CombineAdjacentDeclStatements(program.Instructions);
             FoldUnaryOpResultIntoDestination(program);
             InlineTemps(program);
+            ReplaceAddSubWithIncDec(program);
 
             if (allowReuseOfTemps)
                 ReuseExpiredTemporarySlots(program);
@@ -73,15 +74,49 @@ public static class Optimizer
         var usedVariableSlots = program.Instructions.SelectMany(o => o.Operands).Where(o => o.Name != null).Select(o => o.Name.Slot).Distinct().ToArray();
         program.SymbolTable.Where(o => !usedVariableSlots.Contains(o.Key)).ToList().ForEach(o => program.SymbolTable.Remove(o.Key));
 
-        Console.WriteLine("               /-----------+-----------\\");
-        Console.WriteLine("               | Original  | Optimized |");
-        Console.WriteLine("/--------------+-----------+-----------+");
-        Console.WriteLine("| Instructions | {1,9:N0} | {0,9:N0} |", postChangeSize, originalSize);
-        Console.WriteLine("|          LOC | {1,9:N0} | {0,9:N0} |", program.Instructions.Length, originalLoc);
-        Console.WriteLine("|    Variables | {1,9:N0} | {0,9:N0} |", program.SymbolTable.Count, originalVariableCount);
-        Console.WriteLine("|  Jump labels | {1,9:N0} | {0,9:N0} |", program.LabelTable.Count, originalLabelCount);
-        Console.WriteLine("\\--------------+-----------+-----------/");
+        Console.WriteLine("               ┌────────┬─────────────┐");
+        Console.WriteLine("               │ Before │  Optimized  │");
+        Console.WriteLine("┌──────────────┼────────┼─────────────┤");
+        Console.WriteLine("│ Instructions │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalSize, postChangeSize, (double)postChangeSize / originalSize);
+        Console.WriteLine("│          LOC │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLoc, program.Instructions.Length, (double)program.Instructions.Length / originalLoc);
+        Console.WriteLine("│    Variables │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalVariableCount, program.SymbolTable.Count, (double)program.SymbolTable.Count / originalVariableCount);
+        Console.WriteLine("│  Jump labels │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLabelCount, program.LabelTable.Count, (double)program.LabelTable.Count / originalLabelCount);
+        Console.WriteLine("└──────────────┴────────┴─────────────┘");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes instructions by replacing add/subtract operations with increment/decrement operations when possible.
+    /// For example:
+    ///   add $a,$a,1  =>  inc $a
+    ///   sub $a,$a,1  =>  dec $a
+    /// </summary>
+    private static void ReplaceAddSubWithIncDec(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length; i++)
+        {
+            var instruction = instructions[i];
+            if (instruction.OpCode != OpCode.Add && instruction.OpCode != OpCode.Sub)
+                continue;
+            if (instruction.Operands.Length != 2)
+                continue;
+
+            // Check if we're adding/subtracting 1.
+            var isConstant = instruction.Operands[1].IsNumeric();
+            if (!isConstant)
+                continue;
+            var isOne = Math.Abs(instruction.Operands[1].Float - 1.0f) < float.Epsilon;
+            if (!isOne)
+                continue;
+
+            // Replace add/sub with inc/dec.
+            instructions[i] = new Instruction(program.SymbolTable)
+            {
+                OpCode = instruction.OpCode == OpCode.Add ? OpCode.Inc : OpCode.Dec,
+                Operands = instruction.Operands.Take(1).ToArray()
+            };
+        }
     }
 
     /// <summary>
