@@ -33,13 +33,13 @@ public class Program
 
     public void Dump()
     {
-        var instructions = Instructions.Select((o, i) => $"{i}: {o}").ToList();
+        var instructions = Instructions.Select((o, i) => ((int?)i, o.ToString())).ToList();
         
         // Re-add labels.
         foreach (var (label, index) in LabelTable.OrderByDescending(o => o.Value))
         {
             var s = label.StartsWith('_') ? label : $"\n{label}()";
-            instructions.Insert(index, $"{s}:");
+            instructions.Insert(index, (null, $"{s}:"));
         }
 
         // Write out.
@@ -51,9 +51,9 @@ public class Program
 
             foreach (var keyword in jmpKeywords)
             {
-                if (!s.Contains(keyword))
+                if (!s.Item2.Contains(keyword))
                     continue;
-                var match = jmpTargetRegex.Match(s);
+                var match = jmpTargetRegex.Match(s.Item2);
                 if (!match.Success)
                     continue;
 
@@ -62,11 +62,11 @@ public class Program
                 if (label == null)
                     continue;
 
-                s = s.Replace(match.Groups[^1].Value, label);
+                s = (s.Item1, s.Item2.Replace(match.Groups[^1].Value, label));
                 break;
             }
 
-            Console.WriteLine(s);
+            Console.WriteLine(s.Item1 == null ? s.Item2 : $"{s.Item1}: {s.Item2}");
         }
     }
 }
