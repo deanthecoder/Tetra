@@ -47,6 +47,7 @@ public static class Optimizer
             RemoveUnusedDeclarations(program);
             FoldLoadIntoUnaryOp(program);
             RemoveIntermediateAssignments(program);
+            RemoveUnreachableCodeAfterRet(program);
             StripNops(ref program);
 
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
@@ -83,6 +84,38 @@ public static class Optimizer
         Console.WriteLine("│  Jump labels │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLabelCount, program.LabelTable.Count, (double)program.LabelTable.Count / originalLabelCount);
         Console.WriteLine("└──────────────┴────────┴─────────────┘");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes code by removing unreachable instructions that follow consecutive return statements.
+    /// For example:
+    ///   ret
+    ///   ret         // Second ret is unreachable
+    ///   ld $a,$b    // This code is unreachable
+    ///   add $a,$c   // This code is unreachable
+    /// Will be optimized to:
+    ///   ret
+    /// Note: Will only remove code up until the next jump target is encountered.
+    /// </summary>
+    private static void RemoveUnreachableCodeAfterRet(Program program)
+    {
+        var instructions = program.Instructions;
+        var jmpTargets = FindJumpTargets(instructions);
+        for (var i = 1; i < instructions.Length; i++)
+        {
+            // Find two consecutive 'ret' instructions.
+            var ret = instructions[i];
+            if (ret.OpCode != OpCode.Ret || instructions[i - 1].OpCode != OpCode.Ret)
+                continue;
+                    
+            // Remove the second one if we can.
+            var offset = 0;
+            while (i + offset < instructions.Length && !jmpTargets.Contains(i + offset))
+            {
+                ReplaceWithNop(instructions, i + offset);
+                offset++;
+            }
+        }
     }
 
     /// <summary>
