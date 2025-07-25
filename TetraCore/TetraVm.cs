@@ -112,7 +112,7 @@ public class TetraVm
                     @"\$(\d+)",
                     match => m_program.SymbolTable[int.Parse(match.Groups[1].Value)]);
                 sb.AppendLine(message);
-                sb.AppendLine($"  └─ {instr}");
+                sb.AppendLine($"  └─ {m_ip}: {instr}");
 
                 var callstack = m_callStack
                     .Select(o => m_program.LabelTable.GetLabelFromInstructionPointer(o.functionLabel))

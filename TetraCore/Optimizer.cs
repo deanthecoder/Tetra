@@ -46,7 +46,7 @@ public static class Optimizer
             RemoveRedundantSwapAssignments(program);
             RemoveUnusedDeclarations(program);
             FoldLoadIntoUnaryOp(program);
-
+            RemoveIntermediateAssignments(program);
             StripNops(ref program);
 
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
@@ -83,6 +83,55 @@ public static class Optimizer
         Console.WriteLine("│  Jump labels │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLabelCount, program.LabelTable.Count, (double)program.LabelTable.Count / originalLabelCount);
         Console.WriteLine("└──────────────┴────────┴─────────────┘");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes instructions by inlining temporary variables that are used as intermediates without affecting the final result.
+    /// For example:
+    ///   ld $b,$a
+    ///   mul $b,$v    // Use of $b as intermediate
+    ///   ld $a,$b     // Load back to original variable
+    /// Can be optimized to:
+    ///   mul $a,$v    // Direct operation on $a
+    /// </summary>
+    private static void RemoveIntermediateAssignments(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 2; i++)
+        {
+            // Detect ld $b, $a
+            var ldInstruction = instructions[i];
+            if (ldInstruction.OpCode != OpCode.Ld || ldInstruction.Operands.Length != 2)
+                continue;
+            var ldB = ldInstruction.Operands[0].Name;
+            var ldA = ldInstruction.Operands[1].Name;
+
+            // ...followed by <instr> $b, $any
+            var nextInstruction = instructions[i + 1];
+            if (nextInstruction.Operands.Length != 2 || !nextInstruction.Operands[0].Name.Equals(ldB))
+                continue;
+
+            // ...followed by ld $any, $b
+            var ld2 = instructions[i + 2];
+            if (ld2.OpCode != OpCode.Ld || ld2.Operands.Length != 2 || !ld2.Operands[0].Name.Equals(ldA))
+                continue;
+
+            // Look ahead to find the next end of scope/return instruction.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 3);
+            if (indicesUntilEndOfScope.Count == 0)
+                continue;
+
+            // Find next use of '$b' to make sure it's safe to remove.
+            var nextUsage = indicesUntilEndOfScope.Select(o => instructions[o])
+                .FirstOrDefault(o => o.Operands.Any(op => op.Name?.IsNameEqual(ldB) == true));
+            if (nextUsage.OpCode != OpCode.Ld || !nextUsage.Operands[0].Name.Equals(ldB))
+                continue;
+
+            // We can inline $a, removing $b.
+            ReplaceWithNop(instructions, i);
+            nextInstruction.Operands[0] = nextInstruction.Operands[0].RenamedTo(ldA);
+            ReplaceWithNop(instructions, i + 2);
+        }
     }
 
     /// <summary>
