@@ -47,7 +47,7 @@ public static class Optimizer
             RemoveUnusedDeclarations(program);
             FoldLoadIntoUnaryOp(program);
             RemoveIntermediateAssignments(program);
-            RemoveUnreachableCodeAfterRet(program);
+            RemoveUnreachableCode(program);
             StripNops(ref program);
 
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
@@ -87,35 +87,14 @@ public static class Optimizer
     }
 
     /// <summary>
-    /// Optimizes code by removing unreachable instructions that follow consecutive return statements.
-    /// For example:
-    ///   ret
-    ///   ret         // Second ret is unreachable
-    ///   ld $a,$b    // This code is unreachable
-    ///   add $a,$c   // This code is unreachable
-    /// Will be optimized to:
-    ///   ret
-    /// Note: Will only remove code up until the next jump target is encountered.
+    /// Optimizes code by removing unreachable instructions.
     /// </summary>
-    private static void RemoveUnreachableCodeAfterRet(Program program)
+    private static void RemoveUnreachableCode(Program program)
     {
-        var instructions = program.Instructions;
-        var jmpTargets = FindJumpTargets(instructions);
-        for (var i = 1; i < instructions.Length; i++)
-        {
-            // Find two consecutive 'ret' instructions.
-            var ret = instructions[i];
-            if (ret.OpCode != OpCode.Ret || instructions[i - 1].OpCode != OpCode.Ret)
-                continue;
-                    
-            // Remove the second one if we can.
-            var offset = 0;
-            while (i + offset < instructions.Length && !jmpTargets.Contains(i + offset))
-            {
-                ReplaceWithNop(instructions, i + offset);
-                offset++;
-            }
-        }
+        var reachable = WalkCode(program.Instructions, 0);
+        var unreachable = Enumerable.Range(0, program.Instructions.Length).Except(reachable).ToArray();
+        
+        unreachable.ForEach(i => ReplaceWithNop(program.Instructions, i));
     }
 
     /// <summary>
@@ -706,19 +685,6 @@ public static class Optimizer
             instructions[i] = declInstruction.WithOperands(newOperands);
         }
     }
-
-    private static List<int> GetIndicesUntilEndOfScope(Instruction[] instructions, int startIndex)
-    {
-        // Look ahead to find the next end of scope/return instruction.
-        var indicesUntilEndOfScope = new List<int>();
-        for (var j = startIndex; j < instructions.Length; j++)
-        {
-            if (instructions[j].OpCode == OpCode.Ret || instructions[j].OpCode == OpCode.Halt)
-                break;
-            indicesUntilEndOfScope.Add(j);
-        }
-        return indicesUntilEndOfScope;
-    }
     
     private static void StripNops(ref Program program)
     {
@@ -918,5 +884,58 @@ public static class Optimizer
             assignment.Operands[0] = ldTo;
             ReplaceWithNop(instructions, i + 1);
         }
+    }
+
+    private static int[] WalkCode(Instruction[] instructions, int startIndex)
+    {
+        var reached = new bool[instructions.Length];
+        var toInvestigate = new Queue<int>();
+        toInvestigate.Enqueue(startIndex);
+
+        while (toInvestigate.Count > 0)
+        {
+            var index = toInvestigate.Dequeue();
+            if (reached[index])
+                continue;
+            reached[index] = true;
+
+            var instruction = instructions[index];
+            if (instruction.OpCode is OpCode.Halt or OpCode.Ret)
+                continue;
+
+            // Follow unconditional/conditional jump targets.
+            switch (instruction.OpCode)
+            {
+                case OpCode.Jmp:
+                    toInvestigate.Enqueue(instruction.Operands[0].Int);
+                    continue; // Hard jump - Continue;
+                case OpCode.Jmpz:
+                case OpCode.Jmpnz:
+                    toInvestigate.Enqueue(instruction.Operands[1].Int);
+                    break; // Soft jump - Queue the jump, but continue.
+            }
+
+            // Follow 'calls'.
+            if (instruction.OpCode == OpCode.Call)
+                toInvestigate.Enqueue(instruction.Operands[0].Int);
+
+            // Move on to the next instruction.
+            toInvestigate.Enqueue(index + 1);
+        }
+        
+        return reached.Select((b, i) => b ? i : -1).Where(i => i >= 0).Order().ToArray();
+    }
+
+    private static List<int> GetIndicesUntilEndOfScope(Instruction[] instructions, int startIndex)
+    {
+        // Look ahead to find the next end of scope/return instruction.
+        var indicesUntilEndOfScope = new List<int>();
+        for (var j = startIndex; j < instructions.Length; j++)
+        {
+            if (instructions[j].OpCode == OpCode.Ret || instructions[j].OpCode == OpCode.Halt)
+                break;
+            indicesUntilEndOfScope.Add(j);
+        }
+        return indicesUntilEndOfScope;
     }
 }
