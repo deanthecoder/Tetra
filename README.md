@@ -194,139 +194,143 @@ Accessing vector elements from non-vector variables will throw a runtime error.
 
 #### ➕ Basic Arithmetic
 
-| Instruction     | Description |
-|-----------------|-------------|
-| `add $a, $b`    | `$a = $a + $b` |
-| `sub $a, $b`    | `$a = $a - $b` |
-| `mul $a, $b`    | `$a = $a * $b` |
-| `div $a, $b`    | `$a = $a / $b` |
-| `inc $a`        | `$a = $a + 1` |
-| `dec $a`        | `$a = $a - 1` |
-| `neg $a`        | `$a = -$a` |
-| `mod $a, $b`    | `$a = $a % $b` (modulo operation) |
+| Instruction     | Description          |
+|-----------------|----------------------|
+| `ldc $a, $b`      | `$a = $b`             |
+| `add $a, $b`      | `$a += $b`             |
+| `sub $a, $b`      | `$a -= $b`             |
+| `mul $a, $b`      | `$a *= $b`             |
+| `div $a, $b`      | `$a /= $b`             |
+| `inc $a`         | `$a += 1`             |
+| `dec $a`         | `$a -= 1`             |
+| `neg $a`         | `$a = -$a`             |
+| `mod $a, $b`      | `$a %= $b` (modulo)    |
+| `shiftl $a, $b`   | `$a <<= $b`            |
+| `shiftr $a, $b`   | `$a >>= $b`            |
 
 #### 🧮 Exponential & Logarithmic
 
-| Instruction     | Description |
-|-----------------|-------------|
-| `exp $a, $b`    | `$a = exp($b)` (e to the power of `$b`) |
-| `log $a, $b`    | `$a = log($b)` (natural logarithm of `$b`) |
-| `pow $a, $b`    | `$a = pow($a, $b)` |
+| Instruction     | Description          |
+|-----------------|----------------------|
+| `exp $a, $b`      | `$a = exp($b)`         |
+| `log $a, $b`      | `$a = log($b)`         |
+| `pow $a, $b`      | `$a = pow($a, $b)`      |
 
 #### 📐 Common Math
 
-| Instruction     | Description |
-|-----------------|-------------|
-| `abs $a, $b`    | `$a = abs($b)` |
-| `sign $a, $b`   | `$a = sign($b)` (-1, 0, or 1 depending on sign of `$b`) |
-| `min $a, $b`    | `$a = min($a, $b)` |
-| `max $a, $b`    | `$a = max($a, $b)` |
+| Instruction     | Description          |
+|-----------------|----------------------|
+| `abs $a, $b`      | `$a = abs($b)`         |
+| `sign $a, $b`     | `$a = sign($b)`        |
+| `min $a, $b`      | `$a = min($a, $b)`      |
+| `max $a, $b`      | `$a = max($a, $b)`      |
+| `ceil $a, $b`     | `$a = ceil($b)`         |
+| `floor $a, $b`    | `$a = floor($b)`        |
+| `fract $a, $b`    | `$a = fract($b)`        |
+| `sqrt $a, $b`     | `$a = sqrt($b)`         |
 
 #### 🔄 Smoothing & Clamping
 
-| Instruction     | Description |
-|-----------------|-------------|
+| Instruction     | Description               |
+|-----------------|---------------------------|
 | `clamp $a, $min, $max` | `$a = clamp($a, $min, $max)` |
 | `smoothstep $a, $edge0, $edge1` | `$a = smoothstep($edge0, $edge1, $a)` |
+| `mix $a, $b, $c`   | `$a = mix($b, $c)`          |
 
 #### 📏 Trigonometric
 
-| Instruction     | Description |
-|-----------------|-------------|
-| `sin $a, $b`    | `$a = sin($b)` |
-| `cos $a, $b`    | `$a = cos($b)` |
-| `tan $a, $b`    | `$a = tan($b)` |
-| `asin $a, $b`   | `$a = asin($b)` |
-| `acos $a, $b`   | `$a = acos($b)` |
-| `atan $a, $b`   | `$a = atan($b)` |
-| `sinh $a, $b`   | `$a = sinh($b)` |
-| `cosh $a, $b`   | `$a = cosh($b)` |
-| `tanh $a, $b`   | `$a = tanh($b)` |
+| Instruction     | Description          |
+|-----------------|----------------------|
+| `sin $a, $b`      | `$a = sin($b)`         |
+| `cos $a, $b`      | `$a = cos($b)`         |
+| `tan $a, $b`      | `$a = tan($b)`         |
+| `asin $a, $b`     | `$a = asin($b)`        |
+| `acos $a, $b`     | `$a = acos($b)`        |
+| `atan $a, $b`     | `$a = atan($b)`        |
+| `sinh $a, $b`     | `$a = sinh($b)`        |
+| `cosh $a, $b`     | `$a = cosh($b)`        |
+| `tanh $a, $b`     | `$a = tanh($b)`        |
 
 #### 🎯 Vector Math
 
-| Instruction     | Description |
-|-----------------|-------------|
-| `length $a, $b` | `$a = length($b)` (magnitude of vector `$b`) |
-| `normalize $a, $b` | `$a = normalize($b)` (unit vector in the direction of `$b`) |
-| `dot $a, $b, $c` | `$a = dot($b, $c)` (dot product of `$b` and `$c`) |
-| `cross $a, $b, $c` | `$a = cross($b, $c)` (cross product of `$b` and `$c`) |
-| `reflect $a, $I, $N` | `$a = reflect($I, $N)` (reflection of vector `$I` off surface normal `$N`) |
-| `refract $a, $I, $N, $eta` | `$a = refract($I, $N, $eta)` (refraction vector) |
+| Instruction     | Description                                |
+|-----------------|--------------------------------------------|
+| `length $a, $b`   | `$a = length($b)` (magnitude of vector $b)  |
+| `normalize $a, $b`| `$a = normalize($b)` (unit vector of $b)    |
+| `dot $a, $b, $c`   | `$a = dot($b, $c)` (dot product)             |
+| `cross $a, $b, $c` | `$a = cross($b, $c)` (cross product)         |
+| `reflect $result, $normal` | `$result = reflect($result, $normal)` (reflection vector) |
+| `refract $result, $normal, $eta` | `$result = refract($result, $normal, $eta)` (refraction vector) |
 
 ### 🤖 Logic
 
-Tetra supports a set of logical operations that work with both scalars and vectors. These instructions perform comparisons and store the result (0 or 1) in the destination variable.
+| Instruction     | Description               |
+|-----------------|---------------------------|
+| `eq $a, $b`       | `$a = ($a == $b)`            |
+| `ne $a, $b`       | `$a = ($a != $b)`            |
+| `lt $a, $b`       | `$a = ($a < $b)`             |
+| `le $a, $b`       | `$a = ($a <= $b)`            |
+| `gt $a, $b`       | `$a = ($a > $b)`             |
+| `ge $a, $b`       | `$a = ($a >= $b)`            |
 
-| Instruction     | Description       |
-|-----------------|-------------------|
-| `eq $a, $b`     | `$a = ($a == $b)` |
-| `ne $a, $b`     | `$a = ($a != $b)` |
-| `lt $a, $b`     | `$a = ($a < $b)`  |
-| `le $a, $b`     | `$a = ($a <= $b)` |
-| `gt $a, $b`     | `$a = ($a > $b)`  |
-| `ge $a, $b`     | `$a = ($a >= $b)` |
+(Vector comparisons return vectors of 0s and 1s per element.)
 
-These work per element when used with vectors, returning a vector of 0s and 1s.
+| Instruction     | Description               |
+|-----------------|---------------------------|
+| `and $a, $b`      | `$a = $a && $b` (logical and)|
+| `or $a, $b`       | `$a = $a || $b` (logical or) |
+| `bitand $a, $b`   | `$a &= $b`                  |
+| `bitor $a, $b`    | `$a |= $b`                  |
+| `not $a`         | `$a = !$a` (logical not)    |
 
-Logical conjunction and disjunction are also available:
+(Vector logical ops are element-wise.)
 
-| Instruction  | Description       |
-|--------------|-------------------|
-| `and $a, $b` | `$a = $a && $b`   |
-| `or $a, $b`  | `$a = $a \|\| $b` |
-| `not $a`     | `$a = !$a`        |
+For boolean testing:
 
-These also operate element-wise for vectors.
-
-For a direct boolean test of a value (e.g. to use as a condition), use the `test` instruction:
-
-```
-test $cond
-jmpz $cond, else_label
-```
-
-The result of `test` will always be a scalar `0` or `1`, even if the input is a vector. If any element of the input is non-zero, the result is `1`; otherwise, it is `0`.
+| Instruction     | Description               |
+|-----------------|---------------------------|
+| `test $a`        | `$a = ($a != 0)` (scalar 0 or 1) |
 
 ### 🔄 Control Flow
 
-| Instruction        | Description        |
-|--------------------|--------------------|
-| `jmp label`        | Unconditional jump |
-| `jmpz $a, label`  | Jump if `$a == 0`  |
-| `jmpnz $a, label` | Jump if `$a != 0`  |
+| Instruction     | Description                      |
+|-----------------|----------------------------------|
+| `jmp label`     | Unconditional jump               |
+| `jmpz $a, label` | Jump if `$a == 0` (if $a == 0, jump to label) |
+| `jmpnz $a, label`| Jump if `$a != 0` (if $a != 0, jump to label) |
 
 ### 📦 Variables and Frames
 
-| Instruction   | Description                                              |
-|---------------|----------------------------------------------------------|
-| `decl $a`     | Declare a new variable in the current scope.             |
-| `ld $a, 1.0`  | Load constant into `$a`                                  |
-| `ld $b, $a`   | Copy variable `$a` into `$b`                             |
-| `push_frame`  | Push a new scope frame manually (used for block scoping) |
-| `pop_frame`   | Pop the current scope frame                              |
+| Instruction     | Description                                |
+|-----------------|--------------------------------------------|
+| `decl $a`        | Declare variable `$a` in current scope     |
+| `ld $a, 1.0`     | Load constant or variable into `$a`        |
+| `push_frame`    | Push new scope frame                       |
+| `pop_frame`     | Pop current scope frame                    |
+| `dim $a, size`   | Resize `$a` to `[size]` elements            |
 
-💡 `ld` will automatically declare the variable if not already declared.
+💡 `ld` auto-declares variables if not already declared.
 
 ### 🔁 Function Calls
 
-| Instruction      | Description |
-|------------------|-------------|
-| `call label`     | Call function at `label` (creates a new scope frame and pushes return address) |
-| `ret`            | Return from function (restores return address and previous scope) |
-| `ret $a`         | Return a value; sets `$retval` in the caller's scope |
+| Instruction     | Description                              |
+|-----------------|------------------------------------------|
+| `call label`    | Call function at `label` (push frame and return address) |
+| `ret`           | Return from function (pop frame and restore return) |
+| `ret $a`         | Return value; sets `$retval` in caller's frame |
 
 ### 🐞 Debugging & Program Control
 
-| Instruction  | Description |
-|--------------|-------------|
-| `print $a`   | Print the value of `$a` with line number |
-| `nop`        | 💤 Does nothing. Useful for padding or jump targets. |
-| `halt`       | Stop execution |
+| Instruction     | Description                      |
+|-----------------|----------------------------------|
+| `print $a`       | Print value of `$a` with line number |
+| `debug $a`       | Debug value of `$a`               |
+| `nop`           | Does nothing (padding or jump target) |
+| `halt`          | Stop execution                   |
 
 ## 🔁 Function Calls
 
-Tetra supports calling functions using the `call` instruction, with optional return values via `ret $value`.
+Tetra supports calling functions using the `call` instruction, with optional return values via `ret $a`.
 
 ### Argument Passing Convention
 
