@@ -33,16 +33,17 @@ public static class Optimizer
             RemoveRedundantDimInstructions(program);
             FoldNegatedConstantLoads(program.Instructions);
             RemoveUnusedVariableDeclarations(program);
-        RemoveSelfTargetedJump(program);
-        InlineTempLoadUsedImmediately(program);
+            RemoveSelfTargetedJump(program);
+            InlineTempLoadUsedImmediately(program);
             CombineAdjacentDeclStatements(program.Instructions);
             FoldUnaryOpResultIntoDestination(program);
-        InlineTemps(program);
+            InlineTemps(program);
             ReplaceAddSubWithIncDec(program);
+            InlineLoadWithReturn(program);
 
             if (allowReuseOfTemps)
                 ReuseExpiredTemporarySlots(program);
-            
+
             RemoveRedundantSwapAssignments(program);
             RemoveUnusedDeclarations(program);
             FoldLoadIntoUnaryOp(program);
@@ -53,7 +54,7 @@ public static class Optimizer
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
             if (postChangeSize != preChangeSize)
                 continue; // Iterate again.
-        
+
             // No improvements detected.
             if (!allowReuseOfTemps)
             {
@@ -66,11 +67,11 @@ public static class Optimizer
             // We're done.
             break;
         }
-        
+
         // Trim unused jump labels.
         var jumpTargets = program.Instructions.Where(HasJmpTarget).Select(o => o.Operands.Last().Int).Distinct().ToArray();
         program.LabelTable.Where(o => !jumpTargets.Contains(o.Value)).ToList().ForEach(o => program.LabelTable.Remove(o.Key));
-        
+
         // Trim unused variable slots.
         var usedVariableSlots = program.Instructions.SelectMany(o => o.Operands).Where(o => o.Name != null).Select(o => o.Name.Slot).Distinct().ToArray();
         program.SymbolTable.Where(o => !usedVariableSlots.Contains(o.Key)).ToList().ForEach(o => program.SymbolTable.Remove(o.Key));
@@ -84,6 +85,36 @@ public static class Optimizer
         Console.WriteLine("│  Jump labels │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLabelCount, program.LabelTable.Count, (double)program.LabelTable.Count / originalLabelCount);
         Console.WriteLine("└──────────────┴────────┴─────────────┘");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes code by inlining load operations directly into return statements.
+    /// For example:
+    ///   ld $tmp1,$a
+    ///   ret $tmp1
+    /// becomes:
+    ///   ret $a
+    /// </summary>
+    private static void InlineLoadWithReturn(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 1; i < instructions.Length; i++)
+        {
+            var ret = instructions[i];
+            if (ret.OpCode != OpCode.Ret)
+                continue;
+            var ld = instructions[i - 1];
+            if (ld.OpCode != OpCode.Ld)
+                continue;
+            
+            var ldTarget = ld.Operands[0].Name;
+            var retValue = ret.Operands[0].Name;
+            if (!ldTarget.Equals(retValue))
+                continue;
+            
+            instructions[i] = ret.WithOperands(ld.Operands.Skip(1).ToArray());
+            ReplaceWithNop(instructions, i - 1);
+        }
     }
 
     /// <summary>
