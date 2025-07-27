@@ -31,14 +31,14 @@ public class Program
     public Program WithInstructions(Instruction[] instructions) =>
         new Program(instructions, SymbolTable, LabelTable);
 
-    public void Dump()
+    public void Dump(bool addLineNumbers = true)
     {
-        var instructions = Instructions.Select((o, i) => ((int?)i, o.ToString())).ToList();
+        var instructions = Instructions.Select((o, i) => (Line: (int?)i, Instr: o.ToString())).ToList();
         
         // Re-add labels.
         foreach (var (label, index) in LabelTable.OrderByDescending(o => o.Value))
         {
-            var s = label.StartsWith('_') ? label : $"\n{label}()";
+            var s = label.StartsWith('_') ? label : $"\n{label}";
             instructions.Insert(index, (null, $"{s}:"));
         }
 
@@ -51,22 +51,39 @@ public class Program
 
             foreach (var keyword in jmpKeywords)
             {
-                if (!s.Item2.Contains(keyword))
+                if (!s.Instr.Contains(keyword))
                     continue;
-                var match = jmpTargetRegex.Match(s.Item2);
+                var match = jmpTargetRegex.Match(s.Instr);
                 if (!match.Success)
                     continue;
 
                 var target = int.Parse(match.Groups[^1].Value);
-                var label = LabelTable.FirstOrDefault(o => o.Value == target).Key;
-                if (label == null)
+                var labels = LabelTable.Where(o => o.Value == target).Select(o => o.Key).ToArray();
+                if (labels.Length == 0)
                     continue;
+                
+                var label = labels[0];
+                if (labels.Length > 1)
+                {
+                    // Could have a jmp target and a call target.
+                    var isJmp = s.Instr.StartsWith(nameof(OpCode.Jmp), StringComparison.OrdinalIgnoreCase);
+                    if (isJmp)
+                    {
+                        // Jmps are more likely to target a name with underscore prefix.
+                        label = labels.FirstOrDefault(o => o.StartsWith('_')) ?? labels[0];
+                    }
+                    else
+                    {
+                        // Calls are more likely to target a name without underscore prefix.
+                        label = labels.FirstOrDefault(o => !o.StartsWith('_')) ?? labels[0];
+                    }
+                }
 
-                s = (s.Item1, s.Item2.Replace(match.Groups[^1].Value, label));
+                s = (s.Line, s.Instr.Replace(match.Groups[^1].Value, label));
                 break;
             }
 
-            Console.WriteLine(s.Item1 == null ? s.Item2 : $"{s.Item1}: {s.Item2}");
+            Console.WriteLine(s.Line == null || !addLineNumbers ? s.Instr : $"{s.Line}: {s.Instr}");
         }
     }
 }
