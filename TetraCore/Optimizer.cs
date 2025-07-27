@@ -33,11 +33,11 @@ public static class Optimizer
             RemoveRedundantDimInstructions(program);
             FoldNegatedConstantLoads(program.Instructions);
             RemoveUnusedVariableDeclarations(program);
-            RemoveSelfTargetedJump(program);
-            InlineTempLoadUsedImmediately(program);
+        RemoveSelfTargetedJump(program);
+        InlineTempLoadUsedImmediately(program);
             CombineAdjacentDeclStatements(program.Instructions);
             FoldUnaryOpResultIntoDestination(program);
-            InlineTemps(program);
+        InlineTemps(program);
             ReplaceAddSubWithIncDec(program);
 
             if (allowReuseOfTemps)
@@ -53,7 +53,7 @@ public static class Optimizer
             postChangeSize = program.Instructions.Sum(o => o.Operands.Length + 1);
             if (postChangeSize != preChangeSize)
                 continue; // Iterate again.
-
+        
             // No improvements detected.
             if (!allowReuseOfTemps)
             {
@@ -129,13 +129,12 @@ public static class Optimizer
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
-            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 3);
-            if (indicesUntilEndOfScope.Count == 0)
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 3);
+            if (instructionsUntilEndOfScope.Length == 0)
                 continue;
 
             // Find next use of '$b' to make sure it's safe to remove.
-            var nextUsage = indicesUntilEndOfScope.Select(o => instructions[o])
-                .FirstOrDefault(o => o.Operands.Any(op => op.Name?.IsNameEqual(ldB) == true));
+            var nextUsage = instructionsUntilEndOfScope.FirstOrDefault(o => o.Operands.Any(op => op.Name?.IsNameEqual(ldB) == true));
             if (nextUsage.OpCode != OpCode.Ld || !nextUsage.Operands[0].Name.Equals(ldB))
                 continue;
 
@@ -203,7 +202,7 @@ public static class Optimizer
 
             // Look ahead to find the next end of scope/return instruction.
             var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
-            if (indicesUntilEndOfScope.Count == 0)
+            if (indicesUntilEndOfScope.Length == 0)
                 continue;
 
             // tmpN must only be used once.
@@ -215,13 +214,28 @@ public static class Optimizer
             if (instructionsUsingVariable.Length != 1)
                 continue; // More than one use - Ignore.
             var nextInstruction = instructionsUsingVariable[0];
-                    
+
             // Variable must not be used anywhere else (as something could modify it).
             if (indicesUntilEndOfScope
                 .Select(o => program.Instructions[o])
                 .Any(o => o.Operands?.FirstOrDefault()?.Name?.IsNameEqual(toAssign) == true))
                 continue;
-                    
+            
+            // If variable being assigned is $retval, we can't have any 'call' instructions
+            // in between its assignment to a $tmpN and it's usage (as the call will replace
+            // the $retval value).
+            if (ldInstruction.Operands[1].Name.Slot == ScopeFrame.RetvalSlot)
+            {
+                var indexOfNextUse = Array.IndexOf(instructions, nextInstruction);
+                var instructionsBetweenLdAndUse =
+                    indicesUntilEndOfScope
+                        .TakeWhile(o => o < indexOfNextUse)
+                        .Select(o => program.Instructions[o]);
+                var foundCall = instructionsBetweenLdAndUse.Any(o => o.OpCode == OpCode.Call);
+                if (foundCall)
+                    continue; // Can't inline $retval - Call in between.
+            }
+
             for (var j = 0; j < nextInstruction.Operands.Length; j++)
             {
                 var operand = nextInstruction.Operands[j];
@@ -320,14 +334,11 @@ public static class Optimizer
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
-            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
-            if (indicesUntilEndOfScope.Count == 0)
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 1);
+            if (instructionsUntilEndOfScope.Length == 0)
                 continue;
             
             // Check if each variable name is used.
-            var instructionsUntilEndOfScope =
-                indicesUntilEndOfScope
-                    .Select(o => instructions[o]);
             var operandsUntilEndOfScope =
                 instructionsUntilEndOfScope
                     .SelectMany(o => o.Operands);
@@ -371,7 +382,7 @@ public static class Optimizer
 
             // Look ahead to find the next end of scope/return instruction.
             var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i);
-            if (indicesUntilEndOfScope.Count == 0)
+            if (indicesUntilEndOfScope.Length == 0)
                 continue;
 
             bool isModified;
@@ -457,15 +468,14 @@ public static class Optimizer
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
-            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
-            if (indicesUntilEndOfScope.Count == 0)
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 1);
+            if (instructionsUntilEndOfScope.Length == 0)
                 continue;
 
             // Find instructions using the variable.
             var varName = ldInstruction.Operands[0].Name;
             var instructionsUsingVariable =
-                indicesUntilEndOfScope
-                    .Select(o => program.Instructions[o])
+                instructionsUntilEndOfScope
                     .Where(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)))
                     .ToArray();
 
@@ -478,7 +488,7 @@ public static class Optimizer
 
             // Replace variable usage with the source value.
             var valueOperand = ldInstruction.Operands[1];
-            var srcHasArrayIndexOrSwizzle = valueOperand.Name.Swizzle != null || valueOperand.Name.ArrIndex != null;
+            var srcHasArrayIndexOrSwizzle = valueOperand.Name?.Swizzle != null || valueOperand.Name?.ArrIndex != null;
             var nextInstruction = instructions[i + 1];
             var didChange = false;
             for (var j = 0; j < nextInstruction.Operands.Length; j++)
@@ -602,14 +612,13 @@ public static class Optimizer
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
-            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
-            if (indicesUntilEndOfScope.Count == 0)
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 1);
+            if (instructionsUntilEndOfScope.Length == 0)
                 continue;
             
             // Find instructions using the variable.
             var instructionsUsingVariable =
-                indicesUntilEndOfScope
-                    .Select(o => program.Instructions[o])
+                instructionsUntilEndOfScope
                     .Where(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)))
                     .ToArray();
             
@@ -653,8 +662,8 @@ public static class Optimizer
                 continue;
 
             // Look ahead to find the next end of scope/return instruction.
-            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
-            if (indicesUntilEndOfScope.Count == 0)
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 1);
+            if (instructionsUntilEndOfScope.Length == 0)
                 continue;
 
             var unusedVariableNames = new List<VarName>();
@@ -663,8 +672,7 @@ public static class Optimizer
             {
                 // Find instructions using the variable.
                 var isUsed =
-                    indicesUntilEndOfScope
-                        .Select(o => program.Instructions[o])
+                    instructionsUntilEndOfScope
                         .Any(o => o.Operands.Any(op => varName.IsNameEqual(op.Name)));
                 if (!isUsed)
                     unusedVariableNames.Add(varName);
@@ -869,14 +877,13 @@ public static class Optimizer
             var ldTo = ld.Operands[0];
 
             // Look ahead to find the next end of scope/return instruction.
-            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 2);
-            if (indicesUntilEndOfScope.Count == 0)
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 2);
+            if (instructionsUntilEndOfScope.Length == 0)
                 continue;
 
             // Check no instructions using the tmpN variable.
             var isTmpUsedLater =
-                indicesUntilEndOfScope
-                    .Select(o => program.Instructions[o])
+                instructionsUntilEndOfScope
                     .Any(o => o.Operands.Any(op => tmpN.IsNameEqual(op.Name)));
             if (isTmpUsedLater)
                 continue;
@@ -886,7 +893,16 @@ public static class Optimizer
         }
     }
 
-    private static int[] WalkCode(Instruction[] instructions, int startIndex)
+    /// <summary>
+    /// Walks through the instruction set starting from a given index, following the execution flow to determine which instructions are reachable.
+    /// Handles both linear execution flow and branching via jumps and function calls.
+    /// </summary>
+    /// <param name="instructions">The array of instructions to analyze.</param>
+    /// <param name="startIndex">The index at which to begin analyzing the code.</param>
+    /// <param name="allowCalls">If true, follows function call paths. If false, treats calls as normal instructions.</param>
+    /// <param name="allowBackJumps">If true, follows backward jumps in the code. If false, ignores jumps to earlier instructions.</param>
+    /// <returns>An array of indices representing all reachable instructions in order.</returns>
+    private static int[] WalkCode(Instruction[] instructions, int startIndex, bool allowCalls = true, bool allowBackJumps = true)
     {
         var reached = new bool[instructions.Length];
         var toInvestigate = new Queue<int>();
@@ -907,16 +923,24 @@ public static class Optimizer
             switch (instruction.OpCode)
             {
                 case OpCode.Jmp:
-                    toInvestigate.Enqueue(instruction.Operands[0].Int);
+                {
+                    var target = instruction.Operands[0].Int;
+                    if (target >= index || allowBackJumps)
+                        toInvestigate.Enqueue(target);
                     continue; // Hard jump - Continue;
+                }
                 case OpCode.Jmpz:
                 case OpCode.Jmpnz:
-                    toInvestigate.Enqueue(instruction.Operands[1].Int);
+                {
+                    var target = instruction.Operands[1].Int;
+                    if (target >= index || allowBackJumps)
+                        toInvestigate.Enqueue(target);
                     break; // Soft jump - Queue the jump, but continue.
+                }
             }
 
             // Follow 'calls'.
-            if (instruction.OpCode == OpCode.Call)
+            if (allowCalls && instruction.OpCode == OpCode.Call)
                 toInvestigate.Enqueue(instruction.Operands[0].Int);
 
             // Move on to the next instruction.
@@ -926,16 +950,17 @@ public static class Optimizer
         return reached.Select((b, i) => b ? i : -1).Where(i => i >= 0).Order().ToArray();
     }
 
-    private static List<int> GetIndicesUntilEndOfScope(Instruction[] instructions, int startIndex)
-    {
-        // Look ahead to find the next end of scope/return instruction.
-        var indicesUntilEndOfScope = new List<int>();
-        for (var j = startIndex; j < instructions.Length; j++)
-        {
-            if (instructions[j].OpCode == OpCode.Ret || instructions[j].OpCode == OpCode.Halt)
-                break;
-            indicesUntilEndOfScope.Add(j);
-        }
-        return indicesUntilEndOfScope;
-    }
+    /// <summary>
+    /// Gets indices of instructions until the end of the current scope, starting from the given index.
+    /// Back jumps are not allowed since a jump backwards before a variable is declared effectively ends
+    /// its original scope, potentially making the variable inaccessible or creating invalid references.
+    /// </summary>
+    /// <param name="instructions">Array of instructions to analyze</param>
+    /// <param name="startIndex">Starting instruction index</param>
+    /// <returns>Array of instruction indices until end of scope</returns>
+    private static int[] GetIndicesUntilEndOfScope(Instruction[] instructions, int startIndex) =>
+        WalkCode(instructions, startIndex, allowCalls: false, allowBackJumps: false);
+    
+    private static Instruction[] GetInstructionsUntilEndOfScope(Instruction[] instructions, int startIndex) =>
+        GetIndicesUntilEndOfScope(instructions, startIndex).Select(i => instructions[i]).ToArray();
 }

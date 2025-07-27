@@ -29,23 +29,18 @@ public class Assembler
 
     public Program Assemble(string code, params string[] uniforms)
     {
-        var stopwatch = Stopwatch.StartNew();
         try
         {
             Logger.Instance.Info("Assembling Tetra source...");
+            var stopwatch = Stopwatch.StartNew();
             var program = AssembleImpl(code, uniforms);
-            Logger.Instance.Info($"Assembled {program.Instructions.Length:N0} Tetra instructions.");
+            Logger.Instance.Info($"Assembled {program.Instructions.Length:N0} LOC in {stopwatch.ElapsedMilliseconds}ms.");
             return program;
         }
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
             throw;
-        }
-        finally
-        {
-            stopwatch.Stop();
-            Logger.Instance.Info($"Assembled in {stopwatch.ElapsedMilliseconds}ms.");
         }
     }
     
