@@ -105,7 +105,26 @@ public sealed class Operand
 
         // All operands must be numeric.
         if (operands.All(o => o.IsNumeric() || o.Type == OperandType.Vector))
-            return new Operand(operands.SelectMany(o => o.Floats).ToArray());
+        {
+            // Quickly combine all operand floats into a single array (Without LINQ, for speed).
+            var sum = 0;
+            // ReSharper disable once ForCanBeConvertedToForeach
+            for (var i = 0; i < operands.Length; i++)
+                sum += operands[i].Floats.Length;
+            
+            var result = new float[sum];
+            var resultIndex = 0;
+            // ReSharper disable once ForCanBeConvertedToForeach
+            for (var i = 0; i < operands.Length; i++)
+            {
+                // ReSharper disable once ForCanBeConvertedToForeach
+                var floatCount = operands[i].Floats;
+                Array.Copy(floatCount, 0, result, resultIndex, floatCount.Length);
+                resultIndex += floatCount.Length;
+            }
+
+            return new Operand(result);
+        }
 
         var s = "Error: Multiple operands must all be numeric";
         s += "\nReceived:";
