@@ -45,6 +45,7 @@ public static class Optimizer
                 ReuseExpiredTemporarySlots(program);
 
             RemoveRedundantSwapAssignments(program);
+            FavourMathOperandsUsingConstants(program);
             RemoveUnusedDeclarations(program);
             FoldLoadIntoUnaryOp(program);
             RemoveIntermediateAssignments(program);
@@ -85,6 +86,79 @@ public static class Optimizer
         Console.WriteLine("│  Jump labels │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLabelCount, program.LabelTable.Count, (double)program.LabelTable.Count / originalLabelCount);
         Console.WriteLine("└──────────────┴────────┴─────────────┘");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes code by reordering operands in math operations to favor constant values on the right-hand side.
+    /// This optimization looks for patterns where a constant is loaded into a temporary variable and then used
+    /// in a math operation, attempting to inline the constant directly.
+    /// </summary>
+    private static void FavourMathOperandsUsingConstants(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length - 1; i++)
+        {
+            // Find ld $tmpN, <float>
+            var ld = instructions[i];
+            if (ld.OpCode != OpCode.Ld || ld.Operands.Length != 2 || !ld.Operands[1].IsNumeric() || !ld.Operands[0].Name.IsTemporary(program.SymbolTable))
+                continue;
+            var ldLhs = ld.Operands[0];
+            var ldConst = ld.Operands[1];
+                
+            // Find the next usages of $tmpN.
+            var indicesUntilEndOfScope = GetIndicesUntilEndOfScope(instructions, i + 1);
+            var tmpLhsUsageIndices = indicesUntilEndOfScope.Where(o => instructions[o].Operands.Any(op => op.Name?.IsNameEqual(ldLhs.Name) == true)).ToArray();
+                
+            // There must be either exactly 2, or the 3rd must be reassigning the tmp using ld.
+            if (tmpLhsUsageIndices.Length < 2)
+                continue;
+            if (tmpLhsUsageIndices.Length > 2)
+            {
+                if (instructions[tmpLhsUsageIndices[2]].OpCode != OpCode.Ld)
+                    continue;
+                if (!instructions[tmpLhsUsageIndices[2]].Operands[0].Name.Equals(ldLhs.Name))
+                    continue;
+            }
+                
+            // First usage must be a math op where args can safely be reversed.
+            var mathOpIndex = tmpLhsUsageIndices[0];
+            var mathOp = instructions[mathOpIndex];
+            if (mathOp.OpCode != OpCode.Add && mathOp.OpCode != OpCode.Mul)
+                continue;
+            if (mathOp.Operands.Length != 2 || !mathOp.Operands[0].Name.IsTemporary(program.SymbolTable) || !mathOp.Operands[1].Name.IsTemporary(program.SymbolTable))
+                continue;
+            var mathOpRhs = mathOp.Operands[1];
+            if (mathOpRhs.Name.Swizzle != null || mathOpRhs.Name.ArrIndex != null)
+                continue;
+
+            // Next usage must be the line immediately after, and on the RHS.
+            if (tmpLhsUsageIndices[1] != mathOpIndex + 1)
+                continue;
+            var nextInstruction = instructions[tmpLhsUsageIndices[1]];
+            if (nextInstruction.Operands.Length != 2 || !nextInstruction.Operands[1].Name.IsNameEqual(ldLhs.Name))
+                continue;
+                
+            // If we exchange the args on the math op line, we will assign a new value to the (former) RHS.
+            // This is only safe if it's the only use of this variable (or if the next use is reassigning a new value...)
+            var mathRhsUsagesIndices =
+                indicesUntilEndOfScope
+                    .Where(o => o > mathOpIndex + 1)
+                    .Where(o => instructions[o].Operands.Any(op => op.Name?.IsNameEqual(mathOpRhs.Name) == true))
+                    .ToArray();
+            if (mathRhsUsagesIndices.Length > 0 && (instructions[mathRhsUsagesIndices[0]].OpCode != OpCode.Ld || !instructions[mathRhsUsagesIndices[0]].Operands[0].Name.Equals(mathOpRhs.Name)))
+                continue;
+
+            // We're good.
+                
+            // 1) Remove the ld.
+            ReplaceWithNop(instructions, i);
+
+            // 2) Switch the math operands, replacing RHS with the original constant.
+            (mathOp.Operands[0], mathOp.Operands[1]) = (mathOp.Operands[1], ldConst);
+
+            // 3) Replace usages of the original tmpN with the new math op's LHS.
+            nextInstruction.Operands[1] = mathOp.Operands[0].Clone();
+        }
     }
 
     /// <summary>
