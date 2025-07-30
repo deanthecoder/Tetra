@@ -181,8 +181,12 @@ public sealed class Operand
     public bool IsNumeric() =>
         Type is OperandType.Int or OperandType.Float;
 
-    public Operand Clone() =>
-        new Operand(Type, Name, Label, Floats.ToArray());
+    public Operand Clone()
+    {
+        var f = new float[Floats.Length];
+        Array.Copy(Floats, f, Floats.Length);
+        return new Operand(Type, Name, Label, f);
+    }
 
     public Operand RenamedTo(VarName newName) =>
         new Operand(Type, Name.RenamedTo(newName), Label, Floats.ToArray());
