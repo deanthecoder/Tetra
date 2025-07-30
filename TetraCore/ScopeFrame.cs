@@ -27,6 +27,22 @@ public class ScopeFrame
     public const int MaxSlots = 256;
     public const int RetvalSlot = 0;
 
+    private static readonly Dictionary<char, int> SwizzleMap = new Dictionary<char, int>
+    {
+        {'x', 0},
+        {'y', 1},
+        {'z', 2},
+        {'w', 3},
+        {'r', 0},
+        {'g', 1},
+        {'b', 2},
+        {'a', 3},
+        {'s', 0},
+        {'t', 1},
+        {'p', 2},
+        {'q', 3}
+    };
+    
     private readonly ScopeType m_scopeType;
     private readonly ScopeFrame m_parent;
     private readonly Operand[] m_slots = new Operand[MaxSlots];
@@ -132,10 +148,9 @@ public class ScopeFrame
             throw new RuntimeException("Cannot assign NaN to a variable.");
         if (float.IsInfinity(value.Float))
             throw new RuntimeException("Cannot assign infinity to a variable.");
-        
+
         var hasArrayIndex = varName.ArrIndex.HasValue;
-        var hasSwizzle = varName.Swizzle != null;
-        if (!hasArrayIndex && !hasSwizzle)
+        if (!hasArrayIndex && varName.Swizzle == null)
         {
             // Straight variable assignment - Simples.
             m_slots[varName.Slot] = value;
@@ -155,27 +170,10 @@ public class ScopeFrame
         }
         
         // Assignment to swizzle.
-        var indexLookup = new Dictionary<char, int>
+        for (var i = 0; i < varName.Swizzle.Length; i++)
         {
-            { 'x', 0 },
-            { 'y', 1 },
-            { 'z', 2 },
-            { 'w', 3 },
-            { 'r', 0 },
-            { 'g', 1 },
-            { 'b', 2 },
-            { 'a', 3 },
-            { 's', 0 },
-            { 't', 1 },
-            { 'p', 2 },
-            { 'q', 3 }
-        };
-        var indices = varName.Swizzle.Select(o => indexLookup[o]).ToArray();
-        var i = 0;
-        foreach (var targetIndex in indices)
-        {
-            v.Floats[targetIndex] = value.Floats[Math.Min(i, value.Floats.Length - 1)];
-            i++;
+            var swizzleIndex = SwizzleMap[varName.Swizzle[i]];
+            v.Floats[swizzleIndex] = value.Floats[Math.Min(i, value.Floats.Length - 1)];
         }
     }
 
