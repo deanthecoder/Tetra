@@ -626,8 +626,9 @@ public static class Optimizer
                     .ToArray();
 
             // The `ld` variable must be used on the line after the `ld`.
-            if (instructionsUsingVariable.Length != 1)
+            if (instructionsUsingVariable.Length != 1 && (instructionsUsingVariable.Length != 2 || instructionsUsingVariable[1].OpCode != OpCode.Ret || !instructionsUsingVariable[1].Operands[0].Name.IsNameEqual(varName)))
                 continue;
+
             var usageInstrIndex = Array.IndexOf(instructions, instructionsUsingVariable[0]);
             if (usageInstrIndex != i + 1)
                 continue;
@@ -635,29 +636,31 @@ public static class Optimizer
             // Replace variable usage with the source value.
             var valueOperand = ldInstruction.Operands[1];
             var srcHasArrayIndexOrSwizzle = valueOperand.Name?.Swizzle != null || valueOperand.Name?.ArrIndex != null;
-            var nextInstruction = instructions[i + 1];
             var didChange = false;
-            for (var j = 0; j < nextInstruction.Operands.Length; j++)
+            foreach (var nextInstruction in instructionsUsingVariable)
             {
-                if (!varName.IsNameEqual(nextInstruction.Operands[j].Name))
-                    continue; // Not replacing this operand.
-                
-                var targetHasArrayIndexOrSwizzle = nextInstruction.Operands[j].Name.Swizzle != null || nextInstruction.Operands[j].Name.ArrIndex != null;
-                if (srcHasArrayIndexOrSwizzle || !targetHasArrayIndexOrSwizzle)
+                for (var j = 0; j < nextInstruction.Operands.Length; j++)
                 {
-                    // Replace target with the source operand, retaining any swizzle or array index
-                    // the source may have.
-                    nextInstruction.Operands[j] = valueOperand;
-                }
-                else
-                {
-                    // Target has swizzle or array index, so just replace its name component.
-                    nextInstruction.Operands[j] = nextInstruction.Operands[j].RenamedTo(valueOperand.Name);
-                }
+                    if (!varName.IsNameEqual(nextInstruction.Operands[j].Name))
+                        continue; // Not replacing this operand.
                 
-                didChange = true;
+                    var targetHasArrayIndexOrSwizzle = nextInstruction.Operands[j].Name.Swizzle != null || nextInstruction.Operands[j].Name.ArrIndex != null;
+                    if (srcHasArrayIndexOrSwizzle || !targetHasArrayIndexOrSwizzle)
+                    {
+                        // Replace target with the source operand, retaining any swizzle or array index
+                        // the source may have.
+                        nextInstruction.Operands[j] = valueOperand;
+                    }
+                    else
+                    {
+                        // Target has swizzle or array index, so just replace its name component.
+                        nextInstruction.Operands[j] = nextInstruction.Operands[j].RenamedTo(valueOperand.Name);
+                    }
+                
+                    didChange = true;
+                }
             }
-            
+
             if (didChange)
                 ReplaceWithNop(instructions, i);
         }
