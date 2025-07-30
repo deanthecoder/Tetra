@@ -697,10 +697,7 @@ public static class Optimizer
             if (dimInstruction.OpCode != OpCode.Dim)
                 continue;
 
-            // `ld` and `dim` must have constant operands.
-            var isLdWithConstants = ldInstruction.Operands.Skip(1).All(o => o.IsNumeric());
-            if (!isLdWithConstants)
-                continue;
+            // `dim` must have constant operand.
             var isDimWithConstant = dimInstruction.Operands[^1].Type is OperandType.Int;
             if (!isDimWithConstant)
                 continue;
