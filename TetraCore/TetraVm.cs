@@ -149,10 +149,13 @@ public class TetraVm
         };
     }
 
-    private bool Execute(Instruction instr)
+    private bool Execute(in Instruction instr)
     {
         switch (instr.OpCode)
         {
+            case OpCode.Intrinsic:
+                throw new InvalidOperationException("Should not be reached.");
+            
             case OpCode.Nop: m_ip++; break;
             case OpCode.Decl: ExecuteDecl(instr); break;
             case OpCode.Ld: ExecuteLd(instr); break;
@@ -242,7 +245,7 @@ public class TetraVm
     /// E.g. decl $a
     /// E.g. decl $a, $b, ...
     /// </summary>
-    private void ExecuteDecl(Instruction instr)
+    private void ExecuteDecl(in Instruction instr)
     {
         instr.Operands.ForEach(o =>
         {
@@ -259,7 +262,7 @@ public class TetraVm
     /// E.g. ld $a, $b              (a = b)
     /// E.g. ld $a, 1.1, 2.2, 3.3   (a = [1.1, 2.2, 3.3])
     /// </summary>
-    private void ExecuteLd(Instruction instr)
+    private void ExecuteLd(in Instruction instr)
     {
         var a = instr.Operands[0];
         var b = UnpackBPlusOperands(instr.Operands);
@@ -271,7 +274,7 @@ public class TetraVm
     /// <summary>
     /// As with 'ld', but sets the value in the scope of the function's caller.
     /// </summary>
-    private void ExecuteLdc(Instruction instr)
+    private void ExecuteLdc(in Instruction instr)
     {
         var a = instr.Operands[0];
         var b = UnpackBPlusOperands(instr.Operands);
@@ -287,39 +290,39 @@ public class TetraVm
     /// E.g. add $a, 3.141
     /// E.g. add $a, $b     (a += b)
     /// </summary>
-    private void ExecuteAdd(Instruction instr) =>
+    private void ExecuteAdd(in Instruction instr) =>
         DoMathOp(instr, (a , b) => a + b);
 
     /// <summary>
     /// E.g. sub $a, 3.141
     /// E.g. sub $a, $b     (a -= b)
     /// </summary>
-    private void ExecuteSub(Instruction instr) =>
+    private void ExecuteSub(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a - b);
 
     /// <summary>
     /// E.g. inc $a    (a = a + 1)
     /// </summary>
-    private void ExecuteInc(Instruction instr) =>
+    private void ExecuteInc(in Instruction instr) =>
         DoMathOp(instr, (a, _) => ++a);
 
     /// <summary>
     /// E.g. dec $a    (a = a - 1)
     /// </summary>
-    private void ExecuteDec(Instruction instr) =>
+    private void ExecuteDec(in Instruction instr) =>
         DoMathOp(instr, (a, _) => --a);
 
     /// <summary>
     /// E.g. neg $a    (a = -a)
     /// </summary>
-    private void ExecuteNeg(Instruction instr) =>
+    private void ExecuteNeg(in Instruction instr) =>
         DoMathOp(instr, (a, _) => -a);
 
     /// <summary>
     /// Unconditional jump.
     /// E.g. jmp NN
     /// </summary>
-    private void ExecuteJmp(Instruction instr)
+    private void ExecuteJmp(in Instruction instr)
     {
         var label = instr.Operands[0];
         if (label.Type != OperandType.Int)
@@ -331,7 +334,7 @@ public class TetraVm
     /// Jump if zero.
     /// E.g. jmpz $a, label
     /// </summary>
-    private void ExecuteJmpZ(Instruction instr)
+    private void ExecuteJmpZ(in Instruction instr)
     {
         var a = instr.Operands[0];
         var aValue = CurrentFrame.GetVariable(a.Name);
@@ -351,7 +354,7 @@ public class TetraVm
     /// Jump if not zero.
     /// E.g. jmpnz $a, label
     /// </summary>
-    private void ExecuteJmpNz(Instruction instr)
+    private void ExecuteJmpNz(in Instruction instr)
     {
         var a = instr.Operands[0];
         var aValue = CurrentFrame.GetVariable(a.Name);
@@ -375,7 +378,7 @@ public class TetraVm
     /// This has a different implementation to ExecuteDiv, as we need to
     /// support matrix/vector multiplication.
     /// </remarks>
-    private void ExecuteMul(Instruction instr)
+    private void ExecuteMul(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -441,13 +444,13 @@ public class TetraVm
     /// E.g. div $a, 3.141
     /// E.g. div $a, $b     (a /= b)
     /// </summary>
-    private void ExecuteDiv(Instruction instr) =>
+    private void ExecuteDiv(in Instruction instr) =>
         DoMathOp(instr, (a, b) => b == 0.0f ? throw new RuntimeException("Division by zero.") : a / b);
 
     /// <summary>
     /// E.g. dim $a, $b    (Sets length of $a vector to 'b')
     /// </summary>
-    private void ExecuteDim(Instruction instr)
+    private void ExecuteDim(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -503,61 +506,61 @@ public class TetraVm
     /// <summary>
     /// E.g. lt $a, $b    (a = a < b)
     /// </summary>
-    private void ExecuteLt(Instruction instr) =>
+    private void ExecuteLt(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a < b ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. le $a, $b    (a = a <= b)
     /// </summary>
-    private void ExecuteLe(Instruction instr) =>
+    private void ExecuteLe(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a <= b ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. gt $a, $b    (a = a > b)
     /// </summary>
-    private void ExecuteGt(Instruction instr) =>
+    private void ExecuteGt(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a > b ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. ge $a, $b    (a = a >= b)
     /// </summary>
-    private void ExecuteGe(Instruction instr) =>
+    private void ExecuteGe(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a >= b ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. eq $a, $b    (a = a == b)
     /// </summary>
-    private void ExecuteEq(Instruction instr) =>
+    private void ExecuteEq(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a.IsApproximately(b) ? 1.0f : 0.0f, resultAsBool: true);
 
     /// <summary>
     /// E.g. ne $a, $b    (a = a != b)
     /// </summary>
-    private void ExecuteNe(Instruction instr) =>
+    private void ExecuteNe(in Instruction instr) =>
         DoMathOp(instr, (a, b) => !a.IsApproximately(b) ? 1.0f : 0.0f, resultAsBool: true);
 
     /// <summary>
     /// E.g. and $a, $b    (a = a && b)
     /// </summary>
-    private void ExecuteAnd(Instruction instr) =>
+    private void ExecuteAnd(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a != 0.0f && b != 0.0f ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. or $a, $b    (a = a || b)
     /// </summary>
-    private void ExecuteOr(Instruction instr) =>
+    private void ExecuteOr(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a != 0.0f || b != 0.0f ? 1.0f : 0.0f);
 
     /// <summary>
     /// E.g. not $a    (a = !a)
     /// </summary>
-    private void ExecuteNot(Instruction instr) =>
+    private void ExecuteNot(in Instruction instr) =>
         DoMathOp(instr, (a, _) => a == 0.0f ? 1.0f : 0.0f);
     
     /// <summary>
     /// E.g. test $a, $b    (a = 1 if 'b' is non-zero)
     /// </summary>
-    private void ExecuteTest(Instruction instr)
+    private void ExecuteTest(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -582,7 +585,7 @@ public class TetraVm
     /// <summary>
     /// E.g. shiftr $a, 2    (a = a >> 2)
     /// </summary>
-    private void ExecuteShiftR(Instruction instr)
+    private void ExecuteShiftR(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -605,7 +608,7 @@ public class TetraVm
     /// <summary>
     /// E.g. shiftl $a, 2    (a = a << 2)
     /// </summary>
-    private void ExecuteShiftL(Instruction instr)
+    private void ExecuteShiftL(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -628,7 +631,7 @@ public class TetraVm
     /// <summary>
     /// E.g. bit_and $a, 2    (a = a & 2)
     /// </summary>
-    private void ExecuteBitAnd(Instruction instr)
+    private void ExecuteBitAnd(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -651,7 +654,7 @@ public class TetraVm
     /// <summary>
     /// E.g. bit_or $a, 2    (a = a & 2)
     /// </summary>
-    private void ExecuteBitOr(Instruction instr)
+    private void ExecuteBitOr(in Instruction instr)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -675,7 +678,7 @@ public class TetraVm
     /// E.g. print 3.141
     /// E.g. print $a
     /// </summary>
-    private void ExecutePrint(Instruction instr, bool debug)
+    private void ExecutePrint(in Instruction instr, bool debug)
     {
         var a = instr.Operands[0];
         var value = Operand.FromOperands(instr.Operands.Select(GetOperandValue).ToArray());
@@ -720,7 +723,7 @@ public class TetraVm
     /// Call a procedure (implicitly pushing a new scoped variable frame).
     /// E.g. call label
     /// </summary>
-    private void ExecuteCall(Instruction instr)
+    private void ExecuteCall(in Instruction instr)
     {
         var label = instr.Operands[0];
         if (label.Type != OperandType.Int)
@@ -739,7 +742,7 @@ public class TetraVm
     /// E.g. ret $r, $g, $b
     /// E.g. ret 123
     /// </summary>
-    private void ExecuteRet(Instruction instr)
+    private void ExecuteRet(in Instruction instr)
     {
         if (m_callStack.Count == 0)
             throw new RuntimeException("No procedure to return to.");
@@ -775,19 +778,19 @@ public class TetraVm
     /// <summary>
     /// E.g. sin $a, $b    (a = sin(b))
     /// </summary>
-    private void ExecuteSin(Instruction instr) =>
+    private void ExecuteSin(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Sin(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. sinh $a, $b    (a = sinh(b))
     /// </summary>
-    private void ExecuteSinh(Instruction instr) =>
+    private void ExecuteSinh(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Sinh(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. asin $a, $b    (a = asin(b))
     /// </summary>
-    private void ExecuteAsin(Instruction instr)
+    private void ExecuteAsin(in Instruction instr)
     {
         DoMathOp(instr, (_, b) =>
         {
@@ -800,19 +803,19 @@ public class TetraVm
     /// <summary>
     /// E.g. cos $a, $b    (a = cos(b))
     /// </summary>
-    private void ExecuteCos(Instruction instr) =>
+    private void ExecuteCos(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Cos(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. cosh $a, $b    (a = cosh(b))
     /// </summary>
-    private void ExecuteCosh(Instruction instr) =>
+    private void ExecuteCosh(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Cosh(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. acos $a, $b    (a = acos(b))
     /// </summary>
-    private void ExecuteAcos(Instruction instr)
+    private void ExecuteAcos(in Instruction instr)
     {
         DoMathOp(instr, (_, b) =>
         {
@@ -825,25 +828,25 @@ public class TetraVm
     /// <summary>
     /// E.g. tan $a, $b    (a = tan(b))
     /// </summary>
-    private void ExecuteTan(Instruction instr) =>
+    private void ExecuteTan(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Tan(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. tanh $a, $b    (a = tanh(b))
     /// </summary>
-    private void ExecuteTanh(Instruction instr) =>
+    private void ExecuteTanh(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Tanh(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. atan $a, $b    (a = atan(b))
     /// </summary>
-    private void ExecuteAtan(Instruction instr) =>
+    private void ExecuteAtan(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Atan(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. pow $a, $b    (a = pow(a, b))
     /// </summary>
-    private void ExecutePow(Instruction instr)
+    private void ExecutePow(in Instruction instr)
     {
         DoMathOp(instr, (a, b) =>
         {
@@ -858,7 +861,7 @@ public class TetraVm
     /// <summary>
     /// E.g. sqrt $a, $b    (a = sqrt(b))
     /// </summary>
-    private void ExecuteSqrt(Instruction instr)
+    private void ExecuteSqrt(in Instruction instr)
     {
         DoMathOp(instr, (_, b) =>
         {
@@ -871,13 +874,13 @@ public class TetraVm
     /// <summary>
     /// E.g. exp $a, $b    (a = exp(b))
     /// </summary>
-    private void ExecuteExp(Instruction instr) =>
+    private void ExecuteExp(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Exp(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. log $a, $b    (a = log(b))
     /// </summary>
-    private void ExecuteLog(Instruction instr)
+    private void ExecuteLog(in Instruction instr)
     {
         DoMathOp(instr, (_, b) =>
         {
@@ -890,19 +893,19 @@ public class TetraVm
     /// <summary>
     /// E.g. abs $a, $b    (a = abs(b))
     /// </summary>
-    private void ExecuteAbs(Instruction instr) =>
+    private void ExecuteAbs(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Abs(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. sign $a, $b    (a = sign(b))
     /// </summary>
-    private void ExecuteSign(Instruction instr) =>
+    private void ExecuteSign(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Sign(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. mod $a, $b    (a = a % b)
     /// </summary>
-    private void ExecuteMod(Instruction instr) =>
+    private void ExecuteMod(in Instruction instr) =>
         DoMathOp(instr, (a, b) =>
         {
             if (b == 0f)
@@ -913,37 +916,37 @@ public class TetraVm
     /// <summary>
     /// E.g. min $a, $b    (a = min(a, b))
     /// </summary>
-    private void ExecuteMin(Instruction instr) =>
+    private void ExecuteMin(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a < b ? a : b);
 
     /// <summary>
     /// E.g. max $a, $b    (a = max(a, b))
     /// </summary>
-    private void ExecuteMax(Instruction instr) =>
+    private void ExecuteMax(in Instruction instr) =>
         DoMathOp(instr, (a, b) => a > b ? a : b);
 
     /// <summary>
     /// E.g. ceil $a, $b    (a = ceil(b))
     /// </summary>
-    private void ExecuteCeil(Instruction instr) =>
+    private void ExecuteCeil(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Ceiling(b), requiresSingleInput: true);
     
     /// <summary>
     /// E.g. floor $a, $b    (a = floor(b))
     /// </summary>
-    private void ExecuteFloor(Instruction instr) =>
+    private void ExecuteFloor(in Instruction instr) =>
         DoMathOp(instr, (_, b) => MathF.Floor(b), requiresSingleInput: true);
     
     /// <summary>
     /// E.g. fract $a, $b    (a = fract(b))
     /// </summary>
-    private void ExecuteFract(Instruction instr) =>
+    private void ExecuteFract(in Instruction instr) =>
         DoMathOp(instr, (_, b) => b - MathF.Floor(b), requiresSingleInput: true);
 
     /// <summary>
     /// E.g. length $a, $b    (a = length(b))
     /// </summary>
-    private void ExecuteLength(Instruction instr)
+    private void ExecuteLength(in Instruction instr)
     {
         var a = instr.Operands[0];
         var b = UnpackBPlusOperands(instr.Operands);
@@ -964,7 +967,7 @@ public class TetraVm
     /// <summary>
     /// E.g. normalize $a, $b    (a = normalize(b))
     /// </summary>
-    private void ExecuteNormalize(Instruction instr)
+    private void ExecuteNormalize(in Instruction instr)
     {
         var a = instr.Operands[0];
         var b = UnpackBPlusOperands(instr.Operands);
@@ -991,7 +994,7 @@ public class TetraVm
     /// <summary>
     /// E.g. clamp $a, $from, $to    (a = clamp(a, from, to))
     /// </summary>
-    private void ExecuteClamp(Instruction instr)
+    private void ExecuteClamp(in Instruction instr)
     {
         if (instr.Operands.Length < 3)
             throw new RuntimeException("Expected: clamp $a, $from, $to");
@@ -1002,7 +1005,7 @@ public class TetraVm
     /// <summary>
     /// E.g. mix $a, $from, $to    (a = mix(a, from, to))
     /// </summary>
-    private void ExecuteMix(Instruction instr)
+    private void ExecuteMix(in Instruction instr)
     {
         if (instr.Operands.Length < 3)
             throw new RuntimeException("Expected: mix $a, $from, $to");
@@ -1013,7 +1016,7 @@ public class TetraVm
     /// <summary>
     /// E.g. smoothstep $a, $edge0, $edge1    (a = smoothstep(a, edge0, edge1))
     /// </summary>
-    private void ExecuteSmoothstep(Instruction instr)
+    private void ExecuteSmoothstep(in Instruction instr)
     {
         if (instr.Operands.Length != 3)
             throw new RuntimeException("Expected: smoothstep $a, $edge0, $edge1");
@@ -1031,7 +1034,7 @@ public class TetraVm
     /// <summary>
     /// E.g. dot $a, $b    (a = dot(a, b))
     /// </summary>
-    private void ExecuteDot(Instruction instr)
+    private void ExecuteDot(in Instruction instr)
     {
         var a = instr.Operands[0];
         var aName = a.Name;
@@ -1052,7 +1055,7 @@ public class TetraVm
     /// <summary>
     /// E.g. reflect $a, $n    (a = reflect(a, n))
     /// </summary>
-    private void ExecuteReflect(Instruction instr)
+    private void ExecuteReflect(in Instruction instr)
     {
         var a = instr.Operands[0];
         var aName = a.Name;
@@ -1077,7 +1080,7 @@ public class TetraVm
     /// <summary>
     /// E.g. refract $a, $n, $eta    (a = refract(a, n, eta))
     /// </summary>
-    private void ExecuteRefract(Instruction instr)
+    private void ExecuteRefract(in Instruction instr)
     {
         var a = instr.Operands[0];
         var aName = a.Name;
@@ -1115,7 +1118,7 @@ public class TetraVm
     /// <summary>
     /// E.g. cross $a, $b    (a = cross(a, b))
     /// </summary>
-    private void ExecuteCross(Instruction instr)
+    private void ExecuteCross(in Instruction instr)
     {
         var a = instr.Operands[0];
         var aName = a.Name;
@@ -1143,7 +1146,7 @@ public class TetraVm
     /// 
     /// This supports scalar or vector operands.
     /// </summary>
-    private void DoMathOp(Instruction instr, Func<float, float, float> op, bool resultAsBool = false, bool requiresSingleInput = false)
+    private void DoMathOp(in Instruction instr, Func<float, float, float> op, bool resultAsBool = false, bool requiresSingleInput = false)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -1217,7 +1220,7 @@ public class TetraVm
     ///
     /// The lambda receives each element as <c>(a, b, c)</c>.
     /// </summary>
-    private void DoMathOp(Instruction instr, Func<float, float, float, float> op)
+    private void DoMathOp(in Instruction instr, Func<float, float, float, float> op)
     {
         // Get target variable.
         var a = instr.Operands[0];
@@ -1261,7 +1264,7 @@ public class TetraVm
         m_ip++;
     }
 
-    private static void EnsureArrayDimensionsMatch(Instruction instr, ref Operand a, ref Operand b)
+    private static void EnsureArrayDimensionsMatch(in Instruction instr, ref Operand a, ref Operand b)
     {
         // Ensure that the operands have the same dimension.
         if (a.Length == 1 && b.Length > 1)
