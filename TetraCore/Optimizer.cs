@@ -38,6 +38,7 @@ public static class Optimizer
             CombineAdjacentDeclStatements(program.Instructions);
             FoldUnaryOpResultIntoDestination(program);
             InlineTemps(program);
+            InlineArgs(program);
             ReplaceAddSubWithIncDec(program);
             InlineLoadWithReturn(program);
 
@@ -86,6 +87,47 @@ public static class Optimizer
         Console.WriteLine("│  Jump labels │  {0,5:N0} │ {1,5:N0} ({2,2:P0}) │", originalLabelCount, program.LabelTable.Count, (double)program.LabelTable.Count / originalLabelCount);
         Console.WriteLine("└──────────────┴────────┴─────────────┘");
         return program;
+    }
+
+    /// <summary>
+    /// Optimizes code by inlining function arguments when they are only used once.
+    /// For example:
+    /// func():
+    ///   ld $tmp1,$arg0
+    ///   ...
+    ///   mul $v,$tmp1
+    /// becomes:
+    ///   mul $v,$arg0  // Direct use of $arg0
+    /// </summary>
+    private static void InlineArgs(Program program)
+    {
+        var instructions = program.Instructions;
+        for (var i = 0; i < instructions.Length; i++)
+        {
+            // Find ld <any>, $argN
+            var ld = instructions[i];
+            if (ld.OpCode != OpCode.Ld || ld.Operands.Length != 2 || ld.Operands[1].Name?.IsFunctionArgument(program.SymbolTable) != true)
+                continue;
+            var varName = ld.Operands[0].Name;
+            var argName = ld.Operands[1].Name;
+                    
+            // Count number of times $argN is used.
+            var instructionsUntilEndOfScope = GetInstructionsUntilEndOfScope(instructions, i + 1);
+            var argUsageCount = instructionsUntilEndOfScope.Count(o => o.Operands.Any(op => op.Name?.IsNameEqual(argName) == true));
+                    
+            // If not used elsewhere, we can inline the arg.
+            if (argUsageCount > 0)
+                continue;
+            ReplaceWithNop(instructions, i);
+            foreach (var instruction in instructionsUntilEndOfScope)
+            {
+                for (var j = 0; j < instruction.Operands.Length; j++)
+                {
+                    if (instruction.Operands[j].Name?.IsNameEqual(varName) == true)
+                        instruction.Operands[j] = instruction.Operands[j].RenamedTo(argName);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -1066,6 +1108,14 @@ public static class Optimizer
     private static int[] GetIndicesUntilEndOfScope(Instruction[] instructions, int startIndex) =>
         WalkCode(instructions, startIndex, allowCalls: false, allowBackJumps: false);
     
+    /// <summary>
+    /// Gets instructions until the end of the current scope, starting from the given index.
+    /// Back jumps are not allowed since a jump backwards before a variable is declared effectively ends
+    /// its original scope, potentially making the variable inaccessible or creating invalid references.
+    /// </summary>
+    /// <param name="instructions">Array of instructions to analyze</param>
+    /// <param name="startIndex">Starting instruction index</param>
+    /// <returns>Array of instructions until end of scope</returns>
     private static Instruction[] GetInstructionsUntilEndOfScope(Instruction[] instructions, int startIndex) =>
         GetIndicesUntilEndOfScope(instructions, startIndex).Select(i => instructions[i]).ToArray();
 }
