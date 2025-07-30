@@ -35,7 +35,7 @@ public static class Optimizer
             RemoveUnusedVariableDeclarations(program);
             RemoveSelfTargetedJump(program);
             InlineTempLoadUsedImmediately(program);
-            CombineAdjacentDeclStatements(program.Instructions);
+            CombineAdjacentDeclStatements(program);
             FoldUnaryOpResultIntoDestination(program);
             InlineTemps(program);
             InlineArgs(program);
@@ -602,7 +602,6 @@ public static class Optimizer
     /// This will be optimized to:
     ///   mix $tmp17,$tmp21,$p[0]
     /// </summary>
-    /// <param name="program">The program to optimize</param>
     private static void InlineTempLoadUsedImmediately(Program program)
     {
         var instructions = program.Instructions;
@@ -871,7 +870,6 @@ public static class Optimizer
     /// <summary>
     /// Merge negation operation into load constant operations where possible
     /// </summary>
-    // FoldNegatedConstantLoads
     private static void FoldNegatedConstantLoads(Instruction[] instructions)
     {
         // Inline negation of constants.
@@ -914,9 +912,10 @@ public static class Optimizer
     /// <summary>
     /// Combine consecutive declaration instructions into a single declaration
     /// </summary>
-    // CombineAdjacentDeclStatements
-    private static void CombineAdjacentDeclStatements(Instruction[] instructions)
+    private static void CombineAdjacentDeclStatements(Program program)
     {
+        var instructions = program.Instructions;
+        
         var jumpTargets = FindJumpTargets(instructions);
         for (var i = 0; i < instructions.Length - 1; i++)
         {
@@ -933,7 +932,6 @@ public static class Optimizer
                 
                 switch (instructions[i + count].OpCode)
                 {
-                    case OpCode.Call:
                     case OpCode.Ret:
                     case OpCode.Halt:
                     case OpCode.PushFrame:
@@ -968,7 +966,7 @@ public static class Optimizer
                 var nextInstruction = instructions[j];
                 if (nextInstruction.OpCode == OpCode.Decl)
                 {
-                    instructions[i] = instructions[i].WithOperands(instructions[i].Operands.Concat(nextInstruction.Operands).ToArray());
+                    instructions[i] = instructions[i].WithOperands(instructions[i].Operands.Concat(nextInstruction.Operands).OrderBy(o => o.Name.ToUiString(program.SymbolTable)).ToArray());
                     ReplaceWithNop(instructions, j);
                 }
             }
@@ -997,7 +995,6 @@ public static class Optimizer
     /// becomes:
     ///   fract $c, $b
     /// </summary>
-    // FoldUnaryOpResultIntoDestination
     private static void FoldUnaryOpResultIntoDestination(Program program)
     {
         var instructions = program.Instructions;
