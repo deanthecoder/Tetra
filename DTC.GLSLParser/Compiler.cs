@@ -23,7 +23,8 @@ public static class Compiler
 {
     public static string CompileToTetraSource(string glslCode, string entryPoint = null)
     {
-        var tokens = new Lexer().Tokenize(glslCode);
+        var preprocessedCode = new Preprocessor.Preprocessor().Preprocess(glslCode);
+        var tokens = new Lexer().Tokenize(preprocessedCode);
         var ast = new Parser().Parse(tokens);
         CheckForUnresolvedExternals(ast);
         
