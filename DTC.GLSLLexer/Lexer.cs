@@ -231,7 +231,7 @@ public class Lexer
     
     private void ConsumeDot(ref int i)
     {
-        AppendToken(TokenType.Dot, i, i);
+        AppendToken(TokenType.Dot, i, i + 1);
         i++;
     }
 

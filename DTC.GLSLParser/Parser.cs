@@ -355,6 +355,7 @@ public class Parser
     private ExprStatementNode ParseBasePrimaryExpression()
     {
         var token = Consume();
+        
         switch (token.Type)
         {
             case TokenType.IntLiteral or TokenType.FloatLiteral or TokenType.TrueLiteral or TokenType.FalseLiteral:
@@ -369,6 +370,14 @@ public class Parser
                     }
                     
                     ExprStatementNode variableNode = new VariableNode(token);
+
+                    // Support swizzle access on a variable (e.g. .xy, .rgba)
+                    while (Peek(TokenType.Dot) && Peek(TokenType.Identifier, 1))
+                    {
+                        Consume(TokenType.Dot);
+                        var swizzleToken = Consume(TokenType.Identifier);
+                        variableNode = new SwizzleExprNode(variableNode, swizzleToken);
+                    }
 
                     // Support postfix ++/-- operators.
                     if (Peek(TokenType.Increment) || Peek(TokenType.Decrement))
@@ -448,7 +457,7 @@ public class Parser
         while (Peek(TokenType.Dot) && Peek(TokenType.Identifier, 1))
         {
             Consume(TokenType.Dot);
-            var swizzleToken = Consume(TokenType.Identifier, "Expected swizzle name after '.'");
+            var swizzleToken = Consume(TokenType.Identifier);
             expr = new SwizzleExprNode(expr, swizzleToken);
         }
         

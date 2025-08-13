@@ -272,6 +272,24 @@ public class TetraEmitterTests : TestsBase
 
         Assert.That(tetraCode.TrimEnd(), Is.EqualTo(expected.TrimEnd()));
     }
+    
+    [Test]
+    public void EmitPostfixOperatorOnSwizzle()
+    {
+        const string code = "vec2 i; float j = i.x--;";
+        const string expected =
+            """
+            decl $i
+            decl $j
+            decl $tmp0
+            ld $tmp0, $i.x
+            dec $i.x
+            ld $j, $tmp0
+            """;
+        var tetraCode = Compiler.CompileToTetraSource(code);
+
+        Assert.That(tetraCode.TrimEnd(), Is.EqualTo(expected.TrimEnd()));
+    }
 
     [Test]
     public void CheckForLoop()

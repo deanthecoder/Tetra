@@ -470,8 +470,9 @@ public class TetraEmitter
         }
 
         // These operators change the RHS value, so RHS must be a variable.
-        if (unaryExpr.Operand is VariableNode v)
+        if (unaryExpr.Operand is VariableNode or SwizzleExprNode)
         {
+            var v = unaryExpr.Operand;
             var op = unaryExpr.Operator.Value switch
             {
                 "-" => "neg",
@@ -485,16 +486,16 @@ public class TetraEmitter
                 // Return the value, then modify the original.
                 var tmpName = $"$tmp{m_tmpCounter++}";
                 WriteLine($"decl {tmpName}");
-                WriteLine($"ld {tmpName}, ${v.Name.Value}");
-                WriteLine($"{op} ${v.Name.Value}");
+                WriteLine($"ld {tmpName}, ${v}");
+                WriteLine($"{op} ${v}");
                 return tmpName;
             }
                 
             // Modify the original, then return the value.
-            WriteLine($"{op} ${v.Name.Value}");
-            return $"${v.Name.Value}";
+            WriteLine($"{op} ${v}");
+            return $"${v}";
         }
-            
+
         throw new EmitterException($"Unexpected expression '{unaryExpr.Operand}' ({unaryExpr.Operand.GetType().Name})");
     }
 

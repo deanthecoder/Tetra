@@ -380,6 +380,17 @@ public class ParserTests : TestsBase
     }
     
     [Test]
+    public void ParsePostDecrementOperatorOnSwizzle()
+    {
+        const string code = "vec2 a; a.x--;";
+        var tokens = m_lexer.Tokenize(code);
+        var program = m_parser.Parse(tokens);
+        
+        Assert.That(program, Is.Not.Null);
+        Assert.That(program.Statements, Has.Length.EqualTo(2));   
+    }
+    
+    [Test]
     public void ParsePreIncrementOperator()
     {
         const string code = "int a = 1; ++a;";
