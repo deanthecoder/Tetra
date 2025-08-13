@@ -431,10 +431,7 @@ vec3 lights(vec3 p, vec3 rd, vec3 n) {
 	float sh1 = mix(2e2, 10., y);
 	float sh2 = mix(5., .3, y);
 	sh2 *= .8 * ns.x * ns.y + .2;
-	vec3 l = sat(vec3(dot(ld, n),  // Key light.
-	dot(-ld.xz, n.xz),  // Reverse light.
-	n.y // Sky light.
-	));
+	vec3 l = sat(vec3(dot(ld, n), dot(-ld.xz, n.xz), n.y));
 	l.xy = .1 + .9 * l.xy; // Diffuse.
 	l.yz *= .1 + .9 * ao(p, n); // Ambient occlusion.
 	l *= vec3(.05 + .95 * S(3., -10., p.x), .05, .02); // Light contributions (key, reverse, sky).

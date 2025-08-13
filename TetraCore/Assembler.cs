@@ -260,6 +260,7 @@ public class Assembler
             new(OpCode.Clamp, [OperandType.Variable, OperandType.Float, OperandType.Float]),
             new(OpCode.Mix, [OperandType.Variable, OperandType.Float, OperandType.Float]),
             new(OpCode.Smoothstep, [OperandType.Variable, OperandType.Float, OperandType.Float]),
+            new(OpCode.Step, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Dot, [OperandType.Variable, OperandType.Float]),
             new(OpCode.Reflect, [OperandType.Vector, OperandType.Vector]),
             new(OpCode.Refract, [OperandType.Vector, OperandType.Vector, OperandType.Float]),

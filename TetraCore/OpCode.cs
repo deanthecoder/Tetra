@@ -73,6 +73,7 @@ public enum OpCode
     Clamp,      // clamp $a, $b, $c          (a = clamp(b, c))
     Mix,        // mix $a, $b, $c            (a = mix(b, c))
     Smoothstep, // smoothstep $a, $e1, $e2   (a = smoothstep(a, e1, e2))
+    Step,       // step $a, $edge            (a = step(edge, a))
     Reflect,    // reflect $a, $n            (a = reflect(a, n))
     Refract,    // refract $a, $n, $eta      (a = refract(a, n, eta))
     Normalize,  // normalize $a, $b          (a = normalize(b))

@@ -218,6 +218,7 @@ public class TetraVm
             case OpCode.Clamp: ExecuteClamp(instr); break;
             case OpCode.Mix: ExecuteMix(instr); break;
             case OpCode.Smoothstep: ExecuteSmoothstep(instr); break;
+            case OpCode.Step: ExecuteStep(instr); break;
             case OpCode.Dot: ExecuteDot(instr); break;
             case OpCode.Reflect: ExecuteReflect(instr); break;
             case OpCode.Refract: ExecuteRefract(instr); break;
@@ -1029,6 +1030,17 @@ public class TetraVm
             var t = ((x - edge0) / (edge1 - edge0)).Clamp(0.0f, 1.0f);
             return t * t * (3.0f - 2.0f * t);
         });
+    }
+    
+    /// <summary>
+    /// E.g. step $a, $edge    (a = step(edge, a))
+    /// </summary>
+    private void ExecuteStep(in Instruction instr)
+    {
+        if (instr.Operands.Length != 2)
+            throw new RuntimeException("Expected: step $a, $edge");
+
+        DoMathOp(instr, (x, edge) => x < edge ? 0.0f : 1.0f);
     }
 
     /// <summary>
