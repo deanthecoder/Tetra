@@ -301,50 +301,55 @@ public class Assembler
         IEnumerable<string> labels,
         SymbolTable symbolTable)
     {
-        if (word.StartsWith('$'))
+        try
         {
-            var bracketIndex = word.IndexOf('[');
-            var brackets = bracketIndex >= 0 ? word[bracketIndex..] : string.Empty;
-            var variableName = bracketIndex < 0 ? word[1..] : word[1..bracketIndex];
-            
-            // Support names like 'v.x' (Treat as 'v').
-            var swizzle = string.Empty;
-            if (variableName.Contains('.'))
+            if (word.StartsWith('$'))
             {
-                swizzle = variableName[variableName.IndexOf('.')..];
-                variableName = variableName[..variableName.IndexOf('.')];
+                var bracketIndex = word.IndexOf('[');
+                var brackets = bracketIndex >= 0 ? word[bracketIndex..] : string.Empty;
+                var variableName = bracketIndex < 0 ? word[1..] : word[1..bracketIndex];
+
+                // Support names like 'v.x' (Treat as 'v').
+                var swizzle = string.Empty;
+                if (variableName.Contains('.'))
+                {
+                    swizzle = variableName[variableName.IndexOf('.')..];
+                    variableName = variableName[..variableName.IndexOf('.')];
+                }
+
+                if (!m_operandSlots.TryGetValue(variableName, out var opSlot))
+                    opSlot = m_operandSlots[variableName] = GetNextOperandSlot();
+                symbolTable[opSlot] = variableName;
+
+                // Variable.
+                return new Operand
+                {
+                    Type = OperandType.Variable, Name = $"{opSlot}{swizzle}{brackets}"
+                };
             }
 
-            if (!m_operandSlots.TryGetValue(variableName, out var opSlot))
-                opSlot = m_operandSlots[variableName] = GetNextOperandSlot();
-            symbolTable[opSlot] = variableName;
-            
-            // Variable.
-            return new Operand
+            // Float.
+            if (word.Contains('.') && float.TryParse(word, out var floatValue))
+                return new Operand(floatValue);
+
+            // Integer.
+            if (int.TryParse(word, out var intValue))
+                return new Operand(intValue);
+
+            if (labels.Contains(word))
             {
-                Type = OperandType.Variable,
-                Name = $"{opSlot}{swizzle}{brackets}"
-            };
+                // Label.
+                return new Operand
+                {
+                    Type = OperandType.Label, Label = word
+                };
+            }
         }
-
-        // Float.
-        if (word.Contains('.') && float.TryParse(word, out var floatValue))
-            return new Operand(floatValue);
-
-        // Integer.
-        if (int.TryParse(word, out var intValue))
-            return new Operand(intValue);
-
-        if (labels.Contains(word))
+        catch (SyntaxErrorException e)
         {
-            // Label.
-            return new Operand
-            {
-                Type = OperandType.Label,
-                Label = word
-            };
+            throw new SyntaxErrorException($"Error: {e.Message}\n  {lineIndex + 1}: {line.Trim()}");
         }
-        
+
         // Unrecognized operand.
         var s = $"Error: Unrecognized operand '{word}'.\n  {lineIndex + 1}: {line.Trim()}\nExpected:";
         GetExpectedOperandTypes(opCode).ForEach(o => s += $"\n  {OpCodeToStringMap.GetString(opCode)} {o.Select(op => $"<{op}>").ToCsv()}");
